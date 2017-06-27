@@ -6,7 +6,6 @@ from enum import Enum
 
 z3.set_option('unsat-core', True)
 
-from mins import get_max
 from mins import get_min_eval_select
 from mins import get_max_eval_select
 
@@ -53,14 +52,15 @@ SetCommunity = namedtuple('SetCommunity', ['community', 'value'])
 SetLocalPref = namedtuple('SetLocalPref', ['localpref'])
 SetDrop = namedtuple('DropRoute', ['value'])
 
-RouteMapResult = namedtuple('RouteMapResult', ['name', 'match', 'match_synthesized', 'match_syn_map', 'action', 'action_val', 'localpref', 'communities', 'drop', 'smt', 'prev_result'])
+RouteMapResult = namedtuple('RouteMapResult', ['name', 'route_map', 'match_fun', 'match_synthesized', 'match_syn_map', 'action', 'action_val', 'localpref', 'communities', 'drop', 'smt', 'prev_result'])
 
 
 class EBGP(object):
-    def __init__(self, announcements, network_graph = None, solver = None):
+    def __init__(self, announcements, all_communities = ('C1', 'C2', 'C3'), network_graph = None, solver = None):
         self.network_graph = network_graph
         self.solver = solver or z3.Solver()
         self._announcements_map = None
+        self.all_communities = all_communities
         self.load_announcements(announcements)
 
     def get_announcement(self, announcement_name):
@@ -76,9 +76,8 @@ class EBGP(object):
         return self._prefixes_map[prefix_name]
 
     def load_announcements(self, announcements):
-        all_communities = ('C1', 'C2', 'C3')
         # Special none valid route to help with Z3 tricks!
-        self.notvalid = Announcement(PREFIX='NOTVALID', PEER='NOTVALID', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[i for i in range(100)], NEXT_HOP='NOTVALID', LOCAL_PREF=0, COMMUNITIES=('F', 'F', 'F'))
+        self.notvalid = Announcement(PREFIX='NOTVALIDPREFIX', PEER='NOTVALIDPEER', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[i for i in range(100)], NEXT_HOP='NOTVALIDNXTHOP', LOCAL_PREF=0, COMMUNITIES=tuple(['F' for i in range(len(self.all_communities))]))
         announcements = [self.notvalid] + announcements
 
         # Give a name for each announcement
@@ -112,7 +111,7 @@ class EBGP(object):
         self.route_denied = z3.Function('DeniedRoutes', self.AnnouncementSort, z3.BoolSort())
         # Create functions for communities
         self.communities = {}
-        for c in all_communities:
+        for c in self.all_communities:
             self.communities[c] = z3.Function('Has%s' % c, self.AnnouncementSort, z3.BoolSort())
 
         for i, name in enumerate(sorted(self.announcement_names)):
@@ -134,7 +133,7 @@ class EBGP(object):
 
             # Assign communities
             for i, c in enumerate(ann.COMMUNITIES):
-                c_name = all_communities[i]
+                c_name = self.all_communities[i]
                 c_fun = self.communities[c_name]
                 assert_name = 'init_comm_%s_%s' % (str(var), c_name)
                 if c == 'T':
@@ -189,18 +188,25 @@ class EBGP(object):
                 dummy_match = z3.Function('%s_Synthesize_Peer_Match' % (name), self.AnnouncementSort, z3.BoolSort())
                 match_synthesized = z3.Const('%s_Selected_Peer_Match' % (name), self.PeerSort)
                 match_syn_map = None
-                self.solver.append( z3.ForAll([t1], dummy_match(t1) == z3.If(self.peer(t1) == match_synthesized, True, False)))
+                self.solver.append(z3.ForAll([t1], dummy_match(t1) == z3.If(self.peer(t1) == match_synthesized, True, False)))
                 match_fun = dummy_match
         elif isinstance(match, MatchPrefix):
             if match.prefix != EMPTY:
                 match_fun = lambda x: self.prefix(x) == self.get_prefix(match.prefix)
             else:
-                dummy_match = z3.Function('%s_Synthesize_Prefix_Match' % (name), self.AnnouncementSort, z3.BoolSort())
-                match_synthesized = z3.Const('%s_Selected_Prefix_Match' % (name), self.PrefixSort)
-                match_syn_map = None
-                self.solver.append( z3.ForAll([t1], dummy_match(t1) == z3.If(self.prefix(t1) == match_synthesized, True, False)))
+                dummy_match = z3.Function('%s_Synthesize_Prefix_Match' % name, self.AnnouncementSort, z3.BoolSort())
+                match_synthesized = z3.Const('%s_Selected_Prefix_Match' % (name), z3.IntSort())
+                match_syn_map = {}
+                constrains = []
+                for i, prefix in enumerate(sorted(self._prefixes_map.values())):
+                    match_syn_map[i] = prefix
+                    constrains.append(
+                        z3.And(match_synthesized == i,
+                               z3.ForAll([t1], dummy_match(t1) == z3.If(self.prefix(t1) == prefix, True, False)))
+                    )
+                constrains = z3.Or(*constrains)
+                self.solver.append(constrains)
                 match_fun = dummy_match
-
         else:
             raise ValueError("Unknown match type %s" % type(match))
 
@@ -247,9 +253,9 @@ class EBGP(object):
             result_smt = c
         elif isinstance(action, SetDrop):
             # Function for denied routes
-            route_denied = z3.Function('%s_DeniedRoutes' % (name,), self.AnnouncementSort, z3.BoolSort())
+            route_denied = z3.Function('%s_DropRoute' % (name,), self.AnnouncementSort, z3.BoolSort())
             action_fun = route_denied
-            action_val = z3.Const('%s_action_val', z3.BoolSort())
+            action_val = z3.Const('%s_action_val' % name, z3.BoolSort())
             c = z3.ForAll([t1], route_denied(t1) == z3.If(match_fun(t1), action_val, prev_drop(t1)))
             if action.value != EMPTY:
                 c = z3.And(c, action_val == action.value)
@@ -258,20 +264,18 @@ class EBGP(object):
             result_drop = route_denied
             result_smt = c
         # Prepare our results
-        result = RouteMapResult(name, match=match_fun, match_synthesized=match_synthesized, match_syn_map=match_syn_map,
-                                action=action_fun, action_val=action_val, communities=result_communities,
-                                localpref=result_localpref, drop=result_drop, smt=result_smt, prev_result=prev_result)
+        result = RouteMapResult(name, route_map=route_map, match_fun=match_fun, match_synthesized=match_synthesized,
+                                match_syn_map=match_syn_map, action=action_fun, action_val=action_val,
+                                communities=result_communities, localpref=result_localpref, drop=result_drop,
+                                smt=result_smt, prev_result=prev_result)
         return result
 
     def process_route_maps(self, route_maps):
-        if len(route_maps) == 0:
-            result = RouteMapResult('InitialResult', communities=self.communities, localpref=self.localpref,
-                                    drop=self.route_denied, smt=None, prev_result=None)
-            return result
-
         first = route_maps[0]
         result = self.process_route_map(route_map=first, prev_communities=self.communities,
                                         prev_localpref=self.localpref, prev_drop=self.route_denied, prev_result=None)
+        print "SMT", result.smt
+        print "DROP", result.drop
         self.solver.assert_and_track(result.smt, 'route_map_%s' % first.name)
         prev_result = result
         for route_map in route_maps[1:]:
@@ -289,13 +293,17 @@ class EBGP(object):
         name = result.name
         print "Route Map", name
         if summary:
-            print "\t", "Match", result.match
-            print "\t", "Action", result.action, model.eval(result.action_val)
-            if result.match_synthesized is not None:
+            if result.match_synthesized is None:
+                print "\t", "Match", result.route_map.match
+                print "\t", "Action", result.action, model.eval(result.action_val)
+            else:
+                synthesize_match = None
                 if result.match_syn_map:
-                    print "\tSelected", result.match_syn_map[model.eval(result.match_synthesized).as_long()]
+                    synthesize_match = result.match_syn_map[model.eval(result.match_synthesized).as_long()]
                 else:
-                    print "\tSelected", model.eval(result.match_synthesized)
+                    synthesize_match = model.eval(result.match_synthesized)
+                print "\t", "Match", result.route_map.match, synthesize_match
+                print "\t", "Action", result.action, model.eval(result.action_val)
         else:
             for route in self._announcements_map.values():
                 if str(route) == 'Ann0': continue
@@ -309,192 +317,47 @@ class EBGP(object):
         localpref = result.localpref
         communities_fun = result.communities
         route_denied = result.drop
+        print "DROP2", route_denied
         select_route_vars = []
         for prefix in set([ann.PREFIX for ann in self.announcement_names.values()]):
             if prefix == self.notvalid.PREFIX:
                 continue
             Selected = z3.Const('SelectedRoute%s' % prefix, self.AnnouncementSort)
+            select_route_vars.append(Selected)
             prefixAnn = [self.get_announcement(ann) for ann in self._announcements_map if self.announcement_names[ann].PREFIX == prefix]
             if len(prefixAnn) == 1:
-                self.solver.add(Selected == z3.If(route_denied(prefixAnn[0]), na, prefixAnn[0]))
-                continue
-
-            MaxLP = z3.Const('MaxLP%s' % prefix, z3.IntSort())
-            MinAS = z3.Const('MinAS%s' % prefix, z3.IntSort())
-            # Find the maximum local pref
-            self.solver.add(MaxLP == localpref(get_max_eval_select(route_denied, False, localpref, na,  *prefixAnn)))
-
-            select_route_vars.append(Selected)
-            self.solver.add(Selected == get_min_eval_select(localpref, MaxLP, self.aspathlength, na, *prefixAnn))
+                print "Just one prefix"
+                self.solver.assert_and_track(Selected == z3.If(route_denied(prefixAnn[0]), na, prefixAnn[0]), 'direct_%s' % prefix)
+            else:
+                MaxLP = z3.Const('MaxLP%s' % prefix, z3.IntSort())
+                MinAS = z3.Const('MinAS%s' % prefix, z3.IntSort())
+                # Find the maximum local pref
+                self.solver.add(MaxLP == localpref(get_max_eval_select(route_denied, False, localpref, na,  *prefixAnn)))
+                self.solver.add(Selected == get_min_eval_select(localpref, MaxLP, self.aspathlength, na, *prefixAnn))
 
             for name in required_names:
                 if prefix == self.announcement_names[name].PREFIX:
+                    print "Added req"
                     self.solver.assert_and_track(Selected == self.get_announcement(name), 'select_%s_%s' % (prefix, name))
 
         if self.solver.check() == z3.sat:
-            #print self.solver.model()
             model = self.solver.model()
             selected_routes = []
             for route in select_route_vars:
                 route = str(model.eval(route))
                 # Skip the non valid route
-                if route == 'Ann0': continue
+                #if route == 'Ann0': continue
                 selected_routes.append(route)
 
             self.eval_route_map(model, result)
             for name in sorted(self._announcements_map.keys()):
                 ann = self.get_announcement(name)
-                print "Drop", name, model.eval(route_denied(ann))
+                print "Drop", route_denied, name, model.eval(route_denied(ann))
             #assert selected_routes == required_names, selected_routes
+            print "Selected Routes", selected_routes
+            #print self.solver.to_smt2()
+            print model
             return True
         else:
             print self.solver.unsat_core()
             return False
-
-
-def test_match_peer_set_localpref():
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 5, 7, 6],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann2 = Announcement(PREFIX='Google', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann3 = Announcement(PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 10, 30, 40],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann4 = Announcement(PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 3],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann5 = Announcement(PREFIX='Yahoo', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann6 = Announcement(PREFIX='Yahoo', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
-    reqs = ['Ann1', 'Ann4']
-    ebgp = EBGP(announcements)
-
-    # First, try fix the peer match
-    routemap1 = RouteMap(name='RM1', match=MatchPeer('SwissCom'), action=SetLocalPref(EMPTY), permit=True)
-    route_maps = [routemap1]
-    assert ebgp.solve(route_maps, reqs)
-
-    # Second, peer match is EMPY
-    route_maps = [RouteMap(name='RM1', match=MatchPeer(EMPTY), action=SetLocalPref(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
-    assert ebgp.solve(route_maps, reqs)
-
-
-def test_match_community_set_localpref():
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 5, 7, 6],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann2 = Announcement(PREFIX='Google', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann3 = Announcement(PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 10, 30, 40],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('T', 'F', 'T'))
-
-    ann4 = Announcement(PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 3],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann5 = Announcement(PREFIX='Yahoo', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann6 = Announcement(PREFIX='Yahoo', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('T', 'F', 'T'))
-
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
-    reqs = ['Ann3', 'Ann6']
-    ebgp = EBGP(announcements)
-
-    # First, try fix the peer match
-    routemap1 = RouteMap(name='RM1', match=MatchCommunity('C1'), action=SetLocalPref(EMPTY), permit=True)
-    route_maps = [routemap1]
-    assert ebgp.solve(route_maps, reqs)
-
-    # Second, peer match is EMPY
-    route_maps = [RouteMap(name='RM1', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
-    assert ebgp.solve(route_maps, reqs)
-
-
-def test_match_localpref_set_localpref():
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 5, 7, 6],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann2 = Announcement(PREFIX='Google', PEER='ATT',      ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4, 7],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann3 = Announcement(PREFIX='Google', PEER='DT',       ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 9],
-                        NEXT_HOP='DT', LOCAL_PREF=50, COMMUNITIES=('T', 'F', 'T'))
-
-    ann4 = Announcement(PREFIX='Yahoo', PEER='SwissCom',   ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 3, 4, 3],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann5 = Announcement(PREFIX='Yahoo', PEER='ATT',        ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4, 1],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann6 = Announcement(PREFIX='Yahoo', PEER='DT',         ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 8],
-                        NEXT_HOP='DT', LOCAL_PREF=50, COMMUNITIES=('T', 'F', 'T'))
-
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
-    reqs = ['Ann3', 'Ann6']
-    ebgp = EBGP(announcements)
-
-    # First, try fix the peer match
-    routemap1 = RouteMap(name='RM1', match=MatchLocalPref(50), action=SetLocalPref(EMPTY), permit=True)
-    route_maps = [routemap1]
-    assert ebgp.solve(route_maps, reqs)
-
-    # Second, peer match is EMPY
-    route_maps = [RouteMap(name='RM1', match=MatchLocalPref(EMPTY), action=SetLocalPref(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
-    assert ebgp.solve(route_maps, reqs)
-
-
-def test_match_prefix_set_drop():
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 5, 7, 6],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann2 = Announcement(PREFIX='Google', PEER='ATT',      ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4, 7],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann3 = Announcement(PREFIX='Google', PEER='DT',       ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 9],
-                        NEXT_HOP='DT', LOCAL_PREF=500, COMMUNITIES=('T', 'F', 'T'))
-
-    ann4 = Announcement(PREFIX='Yahoo', PEER='SwissCom',   ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 3, 4, 3],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann5 = Announcement(PREFIX='Yahoo', PEER='ATT',        ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4, 1],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann6 = Announcement(PREFIX='Yahoo', PEER='DT',         ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 8],
-                        NEXT_HOP='DT', LOCAL_PREF=50, COMMUNITIES=('T', 'F', 'T'))
-
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
-    reqs = ['Ann3']
-    ebgp = EBGP(announcements)
-
-    # First, try fix the match
-    routemap1 = RouteMap(name='RM1', match=MatchPrefix('Yahoo'), action=SetDrop(True), permit=True)
-    route_maps = [routemap1]
-    assert ebgp.solve(route_maps, reqs)
-
-    # Second, match is EMPY
-    route_maps = [RouteMap(name='RM1', match=MatchPrefix(EMPTY), action=SetDrop(True), permit=True)]
-    ebgp = EBGP(announcements)
-    assert ebgp.solve(route_maps, reqs)
-
-
-def main():
-    #test_match_peer_set_localpref()
-    #test_match_community_set_localpref()
-    #test_match_localpref_set_localpref()
-    test_match_prefix_set_drop()
-    routemap2 = RouteMap(name='RM2', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
-
-
-if __name__ == '__main__':
-    main()
