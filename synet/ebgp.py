@@ -256,7 +256,7 @@ class EBGP(object):
             route_denied = z3.Function('%s_DropRoute' % (name,), self.AnnouncementSort, z3.BoolSort())
             action_fun = route_denied
             action_val = z3.Const('%s_action_val' % name, z3.BoolSort())
-            c = z3.ForAll([t1], route_denied(t1) == z3.If(match_fun(t1), action_val, prev_drop(t1)))
+            c = z3.ForAll([t1], route_denied(t1) == z3.If(match_fun(t1) == True, action_val, prev_drop(t1)))
             if action.value != EMPTY:
                 c = z3.And(c, action_val == action.value)
             result_communities = prev_communities
@@ -271,11 +271,15 @@ class EBGP(object):
         return result
 
     def process_route_maps(self, route_maps):
+        if len(route_maps) == 0:
+            result = RouteMapResult('EmptyRouteMap', route_map=None, match_fun=None, match_synthesized=None,
+                                    match_syn_map=None, action=None, action_val=None,
+                                    communities=self.communities, localpref=self.localpref, drop=self.route_denied,
+                                    smt=None, prev_result=None)
+            return result
         first = route_maps[0]
         result = self.process_route_map(route_map=first, prev_communities=self.communities,
                                         prev_localpref=self.localpref, prev_drop=self.route_denied, prev_result=None)
-        print "SMT", result.smt
-        print "DROP", result.drop
         self.solver.assert_and_track(result.smt, 'route_map_%s' % first.name)
         prev_result = result
         for route_map in route_maps[1:]:
@@ -291,6 +295,8 @@ class EBGP(object):
         if result.prev_result is not None:
             self.eval_route_map(model, result.prev_result, summary)
         name = result.name
+        if result.route_map is None:
+            return
         print "Route Map", name
         if summary:
             if result.match_synthesized is None:
@@ -317,7 +323,6 @@ class EBGP(object):
         localpref = result.localpref
         communities_fun = result.communities
         route_denied = result.drop
-        print "DROP2", route_denied
         select_route_vars = []
         for prefix in set([ann.PREFIX for ann in self.announcement_names.values()]):
             if prefix == self.notvalid.PREFIX:
@@ -326,7 +331,6 @@ class EBGP(object):
             select_route_vars.append(Selected)
             prefixAnn = [self.get_announcement(ann) for ann in self._announcements_map if self.announcement_names[ann].PREFIX == prefix]
             if len(prefixAnn) == 1:
-                print "Just one prefix"
                 self.solver.assert_and_track(Selected == z3.If(route_denied(prefixAnn[0]), na, prefixAnn[0]), 'direct_%s' % prefix)
             else:
                 MaxLP = z3.Const('MaxLP%s' % prefix, z3.IntSort())
@@ -337,7 +341,6 @@ class EBGP(object):
 
             for name in required_names:
                 if prefix == self.announcement_names[name].PREFIX:
-                    print "Added req"
                     self.solver.assert_and_track(Selected == self.get_announcement(name), 'select_%s_%s' % (prefix, name))
 
         if self.solver.check() == z3.sat:
@@ -346,17 +349,16 @@ class EBGP(object):
             for route in select_route_vars:
                 route = str(model.eval(route))
                 # Skip the non valid route
-                #if route == 'Ann0': continue
+                if route == 'Ann0': continue
                 selected_routes.append(route)
 
             self.eval_route_map(model, result)
-            for name in sorted(self._announcements_map.keys()):
-                ann = self.get_announcement(name)
-                print "Drop", route_denied, name, model.eval(route_denied(ann))
-            #assert selected_routes == required_names, selected_routes
-            print "Selected Routes", selected_routes
+            #for name in sorted(self._announcements_map.keys()):
+            #    ann = self.get_announcement(name)
+            #   print "Drop", route_denied, name, model.eval(route_denied(ann))
+            assert set(selected_routes) == set(required_names), "Selected Routes are %s" % selected_routes
             #print self.solver.to_smt2()
-            print model
+            #print model
             return True
         else:
             print self.solver.unsat_core()
