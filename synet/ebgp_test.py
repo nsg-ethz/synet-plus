@@ -208,7 +208,6 @@ def test_match_localpref_set_drop():
 
 def get_random_announcements(num_prefixes, num_peers, num_communities, min_as_path=2, max_as_path=10,
                 min_localpref=100, max_localpref=100, random_gen=None):
-    print "#" * 10, "Test Match=LocalPref, Action=Drop", "#" * 20
     prefixes = ["Prefix%05d" % i for i in range(num_prefixes)]
     peers = ["Peer%04d" % i for i in range(num_peers)]
     communities = ["Community%04d" % i for i in range(num_communities)]
@@ -234,6 +233,7 @@ def get_random_announcements(num_prefixes, num_peers, num_communities, min_as_pa
 
 
 def test_stress(announcements, communities, random_gen):
+    print "#" * 10, "Test Stress", "#" * 20
     prefix_announcement = {}
     peer_announcement = {}
     for ann in announcements:
@@ -243,23 +243,43 @@ def test_stress(announcements, communities, random_gen):
     reqs = []
     for prefix in prefix_announcement:
         anns = prefix_announcement[prefix]
-        ann = random_gen.choice(anns)
-        reqs.append(ann)
+        #ann = random_gen.choice(anns)
+        selected = False
+        for ann in anns:
+            if ann.PEER == 'Peer0001':
+                reqs.append(ann)
+                selected = True
+                break
+        if not selected:
+            ann = random_gen.choice(anns)
+            reqs.append(ann)
+
     reqs_names = []
     for i, ann in enumerate(announcements):
         if ann in reqs:
             reqs_names.append('Ann%d' % (i+1))
-    RM1 = RouteMap(name='RM1', match=MatchPrefix(prefix_announcement.keys()[0]), action=SetCommunity(communities[0], True), permit=True)
-    RM2 = RouteMap(name='RM1', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
-    route_maps = [RM1]
+
+    RM1 = RouteMap(name='RM1', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
+    RM2 = RouteMap(name='RM2', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
+    RM3 = RouteMap(name='RM3', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
+    RM4 = RouteMap(name='RM4', match=MatchPeer(EMPTY), action=SetLocalPref(EMPTY), permit=True)
+    route_maps = [RM1, RM2, RM3, RM4]
+    route_maps = [RouteMap(name='RM%d' % i , match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True) for i in range(len(communities))]
+    #route_maps += [RouteMap(name='RM2%d' % i, match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True) for i
+    #              in range(len(communities))]
     ebgp = EBGP(announcements, all_communities=communities)
-    assert ebgp.solve([], reqs_names)
+    assert ebgp.solve(route_maps, reqs_names)
 
 
 def main():
     import random
+    import sys
+    seed = random.randint(0, sys.maxint)
     random_gen = random.Random()
-    anns, communities = get_random_announcements(num_prefixes=10000, num_peers=1, num_communities=10, random_gen=random_gen)
+    seed = 8348970342609031081
+    random_gen.seed(seed)
+    print "Seed is", seed
+    anns, communities = get_random_announcements(num_prefixes=10, num_peers=10, num_communities=10, random_gen=random_gen)
     test_stress(anns, communities, random_gen)
     return
 

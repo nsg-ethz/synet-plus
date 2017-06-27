@@ -320,7 +320,7 @@ class EBGP(object):
         na = self._announcements_map['Ann0']
         result = self.process_route_maps(route_maps)
 
-        localpref = result.localpref
+        localpref_fun = result.localpref
         communities_fun = result.communities
         route_denied = result.drop
         select_route_vars = []
@@ -336,8 +336,8 @@ class EBGP(object):
                 MaxLP = z3.Const('MaxLP%s' % prefix, z3.IntSort())
                 MinAS = z3.Const('MinAS%s' % prefix, z3.IntSort())
                 # Find the maximum local pref
-                self.solver.add(MaxLP == localpref(get_max_eval_select(route_denied, False, localpref, na,  *prefixAnn)))
-                self.solver.add(Selected == get_min_eval_select(localpref, MaxLP, self.aspathlength, na, *prefixAnn))
+                self.solver.add(MaxLP == localpref_fun(get_max_eval_select(route_denied, False, localpref_fun, na,  *prefixAnn)))
+                self.solver.add(Selected == get_min_eval_select(localpref_fun, MaxLP, self.aspathlength, na, *prefixAnn))
 
             for name in required_names:
                 if prefix == self.announcement_names[name].PREFIX:
@@ -357,6 +357,25 @@ class EBGP(object):
             #    ann = self.get_announcement(name)
             #   print "Drop", route_denied, name, model.eval(route_denied(ann))
             assert set(selected_routes) == set(required_names), "Selected Routes are %s" % selected_routes
+            exported = []
+            for var in select_route_vars:
+                ann_name = str(model.eval(var))
+                if ann_name == 'Ann0': continue
+                ann = self.announcement_names[ann_name]
+                prefix = ann.PREFIX
+                peer = ann.PEER
+                origin = ann.ORIGIN
+                as_path = ann.AS_PATH
+                next_hop = ann.NEXT_HOP
+                localpref = model.eval(localpref_fun(var)).as_long()
+                comms = []
+                for comm in self.all_communities:
+                    comms.append('T' if z3.is_true(model.eval(communities_fun[comm](var))) else 'F')
+                communities = tuple(comms)
+                new_ann = Announcement(PREFIX=prefix, PEER=peer, ORIGIN=origin, AS_PATH=as_path,
+                                       NEXT_HOP=next_hop, LOCAL_PREF=localpref, COMMUNITIES=communities)
+                exported.append(new_ann)
+
             #print self.solver.to_smt2()
             #print model
             return True
