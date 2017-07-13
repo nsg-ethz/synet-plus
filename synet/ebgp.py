@@ -56,12 +56,12 @@ RouteMapResult = namedtuple('RouteMapResult', ['name', 'route_map', 'match_fun',
 
 
 class EBGP(object):
-    def __init__(self, announcements, all_communities = ('C1', 'C2', 'C3'), network_graph = None, solver = None):
-        self.network_graph = network_graph
+    def __init__(self, announcements, all_communities = ('C1', 'C2', 'C3'), solver = None):
         self.solver = solver or z3.Solver()
         self._announcements_map = None
         self.all_communities = all_communities
         self.load_announcements(announcements)
+        self.exported = {}
 
     def get_announcement(self, announcement_name):
         """Given a string name of the announcement return it's Z3 value"""
@@ -297,24 +297,24 @@ class EBGP(object):
         name = result.name
         if result.route_map is None:
             return
-        print "Route Map", name
+        print "\tRoute Map", name
         if summary:
             if result.match_synthesized is None:
-                print "\t", "Match", result.route_map.match
-                print "\t", "Action", result.action, model.eval(result.action_val)
+                print "\t\t", "Match", result.route_map.match
+                print "\t\t", "Action", result.action, model.eval(result.action_val)
             else:
                 synthesize_match = None
                 if result.match_syn_map:
                     synthesize_match = result.match_syn_map[model.eval(result.match_synthesized).as_long()]
                 else:
                     synthesize_match = model.eval(result.match_synthesized)
-                print "\t", "Match", result.route_map.match, synthesize_match
-                print "\t", "Action", result.action, model.eval(result.action_val)
+                print "\t\t", "Match (S)", result.route_map.match, synthesize_match #, synthesize_match.sort().kind() #, dir(synthesize_match)
+                print "\t\t", "Action", result.action, model.eval(result.action_val)
         else:
             for route in self._announcements_map.values():
                 if str(route) == 'Ann0': continue
-                print "\t", result.match, route, model.eval(result.match(route))
-                print "\t", result.action, route, model.eval(result.action(route))
+                print "\t\t", result.match, route, model.eval(result.match(route))
+                print "\t\t", result.action, route, model.eval(result.action(route))
 
     def solve(self, route_maps, required_names=[]):
         na = self._announcements_map['Ann0']
@@ -356,8 +356,8 @@ class EBGP(object):
             #for name in sorted(self._announcements_map.keys()):
             #    ann = self.get_announcement(name)
             #   print "Drop", route_denied, name, model.eval(route_denied(ann))
-            assert set(selected_routes) == set(required_names), "Selected Routes are %s" % selected_routes
-            exported = []
+            #assert set(selected_routes) == set(required_names), "Selected Routes are %s and required are %s" % (selected_routes, required_names)
+            self.exported = {}
             for var in select_route_vars:
                 ann_name = str(model.eval(var))
                 if ann_name == 'Ann0': continue
@@ -374,7 +374,7 @@ class EBGP(object):
                 communities = tuple(comms)
                 new_ann = Announcement(PREFIX=prefix, PEER=peer, ORIGIN=origin, AS_PATH=as_path,
                                        NEXT_HOP=next_hop, LOCAL_PREF=localpref, COMMUNITIES=communities)
-                exported.append(new_ann)
+                self.exported[ann_name] = new_ann
 
             #print self.solver.to_smt2()
             #print model
