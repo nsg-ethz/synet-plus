@@ -1,3 +1,5 @@
+import networkx as nx
+
 from synet.ebgp import Announcement
 from synet.ebgp import RouteMap
 from synet.ebgp import MatchLocalPref
@@ -271,7 +273,105 @@ def test_stress(announcements, communities, random_gen):
     assert ebgp.solve(route_maps, reqs_names)
 
 
+def update_peer(announcements, peer):
+    c_anns = []
+    for ann in announcements:
+        new_ann = {}
+        for f in ann._fields:
+            if f == 'PEER':
+                new_ann[f] = peer
+            else:
+                new_ann[f] = getattr(ann, f)
+        new_ann = Announcement(**new_ann)
+        c_anns.append(new_ann)
+    return c_anns
+
+
+def apply_syn(anns, reqs):
+    routemap1 = RouteMap(name='RM1', match=MatchPeer(EMPTY), action=SetCommunity('C1', EMPTY), permit=True)
+    routemap2 = RouteMap(name='RM2', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
+    route_maps = [routemap1, routemap2]
+    bgp = EBGP(anns)
+    assert bgp.solve(route_maps, reqs)
+    return bgp.exported
+
+
+def get_reqs(announcements, reqs):
+    req_names = []
+
+    def match(ann, req):
+        return (ann.PREFIX, ann.PEER, ann.NEXT_HOP) == req
+
+    for i, ann in enumerate(announcements):
+        name = 'Ann%d' % (i + 1)
+        for req in reqs:
+            if match(ann, req):
+                req_names.append(name)
+    return req_names
+
+def test_graph():
+    g = nx.DiGraph()
+    g.add_nodes_from(['A', 'B', 'C', 'D'])
+    for src in g.nodes():
+        for dst in g.nodes():
+            if src == dst: continue
+            g.add_edge(src, dst)
+
+    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[2, 5, 8],
+                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'F'))
+    ann2 = Announcement(PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[6, 7],
+                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'F'))
+    anns = [ann1, ann2]
+
+    req_map = {}
+    req_map['D'] = [('Google', 'SwissCom', 'SwissCom')]
+    req_map['A'] = [('Google', 'B', 'SwissCom')]
+    req_map['B'] = [('Google', 'C', 'SwissCom')]
+    req_map['C'] = [('Google', 'D', 'SwissCom')]
+
+    #req_map['D'] = [('Google', 'SwissCom', 'SwissCom')]
+    #req_map['A'] = [('Google', 'D', 'SwissCom')]
+    #req_map['B'] = [('Google', 'D', 'SwissCom')]
+    #req_map['C'] = [('Google', 'D', 'SwissCom')]
+
+    exported = {}
+    exported['A'] = []
+    exported['B'] = []
+    exported['C'] = []
+    exported['D'] = []
+
+
+
+    source = 'D'
+    print "In", source
+    exported[source] += apply_syn(anns, get_reqs(anns, req_map[source])).values()
+    successors = nx.bfs_successors(g, source)
+    print ''
+    for succ in successors[source]:
+        print "In", succ
+        tmp_anns = update_peer(exported[source], source)
+        exported[succ] += apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ])).values()
+        print ""
+
+    print "*" * 50
+    print "Second Iteration"
+    source = 'C'
+    print "In", source
+    exported[source] += apply_syn(anns, get_reqs(anns, req_map[source])).values()
+    successors = nx.bfs_successors(g, source)
+    for succ in successors[source]:
+        if succ == 'D': continue
+        print "In", succ
+        tmp_anns = update_peer(exported[source], source)
+        exported[succ] += apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ])).values()
+        print ""
+
 def main():
+
+    test_graph()
+    return
+
+
     import random
     import sys
     seed = random.randint(0, sys.maxint)
