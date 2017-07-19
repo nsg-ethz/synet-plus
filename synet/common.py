@@ -68,6 +68,43 @@ SetOSPFEdgeCost = namedtuple('SetOSPFEdgeCost', ['src', 'dst', 'cost'])
 
 BestOSPFRoute = namedtuple('BestOSPFRoute', ['net', 'src', 'nxt', 'cost'])
 
+
+
+def generate_second_path(G, path, random_obj):
+    """
+    Given a path between source target fail one edge randomly
+    and return find the next best path
+    """
+    new_g = G.copy()
+    src = path[0]
+    dst =  path[-1]
+    counter = 0
+    while True:
+        edges = zip(path[0::1], path[1::1])
+        candidate = random_obj.choice(edges)
+        new_g.remove_edge(*candidate)
+        if new_g.has_edge(src, dst):
+            break
+        else:
+            counter += 1
+            if counter > 5:
+                return None
+            new_g.add_edge(*candidate)
+    counter= nx.shortest_path(new_g, src, dst, 'test-weight')
+    new_g.add_edge(*candidate)
+    return counter
+
+
+def random_requirement_path(G, source, target, random_obj):
+    """Generate path requirements with a guaranteed solution"""
+    max_size = 10000
+    for src, dst in G.edges():
+        if 'test-weight' not in G[src][dst]:
+            w = random_obj.randint(1, max_size)
+            G[src][dst]['test-weight'] = w
+    return nx.shortest_path(G, source, target, 'test-weight')
+
+
 # Define common functions
 # Data types
 def z3_is_node(vertex):
