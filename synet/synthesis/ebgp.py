@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import z3
 from collections import namedtuple
+
+import z3
 from enum import Enum
 
 z3.set_option('unsat-core', True)
 
-from mins import get_min_eval_select
-from mins import get_max_eval_select
+from synet.utils.mins import get_min_eval_select
+from synet.utils.mins import get_max_eval_select
 
 EMPTY = '?'
 

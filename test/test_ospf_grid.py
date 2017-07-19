@@ -4,19 +4,18 @@
 Test various grid sizes
 """
 
-import unittest
 import random
+import unittest
 
-from synet.common import NODE_TYPE
-from synet.common import VERTEX_TYPE
-from synet.common import PathReq
-from synet.common import PathProtocols
-from synet.common import random_requirement_path
-from synet.topo_gen import gen_grid_topo_no_iface
+import synet.synthesis.ospf_heuristic
+import synet.synthesis.ospf
 
-import synet.ospf
-import synet.ospf_heuristic
-
+from synet.utils.common import NODE_TYPE
+from synet.utils.common import PathProtocols
+from synet.utils.common import PathReq
+from synet.utils.common import VERTEX_TYPE
+from synet.utils.common import random_requirement_path
+from synet.utils.topo_gen import gen_grid_topo_no_iface
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -50,7 +49,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid2_1path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         paths = self.generate_paths(g, 1)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in paths:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -58,7 +57,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid2_1path_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -68,7 +67,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid2_2path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         paths = self.generate_paths(g, 2)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in paths:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -76,7 +75,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid2_2path_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -86,7 +85,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid3_1path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(3, 3, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -94,7 +93,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid3_1path_heurisitc(self):
         g = gen_grid_topo_no_iface(3, 3, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -104,7 +103,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid3_2path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(3, 3, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -112,7 +111,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid3_2path_heurisitc(self):
         g = gen_grid_topo_no_iface(3, 3, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -122,7 +121,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid4_1path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(4, 4, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -130,7 +129,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid4_1path_heurisitc(self):
         g = gen_grid_topo_no_iface(4, 4, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -140,7 +139,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid4_2path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(4, 4, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -148,7 +147,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid4_2path_heurisitc(self):
         g = gen_grid_topo_no_iface(4, 4, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -158,7 +157,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid5_1path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(5, 5, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -166,7 +165,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid5_1path_heurisitc(self):
         g = gen_grid_topo_no_iface(5, 5, 1)
         reqs = self.generate_paths(g, 1)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -176,7 +175,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid5_2path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(5, 5, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf.OSPFSyn([], g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
@@ -184,7 +183,7 @@ class TestOSPFGrid(unittest.TestCase):
     def test_grid5_2path_heurisitc(self):
         g = gen_grid_topo_no_iface(5, 5, 1)
         reqs = self.generate_paths(g, 2)
-        ospf = synet.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], g, random_obj=self.random)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())

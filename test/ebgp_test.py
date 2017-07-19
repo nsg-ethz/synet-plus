@@ -1,17 +1,17 @@
 import networkx as nx
 
-from synet.ebgp import Announcement
-from synet.ebgp import RouteMap
-from synet.ebgp import MatchLocalPref
-from synet.ebgp import MatchCommunity
-from synet.ebgp import MatchPeer
-from synet.ebgp import MatchPrefix
-from synet.ebgp import SetLocalPref
-from synet.ebgp import SetCommunity
-from synet.ebgp import SetDrop
-from synet.ebgp import BGP_ATTRS_ORIGIN
-from synet.ebgp import EBGP
-from synet.ebgp import EMPTY
+from synet.synthesis.ebgp import Announcement
+from synet.synthesis.ebgp import BGP_ATTRS_ORIGIN
+from synet.synthesis.ebgp import EBGP
+from synet.synthesis.ebgp import EMPTY
+from synet.synthesis.ebgp import MatchCommunity
+from synet.synthesis.ebgp import MatchLocalPref
+from synet.synthesis.ebgp import MatchPeer
+from synet.synthesis.ebgp import MatchPrefix
+from synet.synthesis.ebgp import RouteMap
+from synet.synthesis.ebgp import SetCommunity
+from synet.synthesis.ebgp import SetDrop
+from synet.synthesis.ebgp import SetLocalPref
 
 
 def test_match_peer_set_localpref():

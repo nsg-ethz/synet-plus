@@ -9,12 +9,11 @@ from timeit import default_timer as timer
 import networkx as nx
 import z3
 
-from synet.common import SynthesisComponent
-from synet.common import NODE_TYPE
-from synet.common import VERTEX_TYPE
-from synet.common import PathReq
-from synet.common import SetOSPFEdgeCost
-
+from synet.utils.common import NODE_TYPE
+from synet.utils.common import PathReq
+from synet.utils.common import SetOSPFEdgeCost
+from synet.utils.common import SynthesisComponent
+from synet.utils.common import VERTEX_TYPE
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"

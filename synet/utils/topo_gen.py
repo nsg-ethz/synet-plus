@@ -5,12 +5,12 @@ Network topology generators
 
 import networkx as nx
 
-from common import INTERFACE_TYPE
-from common import INTERNAL_EDGE
-from common import LINK_EDGE
-from common import NETWORK_TYPE
-from common import NODE_TYPE
-from common import VERTEX_TYPE
+from synet.utils.common import INTERFACE_TYPE
+from synet.utils.common import INTERNAL_EDGE
+from synet.utils.common import LINK_EDGE
+from synet.utils.common import NETWORK_TYPE
+from synet.utils.common import NODE_TYPE
+from synet.utils.common import VERTEX_TYPE
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "eahmed@ethz.ch"

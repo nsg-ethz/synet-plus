@@ -4,17 +4,18 @@
 Simple Test cases for OSPF synthesis
 """
 
-import networkx as nx
-import unittest
 import random
+import unittest
 
-from synet.common import NODE_TYPE
-from synet.common import INTERNAL_EDGE
-from synet.common import PathReq
-from synet.common import PathProtocols
-import synet.ospf
-import synet.ospf_heuristic
+import networkx as nx
 
+import synet.synthesis.ospf
+import synet.synthesis.ospf_heuristic
+
+from synet.utils.common import INTERNAL_EDGE
+from synet.utils.common import NODE_TYPE
+from synet.utils.common import PathProtocols
+from synet.utils.common import PathReq
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -78,21 +79,21 @@ class TestOSPF(unittest.TestCase):
 
     def test_4nodes_1paths(self):
         reqs = TestOSPF.get_1path_req()
-        ospf = synet.ospf.OSPFSyn([], self.g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], self.g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
 
     def test_4nodes_3paths_unstatified(self):
         reqs = TestOSPF.get_3path_req()
-        ospf = synet.ospf.OSPFSyn([], self.g)
+        ospf = synet.synthesis.ospf.OSPFSyn([], self.g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertFalse(ospf.solve())
 
     def test_4nodes_1paths_heuristic(self):
         reqs = TestOSPF.get_1path_req()
-        ospf = synet.ospf_heuristic.OSPFSyn([], self.g)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], self.g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())
@@ -101,7 +102,7 @@ class TestOSPF(unittest.TestCase):
 
     def test_4nodes_3paths_unstatified_heuristic(self):
         reqs = TestOSPF.get_3path_req()
-        ospf = synet.ospf_heuristic.OSPFSyn([], self.g)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], self.g)
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.synthesize())

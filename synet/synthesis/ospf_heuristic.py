@@ -6,23 +6,23 @@ with heuristic path generator
 """
 
 import random
+
 import networkx as nx
 import z3
 
-from synet.common import SynthesisComponent
-from synet.common import NODE_TYPE
-from synet.common import VERTEX_TYPE
-from synet.common import z3_is_node
-from synet.common import z3_is_network
-from synet.common import datatypes_unique
-from synet.common import PathReq
-from synet.common import PathOrderReq
-from synet.common import PathProtocols
-from synet.common import SetOSPFEdgeCost
-from synet.common import BestOSPFRoute
-from synet.common import OSPFBestRoutes
-from synet.common import OSPFBestRoutesCost
-
+from synet.utils.common import BestOSPFRoute
+from synet.utils.common import NODE_TYPE
+from synet.utils.common import OSPFBestRoutes
+from synet.utils.common import OSPFBestRoutesCost
+from synet.utils.common import PathOrderReq
+from synet.utils.common import PathProtocols
+from synet.utils.common import PathReq
+from synet.utils.common import SetOSPFEdgeCost
+from synet.utils.common import SynthesisComponent
+from synet.utils.common import VERTEX_TYPE
+from synet.utils.common import datatypes_unique
+from synet.utils.common import z3_is_network
+from synet.utils.common import z3_is_node
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
