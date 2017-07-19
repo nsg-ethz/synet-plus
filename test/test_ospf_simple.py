@@ -2,7 +2,6 @@
 
 """
 Simple Test cases for OSPF synthesis
-This only test the base case of OSPF
 """
 
 import networkx as nx
@@ -12,14 +11,15 @@ from synet.common import NODE_TYPE
 from synet.common import INTERNAL_EDGE
 from synet.common import PathReq
 from synet.common import PathProtocols
-from synet.ospf import OSPFSyn
+import synet.ospf
+import synet.ospf_heuristic
 
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
-class TestOSPFNoHeuristic(unittest.TestCase):
+class TestOSPF(unittest.TestCase):
 
     @staticmethod
     def get_g():
@@ -54,12 +54,12 @@ class TestOSPFNoHeuristic(unittest.TestCase):
         return g_phy
 
     def setUp(self):
-        self.g = TestOSPFNoHeuristic.get_g()
+        self.g = TestOSPF.get_g()
 
     def test_4nodes_1paths(self):
         p1 = ['R1', 'R2', 'R3', 'R4']
         paths = [p1]
-        ospf = OSPFSyn([], self.g)
+        ospf = synet.ospf.OSPFSyn([], self.g)
         for path in paths:
             req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
             ospf.add_path_req(req)
@@ -70,11 +70,28 @@ class TestOSPFNoHeuristic(unittest.TestCase):
         p2 = ['R1', 'R2', 'R3', 'R4']
         p3 = ['R1', 'R3', 'R4']
         paths = [p1, p2, p3]
-        ospf = OSPFSyn([], self.g)
+        ospf = synet.ospf.OSPFSyn([], self.g)
         for path in paths:
             req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
             ospf.add_path_req(req)
         assert not ospf.solve()
 
+    def test_4nodes_1paths_heuristic(self):
+        p1 = ['R1', 'R2', 'R3', 'R4']
+        paths = [p1]
+        ospf = synet.ospf_heuristic.OSPFSyn([], self.g)
+        for path in paths:
+            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+            ospf.add_path_req(req)
+        assert ospf.solve()
 
-
+    def test_4nodes_3paths_unstatified_heuristic(self):
+        p1 = ['R1', 'R4']
+        p2 = ['R1', 'R2', 'R3', 'R4']
+        p3 = ['R1', 'R3', 'R4']
+        paths = [p1, p2, p3]
+        ospf = synet.ospf_heuristic.OSPFSyn([], self.g)
+        for path in paths:
+            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+            ospf.add_path_req(req)
+        assert not ospf.solve()

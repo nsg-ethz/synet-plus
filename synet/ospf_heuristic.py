@@ -1,14 +1,29 @@
 #!/usr/bin/env python
 
+"""
+CEGIS style synthesis for OSPF
+with heuristic path generator
+"""
+
 import argparse
 import z3
-from collections import namedtuple
+import random
 import sys
 import copy
-
-from common import *
-import random
 import networkx as nx
+
+from common import SynthesisComponent
+from common import NODE_TYPE
+from common import VERTEX_TYPE
+from common import INTERNAL_EDGE
+from common import z3_is_node
+from common import z3_is_network
+from common import datatypes_unique
+from common import PathReq
+from common import PathProtocols
+from common import SetOSPFEdgeCost
+from common import BestOSPFRoute
+
 from topo_gen import gen_grid_topo_no_iface
 from topo_gen import read_topology_zoo
 
@@ -24,26 +39,18 @@ z3.set_option('unsat-core', True)
 # Useful for storing paths in dicts
 path_key = lambda src, dst: (src, dst)
 
-ospfRand = None
 
 class OSPFSyn(SynthesisComponent):
-    SetOSPFEdgeCost = namedtuple('SetOSPFEdgeCost', ['src', 'dst', 'cost'])
-    BestOSPFRoute = namedtuple('BestOSPFRoute', ['net', 'src', 'nxt', 'cost'])
     valid_inputs = (SetOSPFEdgeCost, BestOSPFRoute)
 
-    def __init__(self, initial_configs, network_graph, solver=None, gen_paths=1000, seed=None):
+    def __init__(self, initial_configs, network_graph, solver=None, gen_paths=1000, random_obj=None):
         g = network_graph.copy()
         # Only local routers
         for node, data in g.nodes(data=True)[:]:
             if data[VERTEX_TYPE] != NODE_TYPE:
                 del g.node[node]
         super(OSPFSyn, self).__init__(initial_configs, g, solver)
-        global ospfRand
-        if ospfRand is None:
-            if not seed:
-                seed = random.randint(0, sys.maxint)
-                print "Generated new seed", seed
-            ospfRand = random.Random(seed)
+        self.random_gen = random_obj or random.Random()
         # Read vertices
         self._create_vertices('OSPFVertex', self.initial_configs,
                               self.network_graph, True)
@@ -96,7 +103,7 @@ class OSPFSyn(SynthesisComponent):
                 # Just abort at dead end
                 return None
             # Select one random next hop
-            next_node = ospfRand.choice(none_visited_children)
+            next_node = self.random_gen.choice(none_visited_children)
             visited.append(next_node)
             if next_node == target:
                 # We reached our destination
@@ -115,11 +122,11 @@ class OSPFSyn(SynthesisComponent):
             assert 'AS50' not in [src, dst]
             G.add_edge(src, dst)
         for src, dst in G.edges():
-            w = ospfRand.randint(1, max_weight)
+            w = self.random_gen.randint(1, max_weight)
             G[src][dst]['test-weight'] = w
         return nx.shortest_path(G, source, target, 'test-weight')
 
-    def generate_random_paths(self, source, target, dijsktra_prob=0.6):
+    def generate_random_paths(self, source, target, dijsktra_prob, random_obj):
         """
         A generator for random paths
         This generator keeps history of the generated paths such that we
@@ -134,7 +141,7 @@ class OSPFSyn(SynthesisComponent):
                 p = self.counter_examples[key].pop()
                 #print "Using counter example for", key, p
             else:
-                if ospfRand.random() < dijsktra_prob:
+                if random_obj.random() < dijsktra_prob:
                     p = self.random_dijkstra_path(source, target)
                 else:
                     p = self.random_walk_path(source, target)
@@ -166,7 +173,7 @@ class OSPFSyn(SynthesisComponent):
                 #for simple_path in nx.all_simple_paths(self.network_graph, src, dst):
                 path_key = tuple(req.path)
                 if path_key not in self.saved_path_gen:
-                    self.saved_path_gen[path_key] = self.generate_random_paths(src, dst)
+                    self.saved_path_gen[path_key] = self.generate_random_paths(src, dst, 0.6, self.random_gen)
                 elif path_key not in self.counter_examples:
                     #if random.randint(1, 10) < 5:
                     #print "Requirement already statified no need to generate new paths", path_key
@@ -472,45 +479,17 @@ class OSPFSyn(SynthesisComponent):
         return True
 
 
-def get_g():
-    # Start with some initial inputs
-    # This input only define routers, interfaces, and networks
-    g_phy = nx.DiGraph()
-    g_phy.add_node('R1', vertex_type=NODE_TYPE)
-    g_phy.add_node('R2', vertex_type=NODE_TYPE)
-    g_phy.add_node('R3', vertex_type=NODE_TYPE)
-    g_phy.add_node('R4', vertex_type=NODE_TYPE)
-
-    g_phy.add_edge('R1', 'R2', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R1', 'R3', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R1', 'R4', edge_type=INTERNAL_EDGE)
-
-    g_phy.add_edge('R2', 'R1', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R2', 'R3', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R2', 'R4', edge_type=INTERNAL_EDGE)
-
-    g_phy.add_edge('R3', 'R1', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R3', 'R2', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R3', 'R4', edge_type=INTERNAL_EDGE)
-
-    g_phy.add_edge('R4', 'R1', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R4', 'R2', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R4', 'R3', edge_type=INTERNAL_EDGE)
-
-    return g_phy
-
-
-def random_requirement_path(G, source, target):
+def random_requirement_path(G, source, target, random_obj):
     """Generate path requirements with a guaranteed solution"""
     max_size = 10000
     for src, dst in G.edges():
         if 'test-weight' not in G[src][dst]:
-            w = ospfRand.randint(1, max_size)
+            w = random_obj.randint(1, max_size)
             G[src][dst]['test-weight'] = w
     return nx.shortest_path(G, source, target, 'test-weight')
 
 
-def generate_second_path(G, path):
+def generate_second_path(G, path, random_obj):
     """
     Given a path between source target fail one edge randomly
     and return find the next best path
@@ -521,7 +500,7 @@ def generate_second_path(G, path):
     counter = 0
     while True:
         edges = zip(path[0::1], path[1::1])
-        candidate = ospfRand.choice(edges)
+        candidate = random_obj.choice(edges)
         new_g.remove_edge(*candidate)
         if new_g.has_edge(src, dst):
             break
@@ -541,7 +520,7 @@ def print_costs(ospf):
         print "\t", t
 
 
-def synthesize(g, paths, pathsize):
+def synthesize(g, paths, pathsize, random_obj):
     ospf = OSPFSyn([], g, gen_paths=pathsize)
     original_reqs = copy.copy(paths)
     origianl_gen_paths = ospf.gen_paths
@@ -614,34 +593,6 @@ def synthesize(g, paths, pathsize):
     #print_costs(ospf)
 
 
-def main2():
-    # Hand crafted grid for testing
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('-s', type=int, default=5, help='grid size')
-    parser.add_argument('-r', type=int, default=20,
-                        help='number of generated random requirements')
-    parser.add_argument('-p', type=int, default=1000,
-                        help='number of generated random paths for each round')
-    parser.add_argument('--seed', type=int, default=0,
-                        help='The seed of the random generator')
-
-    args = parser.parse_args()
-    pathsize = args.p
-    seed = args.seed
-    global ospfRand
-    ospfRand = random.Random(seed)
-    print "Random Seed", seed
-    print "Number of paths per iteration %d" % pathsize
-
-    p1 = ['R1', 'R4']
-    p2 = ['R1', 'R2', 'R3', 'R4']
-    p3 = ['R1', 'R3', 'R4']
-    g = get_g()
-
-    paths = [p1, p2, p3]
-    synthesize(g, paths, pathsize)
-    print "DONE"
-
 
 def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -667,7 +618,6 @@ def main():
         seed = random.randint(0, sys.maxint)
         print "Generated new seed", seed
 
-    global ospfRand
     ospfRand = random.Random(seed)
 
     if not topology_file:
@@ -692,7 +642,7 @@ def main():
     for i in range(0, reqsize):
         src, dst = ospfRand.sample(list(g.nodes()), 2)
         assert src != dst
-        path = random_requirement_path(g, src, dst)
+        path = random_requirement_path(g, src, dst, random_obj=ospfRand)
         paths.append(path)
 
     cl = nx.DiGraph()
@@ -715,7 +665,7 @@ def main():
         print "Generating counter path for path", candidate
         paths.append(counter_path)
     unsatisfiable_reqs = len(chosen)
-    synthesize(g, paths, pathsize)
+    synthesize(g, paths, pathsize, random_obj=ospfRand)
     sys.stdout.flush()
 
 
