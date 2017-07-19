@@ -2,6 +2,7 @@
 
 """
 Simple Test cases for OSPF synthesis
+This only test the base case of OSPF
 """
 
 import networkx as nx
