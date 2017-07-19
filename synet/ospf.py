@@ -4,16 +4,16 @@
 The slow version of the OSPF synthesizer.
 """
 
+from timeit import default_timer as timer
 
 import networkx as nx
 import z3
-from timeit import default_timer as timer
 
-from common import SynthesisComponent
-from common import NODE_TYPE
-from common import VERTEX_TYPE
-from common import PathReq
-from common import SetOSPFEdgeCost
+from synet.common import SynthesisComponent
+from synet.common import NODE_TYPE
+from synet.common import VERTEX_TYPE
+from synet.common import PathReq
+from synet.common import SetOSPFEdgeCost
 
 
 __author__ = "Ahmed El-Hassany"
@@ -36,6 +36,7 @@ class OSPFSyn(SynthesisComponent):
         :param network_graph: an instance of Networkx.DiGraph
         :param solver: optional instance of Z3 solver, otherwise create an new one
         """
+        super(OSPFSyn, self).__init__(initial_configs, network_graph, solver)
         self._load_graph(network_graph)
         self.solver = solver if solver else z3.Solver()
         self.initial_configs = initial_configs if initial_configs else []
@@ -75,9 +76,11 @@ class OSPFSyn(SynthesisComponent):
                 self.network_graph.edge[tmp.src][tmp.dst]['cost'] = int(tmp.cost)
         # Stop the solver from adding a new edges
         for src in self.network_graph.nodes():
-            if src in self.network_names: continue
+            if src in self.network_names:
+                continue
             for dst in self.network_graph.nodes():
-                if dst in self.network_names: continue
+                if dst in self.network_names:
+                    continue
                 src_v = self.get_vertex(src)
                 dst_v = self.get_vertex(dst)
                 if self.network_graph.has_edge(src, dst):
@@ -180,7 +183,7 @@ class OSPFSyn(SynthesisComponent):
             g = nx.DiGraph()
             g.graph['dst'] = dst_net_name
             graphs[dst_net_name] = g
-            for node, node_v in self.name_to_vertex.iteritems():
+            for node, _ in self.name_to_vertex.iteritems():
                 if not nx.has_path(g_phy, node, dst_net_name):
                     continue
                 path = nx.shortest_path(g_phy, node, dst_net_name, 'cost')
