@@ -10,9 +10,9 @@ import unittest
 
 from synet.common import NODE_TYPE
 from synet.common import INTERNAL_EDGE
-from synet.ospf_synthesizer_noint import OSPFSyn
-from synet.ospf_synthesizer_noint import PathReq
-from synet.ospf_synthesizer_noint import PathProtocols
+from synet.common import PathReq
+from synet.common import PathProtocols
+from synet.ospf import OSPFSyn
 
 
 __author__ = "Ahmed El-Hassany"
