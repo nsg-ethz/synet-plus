@@ -12,6 +12,11 @@ import networkx as nx
 from topo_gen import gen_grid_topo_no_iface
 from topo_gen import read_topology_zoo
 
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
+
+
 z3.set_option('unsat-core', True)
 
 
