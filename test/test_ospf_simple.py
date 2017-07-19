@@ -6,6 +6,7 @@ Simple Test cases for OSPF synthesis
 
 import networkx as nx
 import unittest
+import random
 
 from synet.common import NODE_TYPE
 from synet.common import INTERNAL_EDGE
@@ -55,43 +56,54 @@ class TestOSPF(unittest.TestCase):
 
     def setUp(self):
         self.g = TestOSPF.get_g()
+        self.random = random.Random(3010720575261890242)
+
+    @staticmethod
+    def get_1path_req():
+        p1 = ['R1', 'R2', 'R3', 'R4']
+        req = PathReq(PathProtocols.OSPF, p1[-1], p1, 10)
+        return [req]
+
+    @staticmethod
+    def get_3path_req():
+        p1 = ['R1', 'R4']
+        p2 = ['R1', 'R2', 'R3', 'R4']
+        p3 = ['R1', 'R3', 'R4']
+        paths = [p1, p2, p3]
+        reqs = []
+        for path in paths:
+            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+            reqs.append(req)
+        return reqs
 
     def test_4nodes_1paths(self):
-        p1 = ['R1', 'R2', 'R3', 'R4']
-        paths = [p1]
+        reqs = TestOSPF.get_1path_req()
         ospf = synet.ospf.OSPFSyn([], self.g)
-        for path in paths:
-            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+        for req in reqs:
             ospf.add_path_req(req)
-        assert ospf.solve()
+        self.assertTrue(ospf.solve())
 
     def test_4nodes_3paths_unstatified(self):
-        p1 = ['R1', 'R4']
-        p2 = ['R1', 'R2', 'R3', 'R4']
-        p3 = ['R1', 'R3', 'R4']
-        paths = [p1, p2, p3]
+        reqs = TestOSPF.get_3path_req()
         ospf = synet.ospf.OSPFSyn([], self.g)
-        for path in paths:
-            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+        for req in reqs:
             ospf.add_path_req(req)
-        assert not ospf.solve()
+        self.assertFalse(ospf.solve())
 
     def test_4nodes_1paths_heuristic(self):
-        p1 = ['R1', 'R2', 'R3', 'R4']
-        paths = [p1]
+        reqs = TestOSPF.get_1path_req()
         ospf = synet.ospf_heuristic.OSPFSyn([], self.g)
-        for path in paths:
-            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+        for req in reqs:
             ospf.add_path_req(req)
-        assert ospf.solve()
+        self.assertTrue(ospf.synthesize())
+        self.assertEqual(len(ospf.reqs), 1)
+        self.assertEqual(len(ospf.removed_reqs), 0)
 
     def test_4nodes_3paths_unstatified_heuristic(self):
-        p1 = ['R1', 'R4']
-        p2 = ['R1', 'R2', 'R3', 'R4']
-        p3 = ['R1', 'R3', 'R4']
-        paths = [p1, p2, p3]
+        reqs = TestOSPF.get_3path_req()
         ospf = synet.ospf_heuristic.OSPFSyn([], self.g)
-        for path in paths:
-            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+        for req in reqs:
             ospf.add_path_req(req)
-        assert not ospf.solve()
+        self.assertTrue(ospf.synthesize())
+        self.assertEqual(len(ospf.reqs), 1)
+        self.assertEqual(len(ospf.removed_reqs), 2)
