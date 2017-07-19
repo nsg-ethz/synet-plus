@@ -1,36 +1,41 @@
 #!/usr/bin/env python
 
-import argparse
+"""
+The slow version of the OSPF synthesizer.
+"""
+
+
+import networkx as nx
 import z3
-from collections import namedtuple
-import sys
-import copy
 from timeit import default_timer as timer
 
+from common import SynthesisComponent
+from common import NODE_TYPE
+from common import VERTEX_TYPE
+from common import PathReq
+from common import SetOSPFEdgeCost
 
-from common import *
-import random
-import networkx as nx
-from topo_gen import gen_grid_topo_no_iface
-from topo_gen import read_topology_zoo
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
+
 
 z3.set_option('unsat-core', True)
 
 
-# For a given path return a tuple of source and dst
-# Useful for storing paths in dicts
-path_key = lambda src, dst: (src, dst)
-
-
-ospfRand = None
-
-
 class OSPFSyn(SynthesisComponent):
-    SetOSPFEdgeCost = namedtuple('SetOSPFEdgeCost', ['src', 'dst', 'cost'])
-    valid_inputs = (SetOSPFEdgeCost,)
+    """
+    Synthesizer for OSPF costs, this version validate the complete network model,
+    that makes it a slow but complete version.
+    """
 
-    def __init__(self, initial_configs, network_graph, solver=None, gen_paths=1000, seed=None, ospfRand=None):
-        self.ospfRand = ospfRand or random.Random()
+    valid_inputs = (SetOSPFEdgeCost,)
+    def __init__(self, initial_configs, network_graph, solver=None):
+        """
+        :param initial_configs: List of SetOSPFEdgeCost, ignores anything else
+        :param network_graph: an instance of Networkx.DiGraph
+        :param solver: optional instance of Z3 solver, otherwise create an new one
+        """
         self._load_graph(network_graph)
         self.solver = solver if solver else z3.Solver()
         self.initial_configs = initial_configs if initial_configs else []
@@ -49,6 +54,10 @@ class OSPFSyn(SynthesisComponent):
         self.reqs = []
 
     def _load_graph(self, network_graph):
+        """
+        Read the network graph, OSPF care only about nodes marked as NODE_TYPE
+        Other nodes, such as Peers are ignored.
+        """
         g = network_graph.copy() if network_graph else nx.DiGraph()
         # Only local routers
         for node, data in list(g.nodes(data=True))[:]:
@@ -62,7 +71,7 @@ class OSPFSyn(SynthesisComponent):
         """
         # First annotate the network graph with any given costs
         for tmp in self.initial_configs:
-            if isinstance(tmp, OSPFSyn.SetOSPFEdgeCost):
+            if isinstance(tmp, SetOSPFEdgeCost):
                 self.network_graph.edge[tmp.src][tmp.dst]['cost'] = int(tmp.cost)
         # Stop the solver from adding a new edges
         for src in self.network_graph.nodes():
@@ -82,7 +91,11 @@ class OSPFSyn(SynthesisComponent):
                     self.solver.add(z3.Not(self.edge(src_v, dst_v)))
 
     def add_path_req(self, req):
-        """Add new path requirement"""
+        """
+        Add new path requirement
+        :param req: instance of PathReq
+        :return: None
+        """
         assert isinstance(req, PathReq)
         self.reqs.append(req)
 
@@ -107,6 +120,7 @@ class OSPFSyn(SynthesisComponent):
         return sum(edge_costs)
 
     def push_requirements(self):
+        """Push the requirements we care about to the solver"""
         self.solver.push()
         start = timer()
         for req in self.reqs:
@@ -114,21 +128,14 @@ class OSPFSyn(SynthesisComponent):
                 path = req.path
                 src = path[0]
                 dst = path[-1]
-                cost = req.cost
                 path_cost = self._get_path_cost(path)
-                constraints = []
                 # Enumerate all paths
                 for sp in nx.all_simple_paths(self.network_graph, src, dst):
                     if path != sp:
                         simple_path_cost = self._get_path_cost(sp)
-                        #constraints.append(path_cost < simple_path_cost)
                         self.solver.add(path_cost < simple_path_cost)
-                #if cost:
-                #    self.solver.add(path_cost == cost)
-                #self.solver.add(z3.And(*constraints))
         end = timer()
         return end - start
-
 
     def get_output_configs(self):
         m = self.solver.model()
@@ -139,7 +146,7 @@ class OSPFSyn(SynthesisComponent):
                 if not check(self.edge(src_v, dst_v)):
                     continue
                 cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
-                outputs.append(OSPFSyn.SetOSPFEdgeCost(src, dst, cost))
+                outputs.append(SetOSPFEdgeCost(src, dst, cost))
         return outputs
 
     def get_output_network_graph(self):
@@ -193,69 +200,3 @@ class OSPFSyn(SynthesisComponent):
                     g.add_edge(src, dst, cost=cost,
                                **self._get_edge_attributes(src, dst))
         return graphs
-
-
-def get_g():
-    # Start with some initial inputs
-    # This input only define routers, interfaces, and networks
-    g_phy = nx.DiGraph()
-    g_phy.add_node('R1', vertex_type=NODE_TYPE)
-    g_phy.add_node('R2', vertex_type=NODE_TYPE)
-    g_phy.add_node('R3', vertex_type=NODE_TYPE)
-    g_phy.add_node('R4', vertex_type=NODE_TYPE)
-
-    g_phy.add_edge('R1', 'R2', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R1', 'R3', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R1', 'R4', edge_type=INTERNAL_EDGE)
-
-    g_phy.add_edge('R2', 'R1', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R2', 'R3', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R2', 'R4', edge_type=INTERNAL_EDGE)
-
-    g_phy.add_edge('R3', 'R1', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R3', 'R2', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R3', 'R4', edge_type=INTERNAL_EDGE)
-
-    g_phy.add_edge('R4', 'R1', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R4', 'R2', edge_type=INTERNAL_EDGE)
-    g_phy.add_edge('R4', 'R3', edge_type=INTERNAL_EDGE)
-
-    return g_phy
-
-
-def main():
-    # Hand crafted grid for testing
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('-s', type=int, default=5, help='grid size')
-    parser.add_argument('-r', type=int, default=20,
-                     help='number of generated random requirements')
-    parser.add_argument('-p', type=int, default=1000,
-                     help='number of generated random paths for each round')
-    parser.add_argument('--seed', type=int, default=0,
-                     help='The seed of the random generator')
-
-    args = parser.parse_args()
-    pathsize = args.p
-    seed = args.seed
-    ospfRand = random.Random(seed)
-    print "Random Seed", seed
-    print "Number of paths per iteration %d" % pathsize
-
-    p1 = ['R1', 'R4']
-    p2 = ['R1', 'R2', 'R3', 'R4']
-    p3 = ['R1', 'R3', 'R4']
-    g = get_g()
-
-    paths = [p1, p2, p3]
-    ospf = OSPFSyn([], g, gen_paths=pathsize, ospfRand=ospfRand)
-
-    for path in paths:
-        req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
-        ospf.add_path_req(req)
-
-    ospf.solve()
-
-    print "DONE"
-
-if __name__ == '__main__':
-    main()

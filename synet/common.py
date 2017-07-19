@@ -63,6 +63,9 @@ NotWayPointReq = namedtuple('NotWayPointRequirement',
                             ['protocol', 'dst_net', 'vertices'])
 
 
+# OSPF Edge cost
+SetOSPFEdgeCost = namedtuple('SetOSPFEdgeCost', ['src', 'dst', 'cost'])
+
 # Define common functions
 # Data types
 def z3_is_node(vertex):
