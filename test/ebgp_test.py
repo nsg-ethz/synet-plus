@@ -234,7 +234,7 @@ def get_random_announcements(num_prefixes, num_peers, num_communities, min_as_pa
     return annoucements, communities
 
 
-def test_stress(announcements, communities, random_gen):
+def manual_stress(announcements, communities, random_gen):
     print "#" * 10, "Test Stress", "#" * 20
     prefix_announcement = {}
     peer_announcement = {}
@@ -380,7 +380,7 @@ def main():
     random_gen.seed(seed)
     print "Seed is", seed
     anns, communities = get_random_announcements(num_prefixes=10, num_peers=10, num_communities=10, random_gen=random_gen)
-    test_stress(anns, communities, random_gen)
+    manual_stress(anns, communities, random_gen)
     return
 
 
