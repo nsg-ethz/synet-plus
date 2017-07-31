@@ -11,11 +11,11 @@ from timeit import default_timer as timer
 import sys
 import os
 
-from common import PathReq
-from common import PathProtocols
-from topo_gen import gen_grid_topo_no_iface
-from topo_gen import read_topology_zoo
-from ospf import OSPFSyn
+from synet.utils.common import PathReq
+from synet.utils.common import PathProtocols
+from synet.utils.topo_gen import gen_grid_topo_no_iface
+from synet.utils.topo_gen import read_topology_zoo
+from synet.synthesis.ospf import OSPFSyn
 
 
 def time_exploring_paths(name, g, src, dst):

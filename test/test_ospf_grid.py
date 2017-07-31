@@ -17,6 +17,7 @@ from synet.utils.common import VERTEX_TYPE
 from synet.utils.common import random_requirement_path
 from synet.utils.topo_gen import gen_grid_topo_no_iface
 
+
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
@@ -39,7 +40,8 @@ class TestOSPFGrid(unittest.TestCase):
         for i in range(0, reqsize):
             src, dst = self.random.sample(routers, 2)
             assert src != dst
-            path = random_requirement_path(g, src, dst, random_obj=self.random)
+            path = random_requirement_path(g, src, dst, random_obj=self.random,
+                                           tmp_weight_name='test-weight')
             paths.append(path)
         reqs = []
         for path in paths:

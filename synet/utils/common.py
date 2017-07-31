@@ -95,14 +95,14 @@ def generate_second_path(G, path, random_obj):
     return counter
 
 
-def random_requirement_path(G, source, target, random_obj):
+def random_requirement_path(G, source, target, random_obj, tmp_weight_name):
     """Generate path requirements with a guaranteed solution"""
-    max_size = 10000
+    max_size = 100
     for src, dst in G.edges():
-        if 'test-weight' not in G[src][dst]:
+        if tmp_weight_name not in G[src][dst]:
             w = random_obj.randint(1, max_size)
-            G[src][dst]['test-weight'] = w
-    return nx.shortest_path(G, source, target, 'test-weight')
+            G[src][dst][tmp_weight_name] = w
+    return nx.shortest_path(G, source, target, tmp_weight_name)
 
 
 # Define common functions
@@ -453,9 +453,11 @@ class SynthesisComponent(object):
         treqs = t2 - t1
         tz3 = t3 - t2
         ttotal = t2 - t1
-        print "%s: Pushing requirements time: %s" % (self.__class__.__name__, treqs)
-        print "%s: Z3 time: %s" % (self.__class__.__name__, tz3)
-        print "%s: Total synthesizes time: %s" % (self.__class__.__name__, ttotal)
+        name = self.__class__.__name__
+        print "%s: Pushing requirements time: %s" % (name, treqs)
+        print "%s: Z3 time: %s" % (name, tz3)
+        print "%s: Total synthesizes time: %s" % (name, ttotal)
+        print "%s: sat result: %s" % (name, result)
         if result == z3.sat:
             return True
         else:

@@ -20,9 +20,7 @@ from synet.utils.common import PathReq
 from synet.utils.common import SetOSPFEdgeCost
 from synet.utils.common import SynthesisComponent
 from synet.utils.common import VERTEX_TYPE
-from synet.utils.common import datatypes_unique
-from synet.utils.common import z3_is_network
-from synet.utils.common import z3_is_node
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -52,9 +50,6 @@ class OSPFSyn(SynthesisComponent):
         self._create_vertices('OSPFVertex', self.initial_configs,
                               self.network_graph, True)
         # Function declarations
-        # Vertex types
-        self.is_node = z3_is_node(self.vertex)
-        self.is_network = z3_is_network(self.vertex)
         # True is an edge exists between two vertices
         self.edge = z3.Function('EdgePhyOSPF', self.vertex,
                                 self.vertex, z3.BoolSort())
@@ -160,6 +155,7 @@ class OSPFSyn(SynthesisComponent):
     def push_requirements(self):
         self.solver.push()
         print "Start pushing requirements"
+        oo = 1
         for req in self.reqs:
             if isinstance(req, PathReq):
                 path = req.path
@@ -168,22 +164,32 @@ class OSPFSyn(SynthesisComponent):
                 path_cost = self._get_path_cost(path)
                 cuttoff = self.gen_paths
                 count = 0
-                path_key = tuple(req.path)
-                if path_key not in self.saved_path_gen:
-                    self.saved_path_gen[path_key] = self.generate_random_paths(
+                path_key_req = tuple(req.path)
+                if path_key_req not in self.saved_path_gen:
+                    self.saved_path_gen[path_key_req] = self.generate_random_paths(
                         src, dst, 0.6, self.random_gen)
-                elif path_key not in self.counter_examples:
+                elif path_key_req not in self.counter_examples:
                     continue
                 path_name = '_'.join(path) # This name is used in tracking unsat core
-                for rand_path in self.saved_path_gen[path_key]:
+
+                for rand_path in self.saved_path_gen[path_key_req]:
                     # Skip if we generated the same path as the requirement
-                    if path == rand_path: continue
+                    if path == rand_path:
+                        continue
                     if rand_path:
                         rand_path_name = '_'.join(rand_path)
                         rand_path_cost = self._get_path_cost(rand_path)
-                        self.solver.assert_and_track(path_cost < rand_path_cost,
-                                                     '%s_ISLESS_%s' % (
-                                                         path_name, rand_path_name))
+                        track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                        if isinstance(rand_path_cost, int) and isinstance(path_cost, int):
+                            t1, t2 = z3.Consts('p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
+                            oo += 1
+                            err = "path cost %d and rand cost %s" % (path_cost, rand_path_cost)
+                            assert path_cost <= rand_path_cost, err
+                            const = z3.And(t1 == path_cost, t2 == rand_path_cost, t1 <= t2)
+                            self.solver.assert_and_track(const, track_name)
+                        else:
+                            self.solver.assert_and_track(path_cost < rand_path_cost,
+                                                         track_name)
                     count += 1
                     if count > cuttoff:
                         break
@@ -198,9 +204,6 @@ class OSPFSyn(SynthesisComponent):
         """
         # Free variables to be used later
         v1, v2 = z3.Consts('v1 v2', self.vertex)
-
-        common_types = [self.is_node, self.is_network]
-        self.solver.add(datatypes_unique(self.vertex, common_types))
 
         # Cost must be positive value
         self.solver.add(
@@ -218,9 +221,6 @@ class OSPFSyn(SynthesisComponent):
         for tmp in self.initial_configs:
             if isinstance(tmp, SetOSPFEdgeCost):
                 self.network_graph.edge[tmp.src][tmp.dst]['cost'] = int(tmp.cost)
-        # Fix vertices datatypes
-        for node in self.nodes:
-            self.solver.append(self.is_node(node) == True)
         # Stop the solver from adding a new edges
         for src in self.network_graph.nodes():
             if src in self.network_names: continue
@@ -228,12 +228,13 @@ class OSPFSyn(SynthesisComponent):
                 if dst in self.network_names: continue
                 src_v = self.get_vertex(src)
                 dst_v = self.get_vertex(dst)
-                self.solver.add(self.edge_cost(src_v, dst_v) >= 0)
                 if self.network_graph.has_edge(src, dst):
                     cost = self.network_graph.edge[src][dst].get('cost', None)
                     self.solver.add(self.edge(src_v, dst_v))
                     if cost:
                         self.solver.add(self.edge_cost(src_v, dst_v) == cost)
+                    else:
+                        self.solver.add(self.edge_cost(src_v, dst_v) >= 0)
                 else:
                     self.solver.add(z3.Not(self.edge(src_v, dst_v)))
         for t in self.initial_configs:
@@ -300,7 +301,7 @@ class OSPFSyn(SynthesisComponent):
             g = nx.DiGraph()
             g.graph['dst'] = dst_net_name
             graphs[dst_net_name] = g
-            for node, node_v in self.name_to_vertex.iteritems():
+            for node, _ in self.name_to_vertex.iteritems():
                 if not nx.has_path(g_phy, node, dst_net_name):
                     continue
                 path = nx.shortest_path(g_phy, node, dst_net_name, 'cost')
@@ -344,10 +345,9 @@ class OSPFSyn(SynthesisComponent):
         cost = self.network_graph[src][dst].get('cost', 0)
         if cost > 0:
             return cost
-        else:
-            src = self.get_vertex(src)
-            dst = self.get_vertex(dst)
-            return self.edge_cost(src, dst)
+        src = self.get_vertex(src)
+        dst = self.get_vertex(dst)
+        return self.edge_cost(src, dst)
 
     def _get_path_cost(self, path):
         """Shortcut function to get the cost function of aa given path"""
@@ -368,7 +368,7 @@ class OSPFSyn(SynthesisComponent):
 
     def remove_unsat_paths(self):
         """
-        Remoove one path from to the requirements if it's part of the unsat core.
+        Remove one path from to the requirements if it's part of the unsat core.
         :return: PathReq
         """
         unsat_paths = self.solver.unsat_core()
@@ -383,18 +383,26 @@ class OSPFSyn(SynthesisComponent):
                         path_req = req
                         break
             assert path_req, "Couldn't find path in requirements %s" % path
-            self.removed_reqs.append(req)
+            self.removed_reqs.append(path_req)
             break
         self.reset_solver()
         return self.removed_reqs[-1]
 
     def synthesize(self, retries_before_rest=5, gen_path_increment=500):
+        """
+        The main synthesis method
+        :param retries_before_rest: how many time to try before reseting for new instance of
+                                    the SMT sover
+        :param gen_path_increment: how many paths to generate per iterations
+        :return:
+        """
         origianl_gen_paths = self.gen_paths
 
         # First try to synthesize with all requirements
         while not self.solve():
             # At this point any unsat is dirctly caused by the requirements
             # So remove one of them
+            print self.solver.unsat_core()
             self.remove_unsat_paths()
 
         # Now the actual synthesis
@@ -441,6 +449,7 @@ class OSPFSyn(SynthesisComponent):
         return True
 
     def print_costs(self):
+        """Print the synthesized edge costs"""
         print "Synthesized OSPF Link Costs"
         for t in self.get_output_configs():
             print "\t", t
