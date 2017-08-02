@@ -1,3 +1,5 @@
+
+import unittest
 import networkx as nx
 
 from synet.synthesis.ebgp import Announcement
@@ -14,74 +16,112 @@ from synet.synthesis.ebgp import SetDrop
 from synet.synthesis.ebgp import SetLocalPref
 
 
-def test_match_peer_set_localpref():
-    print "#" * 10, "Test Match=Peer, Action=LocalPref", "#" * 20
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 5, 7, 6],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann2 = Announcement(PREFIX='Google', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann3 = Announcement(PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 10, 30, 40],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann4 = Announcement(PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 3],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann5 = Announcement(PREFIX='Yahoo', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    ann6 = Announcement(PREFIX='Yahoo', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
-
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
-    reqs = ['Ann1', 'Ann4']
-    ebgp = EBGP(announcements)
-
-    # First, try fix the peer match
-    routemap1 = RouteMap(name='RM1', match=MatchPeer('SwissCom'), action=SetLocalPref(EMPTY), permit=True)
-    route_maps = [routemap1]
-    assert ebgp.solve(route_maps, reqs)
-
-    # Second, peer match is EMPY
-    route_maps = [RouteMap(name='RM1', match=MatchPeer(EMPTY), action=SetLocalPref(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
-    assert ebgp.solve(route_maps, reqs)
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
 
 
-def test_match_community_set_localpref():
-    print "#" * 10, "Test Match=Community, Action=LocalPref", "#" * 20
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 5, 7, 6],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
+class TestEBGP(unittest.TestCase):
+    def test_match_community_set_localpref(self):
+        # Received announcements
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
 
-    ann2 = Announcement(PREFIX='Google', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 4],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
+        ann2 = Announcement(
+            PREFIX='Google', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6, 4], NEXT_HOP='ATT', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
 
-    ann3 = Announcement(PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 10, 30, 40],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('T', 'F', 'T'))
+        ann3 = Announcement(
+            PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6, 7, 10, 30, 40], NEXT_HOP='DT', LOCAL_PREF=100,
+            COMMUNITIES=('T', 'F', 'T'))
 
-    ann4 = Announcement(PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[1, 2, 3],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
+        ann4 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 3], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
 
-    ann5 = Announcement(PREFIX='Yahoo', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6],
-                        NEXT_HOP='ATT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'T'))
+        ann5 = Announcement(
+            PREFIX='Yahoo', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6], NEXT_HOP='ATT', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
 
-    ann6 = Announcement(PREFIX='Yahoo', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('T', 'F', 'T'))
+        ann6 = Announcement(
+            PREFIX='Yahoo', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6, 7], NEXT_HOP='DT', LOCAL_PREF=100,
+            COMMUNITIES=('T', 'F', 'T'))
 
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
-    reqs = ['Ann3', 'Ann6']
-    ebgp = EBGP(announcements)
+        announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+        # Required Routes to be choosen by BGP
+        reqs = ['Ann3', 'Ann6']
+        ebgp = EBGP(announcements)
 
-    # First, try fix the peer match
-    routemap1 = RouteMap(name='RM1', match=MatchCommunity('C1'), action=SetLocalPref(EMPTY), permit=True)
-    route_maps = [routemap1]
-    assert ebgp.solve(route_maps, reqs)
+        # Synthesize with the community value known
+        routemap1 = RouteMap(name='RM1', match=MatchCommunity('C1'),
+                             action=SetLocalPref(EMPTY), permit=True)
+        route_maps = [routemap1]
+        assert ebgp.solve(route_maps, reqs)
 
-    # Second, peer match is EMPY
-    route_maps = [RouteMap(name='RM1', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
-    assert ebgp.solve(route_maps, reqs)
+        # Synthesize with the community as a hole
+        route_maps = [RouteMap(name='RM1', match=MatchCommunity(EMPTY),
+                               action=SetLocalPref(EMPTY), permit=True)]
+        ebgp = EBGP(announcements)
+        assert ebgp.solve(route_maps, reqs)
+
+
+    def test_match_peer_set_localpref(self):
+        print "#" * 10, "Test Match=Peer, Action=LocalPref", "#" * 20
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
+
+        ann2 = Announcement(
+            PREFIX='Google', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6, 4], NEXT_HOP='ATT', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
+
+        ann3 = Announcement(
+            PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6, 7, 10, 30, 40], NEXT_HOP='DT', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
+
+        ann4 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 3], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
+
+        ann5 = Announcement(
+            PREFIX='Yahoo', PEER='ATT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6], NEXT_HOP='ATT', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
+
+        ann6 = Announcement(
+            PREFIX='Yahoo', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[4, 5, 6, 7], NEXT_HOP='DT', LOCAL_PREF=100,
+            COMMUNITIES=('F', 'F', 'T'))
+
+        announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+        reqs = ['Ann1', 'Ann4']
+        ebgp = EBGP(announcements)
+
+        # First, try fix the peer match
+        routemap1 = RouteMap(
+            name='RM1', match=MatchPeer('SwissCom'),
+            action=SetLocalPref(EMPTY), permit=True)
+        route_maps = [routemap1]
+        assert ebgp.solve(route_maps, reqs)
+
+        # Second, peer match is EMPY
+        route_maps = [
+            RouteMap(
+                name='RM1', match=MatchPeer(EMPTY),
+                action=SetLocalPref(EMPTY), permit=True)
+        ]
+        ebgp = EBGP(announcements)
+        assert ebgp.solve(route_maps, reqs)
 
 
 def test_match_localpref_set_localpref():
@@ -365,6 +405,7 @@ def test_graph():
         tmp_anns = update_peer(exported[source], source)
         exported[succ] += apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ])).values()
         print ""
+
 
 def main():
 
