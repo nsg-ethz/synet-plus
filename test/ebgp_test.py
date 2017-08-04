@@ -53,10 +53,17 @@ class TestEBGP(unittest.TestCase):
             AS_PATH=[4, 5, 6, 7], NEXT_HOP='DT', LOCAL_PREF=100,
             COMMUNITIES=('T', 'F', 'T'))
 
-        announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+        anns = {
+            'Ann1': ann1,
+            'Ann2': ann2,
+            'Ann3': ann3,
+            'Ann4': ann4,
+            'Ann5': ann5,
+            'Ann6': ann6
+        }
         # Required Routes to be choosen by BGP
         reqs = ['Ann3', 'Ann6']
-        ebgp = EBGP(announcements)
+        ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
 
         # Synthesize with the community value known
         routemap1 = RouteMap(name='RM1', match=MatchCommunity('C1'),
@@ -67,7 +74,7 @@ class TestEBGP(unittest.TestCase):
         # Synthesize with the community as a hole
         route_maps = [RouteMap(name='RM1', match=MatchCommunity(EMPTY),
                                action=SetLocalPref(EMPTY), permit=True)]
-        ebgp = EBGP(announcements)
+        ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
         assert ebgp.solve(route_maps, reqs)
 
 
@@ -103,9 +110,16 @@ class TestEBGP(unittest.TestCase):
             AS_PATH=[4, 5, 6, 7], NEXT_HOP='DT', LOCAL_PREF=100,
             COMMUNITIES=('F', 'F', 'T'))
 
-        announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+        anns = {
+            'Ann1': ann1,
+            'Ann2': ann2,
+            'Ann3': ann3,
+            'Ann4': ann4,
+            'Ann5': ann5,
+            'Ann6': ann6
+        }
         reqs = ['Ann1', 'Ann4']
-        ebgp = EBGP(announcements)
+        ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
 
         # First, try fix the peer match
         routemap1 = RouteMap(
@@ -120,7 +134,7 @@ class TestEBGP(unittest.TestCase):
                 name='RM1', match=MatchPeer(EMPTY),
                 action=SetLocalPref(EMPTY), permit=True)
         ]
-        ebgp = EBGP(announcements)
+        ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
         assert ebgp.solve(route_maps, reqs)
 
 
@@ -144,9 +158,16 @@ def test_match_localpref_set_localpref():
     ann6 = Announcement(PREFIX='Yahoo', PEER='DT',         ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 8],
                         NEXT_HOP='DT', LOCAL_PREF=50, COMMUNITIES=('T', 'F', 'T'))
 
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+    anns = {
+        'Ann1': ann1,
+        'Ann2': ann2,
+        'Ann3': ann3,
+        'Ann4': ann4,
+        'Ann5': ann5,
+        'Ann6': ann6
+    }
     reqs = ['Ann3', 'Ann6']
-    ebgp = EBGP(announcements)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
 
     # First, try fix the peer match
     routemap1 = RouteMap(name='RM1', match=MatchLocalPref(50), action=SetLocalPref(EMPTY), permit=True)
@@ -155,7 +176,7 @@ def test_match_localpref_set_localpref():
 
     # Second, peer match is EMPY
     route_maps = [RouteMap(name='RM1', match=MatchLocalPref(EMPTY), action=SetLocalPref(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
     assert ebgp.solve(route_maps, reqs)
 
 
@@ -179,9 +200,16 @@ def test_match_prefix_set_drop():
     ann6 = Announcement(PREFIX='Yahoo', PEER='DT',        ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 8],
                         NEXT_HOP='DT', LOCAL_PREF=50, COMMUNITIES=('T', 'F', 'T'))
 
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+    anns = {
+        'Ann1': ann1,
+        'Ann2': ann2,
+        'Ann3': ann3,
+        'Ann4': ann4,
+        'Ann5': ann5,
+        'Ann6': ann6
+    }
     reqs = ['Ann3']
-    ebgp = EBGP(announcements)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
 
     # First, try fix the match
     routemap1 = RouteMap(name='RM1', match=MatchPrefix('Yahoo'), action=SetDrop(True), permit=True)
@@ -190,7 +218,7 @@ def test_match_prefix_set_drop():
 
     # Second, match is EMPY
     route_maps = [RouteMap(name='RM1', match=MatchPrefix(EMPTY), action=SetDrop(True), permit=True)]
-    ebgp = EBGP(announcements)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
     assert ebgp.solve(route_maps, reqs)
 
 
@@ -202,12 +230,15 @@ def test_match_prefix_set_drop_simple():
     ann2 = Announcement(PREFIX='Yahoo', PEER='SwissCom',   ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4,],
                         NEXT_HOP='SwissCom', LOCAL_PREF=50, COMMUNITIES=('T',))
 
-    announcements = [ann1, ann2]
+    anns = {
+        'Ann1': ann1,
+        'Ann2': ann2,
+    }
     reqs = ['Ann1']
 
     # Second, match is EMPY
     route_maps = [RouteMap(name='RM1', match=MatchCommunity(EMPTY), action=SetDrop(True), permit=True)]
-    ebgp = EBGP(announcements, all_communities=('C1',))
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns, all_communities=('C1',))
     assert ebgp.solve(route_maps, reqs)
 
 
@@ -231,9 +262,16 @@ def test_match_localpref_set_drop():
     ann6 = Announcement(PREFIX='Yahoo', PEER='DT',        ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[4, 5, 6, 7, 8],
                         NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('T', 'F', 'T'))
 
-    announcements = [ann1, ann2, ann3, ann4, ann5, ann6]
+    anns = {
+        'Ann1': ann1,
+        'Ann2': ann2,
+        'Ann3': ann3,
+        'Ann4': ann4,
+        'Ann5': ann5,
+        'Ann6': ann6
+    }
     reqs = ['Ann1']
-    ebgp = EBGP(announcements)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
 
     print "First"
     # First, try fix the match
@@ -243,7 +281,7 @@ def test_match_localpref_set_drop():
     print "Second"
     # Second, match is EMPY
     route_maps = [RouteMap(name='RM1', match=MatchLocalPref(EMPTY), action=SetDrop(EMPTY), permit=True)]
-    ebgp = EBGP(announcements)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
     assert ebgp.solve(route_maps, reqs)
     print "#" * 70
 
@@ -309,13 +347,13 @@ def manual_stress(announcements, communities, random_gen):
     route_maps = [RouteMap(name='RM%d' % i , match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True) for i in range(len(communities))]
     #route_maps += [RouteMap(name='RM2%d' % i, match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True) for i
     #              in range(len(communities))]
-    ebgp = EBGP(announcements, all_communities=communities)
+    ebgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=announcements, all_communities=communities)
     assert ebgp.solve(route_maps, reqs_names)
 
 
 def update_peer(announcements, peer):
-    c_anns = []
-    for ann in announcements:
+    c_anns = {}
+    for name, ann in announcements.iteritems():
         new_ann = {}
         for f in ann._fields:
             if f == 'PEER':
@@ -323,15 +361,19 @@ def update_peer(announcements, peer):
             else:
                 new_ann[f] = getattr(ann, f)
         new_ann = Announcement(**new_ann)
-        c_anns.append(new_ann)
+        c_anns[name] = new_ann
     return c_anns
 
 
 def apply_syn(anns, reqs):
-    routemap1 = RouteMap(name='RM1', match=MatchPeer(EMPTY), action=SetCommunity('C1', EMPTY), permit=True)
-    routemap2 = RouteMap(name='RM2', match=MatchCommunity(EMPTY), action=SetLocalPref(EMPTY), permit=True)
+    routemap1 = RouteMap(
+        name='RM1', match=MatchPeer(EMPTY),
+        action=SetCommunity('C1', EMPTY), permit=True)
+    routemap2 = RouteMap(
+        name='RM2', match=MatchCommunity(EMPTY),
+        action=SetLocalPref(EMPTY), permit=True)
     route_maps = [routemap1, routemap2]
-    bgp = EBGP(anns)
+    bgp = EBGP(asnum=100, peer_name='R1', nexthop='R1', announcements=anns)
     assert bgp.solve(route_maps, reqs)
     return bgp.exported
 
@@ -342,8 +384,8 @@ def get_reqs(announcements, reqs):
     def match(ann, req):
         return (ann.PREFIX, ann.PEER, ann.NEXT_HOP) == req
 
-    for i, ann in enumerate(announcements):
-        name = 'Ann%d' % (i + 1)
+    for i, name in enumerate(announcements.keys()):
+        ann = announcements[name]
         for req in reqs:
             if match(ann, req):
                 req_names.append(name)
@@ -357,22 +399,26 @@ def test_graph():
             if src == dst: continue
             g.add_edge(src, dst)
 
-    ann1 = Announcement(PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[2, 5, 8],
-                        NEXT_HOP='SwissCom', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'F'))
-    ann2 = Announcement(PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP, AS_PATH=[6, 7],
-                        NEXT_HOP='DT', LOCAL_PREF=100, COMMUNITIES=('F', 'F', 'F'))
-    anns = [ann1, ann2]
+    ann1 = Announcement(
+        PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+        AS_PATH=[2, 5, 8], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+        COMMUNITIES=('F', 'F', 'F'))
+
+    ann2 = Announcement(
+        PREFIX='Google', PEER='DT', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+        AS_PATH=[6, 7], NEXT_HOP='DT', LOCAL_PREF=100,
+        COMMUNITIES=('F', 'F', 'F'))
+
+    anns = {
+        'Ann1': ann1,
+        'Ann2': ann2,
+    }
 
     req_map = {}
     req_map['D'] = [('Google', 'SwissCom', 'SwissCom')]
     req_map['A'] = [('Google', 'B', 'SwissCom')]
     req_map['B'] = [('Google', 'C', 'SwissCom')]
     req_map['C'] = [('Google', 'D', 'SwissCom')]
-
-    #req_map['D'] = [('Google', 'SwissCom', 'SwissCom')]
-    #req_map['A'] = [('Google', 'D', 'SwissCom')]
-    #req_map['B'] = [('Google', 'D', 'SwissCom')]
-    #req_map['C'] = [('Google', 'D', 'SwissCom')]
 
     exported = {}
     exported['A'] = []
@@ -381,29 +427,28 @@ def test_graph():
     exported['D'] = []
 
 
-
     source = 'D'
     print "In", source
-    exported[source] += apply_syn(anns, get_reqs(anns, req_map[source])).values()
+    exported[source] = apply_syn(anns, get_reqs(anns, req_map[source]))
     successors = nx.bfs_successors(g, source)
     print ''
     for succ in successors[source]:
         print "In", succ
         tmp_anns = update_peer(exported[source], source)
-        exported[succ] += apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ])).values()
+        exported[succ] += apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ]))
         print ""
 
     print "*" * 50
     print "Second Iteration"
     source = 'C'
     print "In", source
-    exported[source] += apply_syn(anns, get_reqs(anns, req_map[source])).values()
+    exported[source] = apply_syn(anns, get_reqs(anns, req_map[source]))
     successors = nx.bfs_successors(g, source)
     for succ in successors[source]:
         if succ == 'D': continue
         print "In", succ
         tmp_anns = update_peer(exported[source], source)
-        exported[succ] += apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ])).values()
+        exported[succ] = apply_syn(tmp_anns, get_reqs(tmp_anns, req_map[succ]))
         print ""
 
 

@@ -84,15 +84,18 @@ class EBGP(object):
     """
     Synthesize configurations for eBGP protocol
     """
-    def __init__(self, announcements, all_communities=('C1', 'C2', 'C3'),
+    def __init__(self, asnum, peer_name, nexthop, announcements, all_communities=('C1', 'C2', 'C3'),
                  solver=None):
         """
         :param announcements: list of announcements received
         :param all_communities: a tuple of all the defined communities
         :param solver: optional instance of z3 solver
         """
+        self.asnum = asnum
+        self.peer_name = peer_name
+        self.nexthop = nexthop
         self.solver = solver or z3.Solver()
-        self._announcements_map = None
+        assert isinstance(announcements, dict)
         self.all_communities = all_communities
         c_mask = tuple(['F' for i in range(len(self.all_communities))])
         # The default "not valid" announcement
@@ -105,8 +108,9 @@ class EBGP(object):
                                      LOCAL_PREF=0,
                                      COMMUNITIES=c_mask)
 
-        # Annoucenement auto generated string name
-        self.announcement_names = dict()
+        self.anns = announcements
+        # Special none valid route to help with Z3 tricks!
+        self.anns['notvalid'] = self.notvalid
         # Announcement Z3 type
         self.ann_sort = None
         # List of Z3 announcement objects
@@ -132,12 +136,16 @@ class EBGP(object):
         # Communities
         self.communities = {}
         self.na_ann = None
-        self._load_announcements(announcements)
+        self._load_announcements()
         self.exported = {}
 
     def get_announcement(self, announcement_name):
         """Given a string name of the announcement return it's Z3 value"""
         return self._announcements_map[announcement_name]
+
+    def get_not_valid_ann(self):
+        """Return the Z3 variable for the special not valid announcement"""
+        return self.get_announcement('notvalid')
 
     def get_peer(self, peer_name):
         """Given a string name of a peer return it's Z3 value"""
@@ -147,28 +155,24 @@ class EBGP(object):
         """Given a string name of a prefix return it's Z3 value"""
         return self._prefixes_map[prefix_name]
 
-    def _load_announcements(self, announcements):
+    def _load_announcements(self):
         """
         Parse the given announcement list and initialize the various Z3 types
         :param announcements:
         :return: None
         """
-        # Special none valid route to help with Z3 tricks!
-        announcements = [self.notvalid] + announcements
-        # Give a name for each announcement
-        self.announcement_names = {}
-        for i, ann in enumerate(announcements):
-            self.announcement_names['Ann%d' % i] = ann
-
         # Create Z3 Enum type for the announcements
         (self.ann_sort, all_announcements) = \
             z3.EnumSort('AnnouncementSort',
-                        self.announcement_names.keys())
+                        self.anns.keys())
         # Create Z3 Enum type for peers
-        peers_list = list(set([ann.PEER for ann in announcements]))
+        peers_list = list(set([ann.PEER for ann in self.anns.values()]))
+        print "PEERS LIST", peers_list
+        for a in peers_list:
+            assert isinstance(a, basestring), "%s %s" % (a, type(a))
         (self.peer_sort, all_peers) = z3.EnumSort('PeerSort', peers_list)
         # Create Z3 Enum type for Prefixes
-        anns_list = list(set([ann.PREFIX for ann in announcements]))
+        anns_list = list(set([ann.PREFIX for ann in self.anns.values()]))
         (self.perfix_sort, all_prefixes) = z3.EnumSort('PrefixSort', anns_list)
 
         self.all_announcements = sorted(all_announcements)
@@ -181,7 +185,7 @@ class EBGP(object):
         self._peers_map = peer_map
         prefixes_map = dict([(str(prefix), prefix) for prefix in self.all_prefixes])
         self._prefixes_map = prefixes_map
-        self.na_ann = self.get_announcement('Ann0')
+        self.na_ann = self.get_not_valid_ann()
 
         # Announcement Prefix
         self.prefix = z3.Function('Prefix', self.ann_sort, self.perfix_sort)
@@ -201,8 +205,8 @@ class EBGP(object):
             self.communities[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
 
         # Feed the announcement info to the solver
-        for i, name in enumerate(sorted(self.announcement_names)):
-            ann = self.announcement_names[name]
+        for i, name in enumerate(sorted(self.anns.keys())):
+            ann = self.anns[name]
             var = self.get_announcement(name)
             # Set Prefix
             name = 'init_prefix_%s' % str(var)
@@ -495,19 +499,19 @@ class EBGP(object):
                 print "\t\t", result.action, route, model.eval(result.action(route))
 
     def solve(self, route_maps, required_names=[]):
-        na = self._announcements_map['Ann0']
+        na = self.get_not_valid_ann()
         result = self.process_route_maps(route_maps)
 
         localpref_fun = result.localpref
         communities_fun = result.communities
         route_denied = result.drop
         select_route_vars = []
-        for prefix in set([ann.PREFIX for ann in self.announcement_names.values()]):
+        for prefix in set([ann.PREFIX for ann in self.anns.values()]):
             if prefix == self.notvalid.PREFIX:
                 continue
             Selected = z3.Const('SelectedRoute%s' % prefix, self.ann_sort)
             select_route_vars.append(Selected)
-            prefixAnn = [self.get_announcement(ann) for ann in self._announcements_map if self.announcement_names[ann].PREFIX == prefix]
+            prefixAnn = [self.get_announcement(ann) for ann in self._announcements_map if self.anns[ann].PREFIX == prefix]
             if len(prefixAnn) == 1:
                 self.solver.assert_and_track(Selected == z3.If(route_denied(prefixAnn[0]), na, prefixAnn[0]), 'direct_%s' % prefix)
             else:
@@ -518,8 +522,10 @@ class EBGP(object):
                 self.solver.add(Selected == get_min_eval_select(localpref_fun, MaxLP, self.aspathlength, na, *prefixAnn))
 
             for name in required_names:
-                if prefix == self.announcement_names[name].PREFIX:
-                    self.solver.assert_and_track(Selected == self.get_announcement(name), 'select_%s_%s' % (prefix, name))
+                if prefix == self.anns[name].PREFIX:
+                    n = 'select_%s_%s' % (prefix, name)
+                    self.solver.assert_and_track(
+                        Selected == self.get_announcement(name), n)
 
         if self.solver.check() == z3.sat:
             model = self.solver.model()
@@ -527,7 +533,7 @@ class EBGP(object):
             for route in select_route_vars:
                 route = str(model.eval(route))
                 # Skip the non valid route
-                if route == 'Ann0': continue
+                if route == 'notvalid': continue
                 selected_routes.append(route)
 
             self.eval_route_map(model, result)
@@ -538,8 +544,8 @@ class EBGP(object):
             self.exported = {}
             for var in select_route_vars:
                 ann_name = str(model.eval(var))
-                if ann_name == 'Ann0': continue
-                ann = self.announcement_names[ann_name]
+                if ann_name == 'notvalid': continue
+                ann = self.anns[ann_name]
                 prefix = ann.PREFIX
                 peer = ann.PEER
                 origin = ann.ORIGIN
@@ -550,8 +556,8 @@ class EBGP(object):
                 for comm in self.all_communities:
                     comms.append('T' if z3.is_true(model.eval(communities_fun[comm](var))) else 'F')
                 communities = tuple(comms)
-                new_ann = Announcement(PREFIX=prefix, PEER=peer, ORIGIN=origin, AS_PATH=as_path,
-                                       NEXT_HOP=next_hop, LOCAL_PREF=localpref, COMMUNITIES=communities)
+                new_ann = Announcement(PREFIX=prefix, PEER=self.peer_name, ORIGIN=origin, AS_PATH=[self.asnum] + as_path,
+                                       NEXT_HOP=self.nexthop, LOCAL_PREF=localpref, COMMUNITIES=communities)
                 self.exported[ann_name] = new_ann
 
             #print self.solver.to_smt2()
