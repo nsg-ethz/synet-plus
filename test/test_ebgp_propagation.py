@@ -162,7 +162,6 @@ def main():
 
     # youtube
     path1 = ['DT', 'R4', 'R1']
-    path1 = ['DT', 'R4', 'R1']
     path2 = ['DT', 'R4', 'R3', 'R2']
     youtube_req1 = PathReq(PathProtocols.BGP, 'YouTube', path1, 10)
     youtube_req2 = PathReq(PathProtocols.BGP, 'YouTube', path2, 10)
@@ -177,41 +176,17 @@ def main():
 
     # Netflix TODO:
 
-
     reqs = [google_req1, google_req2, ebay_req1, ebay_req2,
             paypal_req1, paypal_req2, yahoo_req1, yahoo_req2,
             amazon_req1, amazon_req2, amazon_req3,
             youtube_req1, youtube_req2,]
-    #path3 = ['R3', 'R2']
-    #path4 = ['R4', 'R1']
-    #req3 = PathReq(PathProtocols.BGP, 'Google', path3, 10)
-    #req4 = PathReq(PathProtocols.BGP, 'Google', path4, 10)
-
-    #path5 = ['R3', 'R1']
-    #path6 = ['R3', 'R2']
-    #path7 = ['R3', 'R4']
-    #req5 = PathReq(PathProtocols.BGP, 'Netflix', path5, 10)
-    #req6 = PathReq(PathProtocols.BGP, 'Netflix', path6, 10)
-    #req7 = PathReq(PathProtocols.BGP, 'Netflix', path7, 10)
-
-    #reqs = [req1, req2, req3, req4, req5, req6, req7]
-    #for net in ['Amazon', 'YouTube']:
-    #    req1 = PathReq(PathProtocols.BGP, net, path1, 10)
-    #    req2 = PathReq(PathProtocols.BGP, net, path2, 10)
-    #    reqs.append(req1)
-    #    reqs.append(req2)
-    #for net in ['eBay', 'PayPal']:
-    #    req1 = PathReq(PathProtocols.BGP, net, path3, 10)
-    #    req2 = PathReq(PathProtocols.BGP, net, path4, 10)
-    #    reqs.append(req1)
-    #    reqs.append(req2)
 
     # Adding reqs
     for req in reqs:
         p.add_path_req(req)
 
     p.compute_dags()
-    p.compute()
+    #p.compute()
     p.union_graphs()
 
 if __name__ == '__main__':
