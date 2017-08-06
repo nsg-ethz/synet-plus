@@ -186,8 +186,9 @@ def main():
         p.add_path_req(req)
 
     p.compute_dags()
-    #p.compute()
     p.union_graphs()
+    p.compute()
+
 
 if __name__ == '__main__':
     main()

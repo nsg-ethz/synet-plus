@@ -3,11 +3,19 @@
 Synthesize configurations for eBGP protocol
 """
 
+from collections import namedtuple
 import z3
 import networkx as nx
 
 from synet.utils.common import PathReq
 from synet.synthesis.ebgp import EBGP
+
+from synet.synthesis.ebgp import SetLocalPref
+from synet.synthesis.ebgp import MatchPeer
+from synet.synthesis.ebgp import MatchPrefix
+from synet.synthesis.ebgp import EMPTY
+from synet.synthesis.ebgp import RouteMap
+from synet.synthesis.ebgp import Announcement
 
 
 __author__ = "Ahmed El-Hassany"
@@ -18,6 +26,8 @@ z3.set_option('unsat-core', True)
 
 
 class EBGPPropagation(object):
+    propagatedinfo = namedtuple('PropagatedInfo', ['egress', 'original_ann', 'new_ann'])
+
     def __init__(self, announcements, network_graph):
         self.network_graph = network_graph
         self.annoucenements = announcements
@@ -81,15 +91,21 @@ class EBGPPropagation(object):
                     # Compute the AS PATH that led to this node
                     if i == 0:
                         aspath = ann.AS_PATH
+                        propagated = EBGPPropagation.propagatedinfo(
+                            egress=path[1], original_ann=ann, new_ann=ann)
                     else:
                         curr = [self.network_graph.get_bgp_asnum(src)]
                         aspath = curr + g.node[src]['aspath']
+                        new_ann = Announcement(
+                            PREFIX=ann.PREFIX, PEER=src, ORIGIN=ann.ORIGIN,
+                            AS_PATH=aspath, NEXT_HOP=src, LOCAL_PREF=100, COMMUNITIES=ann.COMMUNITIES)
+                        propagated = EBGPPropagation.propagatedinfo(
+                            egress=path[1], original_ann=ann, new_ann=new_ann)
                     g.add_node(dst, aspath=aspath)
                     # The edge is supposed to be selected as best path
                     # according to the requirements
                     label = "best: %s" % ','.join([str(n) for n in aspath])
-                    g.add_edge(src, dst, net=net, best=[net], aspath=[aspath],
-                               nonbest=[], label=label)
+                    g.add_edge(src, dst, best=propagated, nonbest=None, label=label)
                     # All the other paths, might propagate the route
                     # However, wont be selected as best paths by neighboring
                     # routers
@@ -100,8 +116,7 @@ class EBGPPropagation(object):
                         if g.has_edge(node, neighbour) or g.has_edge(neighbour, node):
                             continue
                         label = "nonbest: %s" % ','.join([str(n) for n in aspath])
-                        g.add_edge(node, neighbour, net=net, best=[], aspath=[aspath],
-                                   nonbest=[net], label=label)
+                        g.add_edge(node, neighbour, best=None, nonbest=propagated, label=label, style='dashed')
             # Till now, we must have a DAG
             assert nx.is_directed_acyclic_graph(g)
             # The leaf nodes in the DAG might still propagate the route
@@ -118,8 +133,7 @@ class EBGPPropagation(object):
                     curr = [self.network_graph.get_bgp_asnum(src)]
                     aspath = curr + g.node[node]['aspath']
                     label = "nonbest: %s" % ','.join([str(n) for n in aspath])
-                    g.add_edge(src, neighbour, net=net, best=[], aspath=[aspath],
-                               nonbest=[net], label=label)
+                    g.add_edge(src, neighbour, best=None, nonbest=propagated, label=label, style='dotted')
             self.nets_dag[net] = g
 
         for net, g in self.nets_dag.iteritems():
@@ -143,64 +157,95 @@ class EBGPPropagation(object):
         g.add_nodes_from(g.nodes())
 
         for src, dst, attrs in propagation.edges_iter(data=True):
-            net = attrs['net']
             best = attrs['best']
             nonbest = attrs['nonbest']
-            aspath = attrs['aspath']
             if not g.has_edge(src, dst):
-                g.add_edge(src, dst, aspaths={}, nonbest=[], best=[], nets=[])
-            g[src][dst]['nets'].append(net)
+                g.add_edge(src, dst, nonbest=[], best=[])
             if best:
-                g[src][dst]['best'].append((net, aspath))
+                assert isinstance(best, EBGPPropagation.propagatedinfo)
+                g[src][dst]['best'].append(best)
             if nonbest:
-                g[src][dst]['nonbest'].append((net, aspath))
+                assert isinstance(nonbest, EBGPPropagation.propagatedinfo)
+                g[src][dst]['nonbest'].append(nonbest)
         return g
+
+    def print_union(self):
+        for src, dst, attrs in self.union_graph.edges_iter(data=True):
+            for b in attrs.get('best', []):
+                assert isinstance(b, EBGPPropagation.propagatedinfo), b
+
+            #print src, dst, attrs
+            best_label = []
+            for propagated in attrs['best']:
+                ann = propagated.new_ann
+                tmp = "best %s from %s: %s" % (ann.PREFIX, propagated.egress, ','.join([str(n) for n in ann.AS_PATH]))
+                best_label.append(tmp)
+            nonbest_label = []
+            for propagated in attrs['nonbest']:
+                ann = propagated.new_ann
+                tmp = "nonbest %s from %s: %s" % (ann.PREFIX, propagated.egress, ','.join([str(n) for n in ann.AS_PATH]))
+                nonbest_label.append(tmp)
+            best_str = "\\n".join(best_label)
+            nonbest_str = "\\n".join(nonbest_label)
+            self.union_graph[src][dst]['label'] = "%s\\n%s" % (best_str, nonbest_str)
+
+        from networkx.drawing.nx_agraph import write_dot
+        write_dot(self.union_graph, '/tmp/composed.dot')
 
     def union_graphs(self):
         g = nx.DiGraph()
         for net, propagation in self.nets_dag.iteritems():
             g = self.add_net_graph(g, propagation)
+            for src, dst, attrs in g.edges_iter(data=True):
+                for b in attrs.get('best', []):
+                    assert isinstance(b, EBGPPropagation.propagatedinfo), b
 
-        for src, dst, attrs in g.edges_iter(data=True):
-            print src, dst, attrs
-            best = []
-            for net, path in attrs['best']:
-                tmp = "best %s: %s" % (net, ','.join([str(n) for n in path]))
-                best.append(tmp)
-            nonbest = []
-            for net, path in attrs['nonbest']:
-                tmp = "nonbest %s: %s" % (net, ','.join([str(n) for n in path]))
-                best.append(tmp)
-            best = "\\n".join(best)
-            nonbest = "\\n".join(nonbest)
-            g[src][dst]['label'] = "%s\\n%s" % (best, nonbest)
-        from networkx.drawing.nx_agraph import write_dot
-        write_dot(g, '/tmp/composed.dot')
+        self.union_graph = g
+        self.print_union()
 
     def compute(self):
-        r3_anns = {}
-        for ann in self.annoucenements['R3']:
-            r3_anns['R3_%s' % ann.PREFIX] = ann
+        for node in self.union_graph.nodes():
+            if not self.network_graph.is_local_router(node):
+                continue
+            asnum = self.network_graph.get_bgp_asnum(node)
+            best = []
+            nonbest = []
+            for _, neighbor, attrs in self.union_graph.in_edges(node, data=True):
+                best.extend(attrs['best'])
+                nonbest.extend(attrs['nonbest'])
+            anns = {}
+            best_anns = {}
+            nonbest_anns = {}
+            for propagated in best:
+                ann = propagated.new_ann
+                aspath = '_'.join([str(n) for n in ann.AS_PATH])
+                name = "%s_%s_%s" % (node, ann.PREFIX, aspath)
+                best_anns[name] = ann
+                anns[name] = ann
 
-        r4_anns = {}
-        for ann in self.annoucenements['R4']:
-            r4_anns['R4_%s' % ann.PREFIX] = ann
+            for propagated in nonbest:
+                ann = propagated.new_ann
+                aspath = '_'.join([str(n) for n in ann.AS_PATH])
+                name = "%s_%s_%s" % (node, ann.PREFIX, aspath)
+                nonbest_anns[name] = ann
+                anns[name] = ann
 
-        r4 = EBGP(400, 'R4', 'R4', r4_anns)
-        r4.solve([], r4_anns.keys())
+            ebgp = EBGP(asnum, node, node, anns)
+            route_maps = []
+            for i in range(5):
+                if i % 2 == 0:
+                    rmap = RouteMap(
+                        name='RM%d' % i, match=MatchPeer(EMPTY),
+                        action=SetLocalPref(EMPTY), permit=True)
+                else:
+                    rmap = RouteMap(
+                        name='RM%d' % i, match=MatchPrefix(EMPTY),
+                        action=SetLocalPref(EMPTY), permit=True)
+                route_maps.append(rmap)
+            assert ebgp.solve(route_maps[:], best_anns.keys())
+            print "Router:", node
+            print "\tSelected:", sorted(ebgp.exported.keys())
+            print "\tRequired:", sorted(best_anns.keys())
+            print "\tDiscarde:", sorted(nonbest_anns.keys())
 
-        mixed = {}
-        mixed.update(r3_anns)
-        mixed.update(r4.exported)
-        r3 = EBGP(300, 'R3', 'R3', mixed)
-        from synet.synthesis.ebgp import SetLocalPref
-        from synet.synthesis.ebgp import MatchPeer
-        from synet.synthesis.ebgp import EMPTY
-        from synet.synthesis.ebgp import RouteMap
-        RM1 = RouteMap(name='RM1', match=MatchPeer(EMPTY), action=SetLocalPref(EMPTY), permit=True)
-        r3.solve([RM1], r3_anns.keys())
-        print sorted(r3.exported.keys())
-        #for node in self.network_graph.nodes():
-        #    anns = self.annoucenements[node]
-        #    ebgp = EBGP(anns)
-        #    ebgp.solve()
+        return
