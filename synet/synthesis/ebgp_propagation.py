@@ -10,11 +10,16 @@ import networkx as nx
 from synet.utils.common import PathReq
 from synet.synthesis.ebgp import EBGP
 
-from synet.synthesis.ebgp import SetLocalPref
-from synet.synthesis.ebgp import MatchPeer
-from synet.synthesis.ebgp import MatchPrefix
-from synet.synthesis.ebgp import EMPTY
-from synet.synthesis.ebgp import RouteMap
+from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import MatchPeer
+from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import IpPrefixList
+from synet.topo.bgp import VALUENOTSET
+from synet.topo.bgp import RouteMap
+from synet.topo.bgp import RouteMapLine
+from synet.topo.bgp import Access
+from synet.topo.bgp import Community
+
 from synet.synthesis.ebgp import Announcement
 
 
@@ -204,6 +209,12 @@ class EBGPPropagation(object):
         self.print_union()
 
     def compute(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        c = (c1, c2, c3)
+
         for node in self.union_graph.nodes():
             if not self.network_graph.is_local_router(node):
                 continue
@@ -230,19 +241,28 @@ class EBGPPropagation(object):
                 nonbest_anns[name] = ann
                 anns[name] = ann
 
-            ebgp = EBGP(asnum, node, node, anns)
-            route_maps = []
+            ebgp = EBGP(asnum, node, node, anns, all_communities=c)
+            lines = []
             for i in range(5):
                 if i % 2 == 0:
-                    rmap = RouteMap(
-                        name='RM%d' % i, match=MatchPeer(EMPTY),
-                        action=SetLocalPref(EMPTY), permit=True)
+                    line = RouteMapLine(
+                        matches=[MatchPeer(VALUENOTSET)],
+                        actions=[ActionSetLocalPref(VALUENOTSET)],
+                        access=Access.permit,
+                        lineno=10 + i
+                    )
                 else:
-                    rmap = RouteMap(
-                        name='RM%d' % i, match=MatchPrefix(EMPTY),
-                        action=SetLocalPref(EMPTY), permit=True)
-                route_maps.append(rmap)
-            assert ebgp.solve(route_maps[:], best_anns.keys())
+                    line = RouteMapLine(
+                        matches=[MatchIpPrefixListList(
+                            IpPrefixList(1, Access.permit, [VALUENOTSET]))],
+                        actions=[ActionSetLocalPref(VALUENOTSET)],
+                        access=Access.permit,
+                        lineno=10 + i
+                    )
+
+                lines.append(line)
+            route_map = RouteMap('RM1', lines=lines)
+            assert ebgp.solve(route_map, best_anns.keys())
             print "Router:", node
             print "\tSelected:", sorted(ebgp.exported.keys())
             print "\tRequired:", sorted(best_anns.keys())

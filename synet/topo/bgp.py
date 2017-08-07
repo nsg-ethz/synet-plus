@@ -9,6 +9,9 @@ from ipaddress import IPv4Network
 from ipaddress import IPv6Network
 
 
+VALUENOTSET = 'EMPTY?Value'
+
+
 class Access(Enum):
     """Used to in various matches and route maps"""
     permit = 'permit'
@@ -23,9 +26,9 @@ class Community(object):
         :param value: the community value, e.g. 10:20
         :param new_format: if true only accepts 10:30 but not 78
         """
-        assert isinstance(value, basestring)
-        if new_format:
-            assert ':' in value
+        if isinstance(value, basestring):
+            value = Community.string_to_int(value)
+        assert isinstance(value, int)
         self._new_format = new_format
         self._value = value
 
@@ -35,8 +38,22 @@ class Community(object):
         return self._value
 
     @property
-    def new_format(self):
+    def is_new_format(self):
         return self._new_format
+
+    @staticmethod
+    def string_to_int(value):
+        assert ":" in value
+        high, low = value.split(":")
+        bin_high = '{0:016b}'.format(int(high))
+        bin_low = '{0:016b}'.format(int(low))
+        return int(bin_high + bin_low, 2)
+
+    def get_new_format(self):
+        bin = '{0:032b}'.format(self.value)
+        high = int(bin[:16], 2)
+        low = int(bin[16:], 2)
+        return "%d:%d" % (high, low)
 
     def __eq__(self, other):
         if hasattr(other, 'value'):
@@ -45,7 +62,11 @@ class Community(object):
             return self.value == other
 
     def __str__(self):
-        return "Community(%s)" % self.value
+        if self.is_new_format:
+            val = self.get_new_format()
+        else:
+            val = self.value
+        return "Community(%s)" % val
 
     def __repr__(self):
         return self.__str__()
@@ -57,11 +78,12 @@ class CommunityList(object):
         assert isinstance(list_id, int)
         assert isinstance(communities, Iterable)
         assert isinstance(access, Access)
-        for community in communities:
-            assert isinstance(community, Community)
+        if communities != [VALUENOTSET]:
+            for community in communities:
+                assert isinstance(community, Community)
         self._list_id = list_id
         self._access = access
-        self._communities = tuple(communities)
+        self._communities = communities
 
     @property
     def list_id(self):
@@ -74,6 +96,14 @@ class CommunityList(object):
     @property
     def communities(self):
         return self._communities
+
+    @communities.setter
+    def communities(self, value):
+        if self._communities != [VALUENOTSET]:
+            raise ValueError("Communities alread set to %s" % self._communities)
+        for community in value:
+            assert isinstance(community, Community)
+        self._communities = value
 
     def __eq__(self, other):
         if not isinstance(object, CommunityList):
@@ -93,12 +123,12 @@ class CommunityList(object):
 
 class IpPrefixList(object):
     def __init__(self, name, access, networks):
-        nettype = (IPv4Network, IPv6Network)
+        self.nettype = (IPv4Network, IPv6Network)
         assert isinstance(access, Access)
         assert isinstance(networks, Iterable)
-        assert not isinstance(networks, nettype)
+        assert not isinstance(networks, self.nettype)
         for net in networks:
-            assert isinstance(net, nettype)
+            assert isinstance(net, self.nettype) or isinstance(net, basestring)
         self._networks = networks
         self._name = name
         self._access = access
@@ -111,9 +141,24 @@ class IpPrefixList(object):
     def networks(self):
         return self._networks
 
+    @networks.setter
+    def networks(self, value):
+        if self._networks != [VALUENOTSET]:
+            raise ValueError("Networks alread set to %s" % self._networks)
+        for net in value:
+            assert isinstance(net, self.nettype) or isinstance(net, basestring)
+        self._networks = value
+
     @property
     def access(self):
         return self._access
+
+    def __str__(self):
+        return "IpPrefixList(id=%s, access=%s, communities=%s)" % \
+               (self.name, self.access, self.networks)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Match(object):
@@ -127,33 +172,117 @@ class Action(object):
 
 class MatchCommunitiesList(Match):
     def __init__(self, communities_list):
-        assert isinstance(communities_list, CommunityList)
+        assert communities_list == VALUENOTSET or\
+            isinstance(communities_list, CommunityList)
         self._match = communities_list
 
     @property
     def match(self):
         return self._match
 
+    @match.setter
+    def match(self, value):
+        assert isinstance(value, CommunityList)
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+    def __str__(self):
+        return "MatchCommunitiesList(%s)" % self.match
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class MatchIpPrefixListList(Match):
     def __init__(self, prefix_list):
-        assert isinstance(prefix_list, IpPrefixList)
+        assert prefix_list == VALUENOTSET or\
+            isinstance(prefix_list, IpPrefixList)
         self._match = prefix_list
 
     @property
     def match(self):
         return self._match
 
+    @match.setter
+    def match(self, value):
+        assert isinstance(value, IpPrefixList)
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+    def __str__(self):
+        return "MatchIpPrefixListList(%s)" % self.match
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class MatchPeer(Match):
+    def __init__(self, peer):
+        assert peer == VALUENOTSET or isinstance(peer, basestring)
+        self._match = peer
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+    def __str__(self):
+        return "MatchPeer(%s)" % self.match
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class MatchLocalPref(Match):
+    def __init__(self, localpref):
+        assert localpref == VALUENOTSET or isinstance(localpref, int)
+        self._match = localpref
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        assert isinstance(value, int)
+        self._match = value
+
+    def __str__(self):
+        return "MatchLocalPref(%s)" % self.match
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class ActionSetLocalPref(Action):
     def __init__(self, localpref):
-        assert isinstance(localpref, int)
+        assert localpref == VALUENOTSET or isinstance(localpref, int)
         self._value = localpref
 
     @property
     def value(self):
         return self._value
 
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __str__(self):
+        return "SetLocalPref(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
 
 class ActionString(Action):
     def __init__(self, value):
@@ -189,17 +318,13 @@ class ActionSetCommunity(Action):
 
 class RouteMapLine(object):
     def __init__(self, matches, actions, access, lineno=None):
-        if not isinstance(matches, Iterable):
-            if matches is not None:
-                matches = (matches, )
-            else:
-                matches = []
-        if not isinstance(actions, Iterable):
-            actions = (actions, )
+        assert isinstance(matches, Iterable)
+        assert isinstance(actions, Iterable)
         for match in matches:
             assert isinstance(match, Match)
         for action in actions:
             assert isinstance(action, Action)
+        assert access == VALUENOTSET or isinstance(access, Access)
 
         self._matches = matches
         self._actions = actions
@@ -218,9 +343,23 @@ class RouteMapLine(object):
     def access(self):
         return self._access
 
+    @access.setter
+    def access(self, value):
+        if self._access != VALUENOTSET:
+            raise ValueError("Access already set to %s" % self._access)
+        assert isinstance(value, Access)
+        self._access = value
+
     @property
     def lineno(self):
         return self._lineno
+
+    def __str__(self):
+        return "<lineno: %d, access: %s, Matches: %s, Actrions: %s>" \
+               % (self.lineno, self.access, self.matches, self.actions)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class RouteMap(object):
