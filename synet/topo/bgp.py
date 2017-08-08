@@ -150,6 +150,14 @@ class IpPrefixList(object):
     def access(self):
         return self._access
 
+    def __eq__(self, other):
+        if not isinstance(other, IpPrefixList):
+            return False
+        net_eq = set(self.networks) == set(other.networks)
+        access_eq = self.access == other.access
+        id_eq = self.name == other.name
+        return id_eq and access_eq and net_eq
+
     def __str__(self):
         return "IpPrefixList(id=%s, access=%s, communities=%s)" % \
                (self.name, self.access, self.networks)
