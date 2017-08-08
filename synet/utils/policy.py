@@ -43,26 +43,80 @@ AndOp = namedtuple('AndOp', ['values'])
 OrOp = namedtuple('OrOp', ['values'])
 
 
+class SMTContext(object):
+    """
+    Hold SMT Context needed for the policy synthesis
+    """
+    def __init__(self, announcements, announcements_vars, announcement_sort,
+                 communities_fun, prefixes_vars, prefix_sort, prefix_fun):
+        """
+        :param announcements: dict of name -> Announcement
+        :param announcements_vars: dict of name -> Z3 Announcement
+        :param announcement_sort: Z3 announcement type
+        :param communities_fun: Community -> (z3.function (Announcement->True or False))
+        :param prefixes_vars: dict of name -> Z3 Prefix var
+        :param prefix_sort: Z3 prefix type
+        :param prefix_fun: prefix -> (z3.function (Announcement->True or False))
+        """
+        self._announcements = announcements
+        self._announcements_vars = announcements_vars
+        self._announcement_sort = announcement_sort
+        self._communities_fun = communities_fun
+        self._prefixes_vars = prefixes_vars
+        self._prefix_sort = prefix_sort
+        self._prefix_fun = prefix_fun
+
+    @property
+    def announcements(self):
+        """Returns a dict of name -> Announcement"""
+        return self._announcements
+
+    @property
+    def announcements_vars(self):
+        """Returns a dict of name -> Z3 Announcement var"""
+        return self._announcements_vars
+
+    @property
+    def announcement_sort(self):
+        """Returns Z3 announcement type"""
+        return self._announcement_sort
+
+    @property
+    def communities_fun(self):
+        """Returns a dict of Community -> (z3.function (Announcement->True or False))"""
+        return self._communities_fun
+
+    @property
+    def prefixes_vars(self):
+        """Returns a dict of name -> z3 Prefix var"""
+        return self._prefixes_vars
+
+    @property
+    def prefix_sort(self):
+        """Returns prefix z3 sort"""
+        return self._prefix_sort
+
+    @property
+    def prefix_fun(self):
+        """Returns  a dict prefix -> (z3.function (Announcement->True or False))"""
+        return self._prefix_fun
+
+
 class SMTCommunity(object):
     """
     Synthesis one Community match
     """
 
-    def __init__(self, name, community, announcements, announcement_sort,
-                 communities_fun):
+    def __init__(self, name, community, context):
         """
         :param community: Community object or VALUENOTSET
         :param name: unique name to make the SMT variables more readable
-        :param announcement_sort: Z3 sort for announcement types
-        :param announcements: dict of Announcements
-        :param communities_fun: dict [Community -> z3 match function]
+        :param context: SMTContext
         """
         assert community == VALUENOTSET or isinstance(community, Community)
-        self.ann_sort = announcement_sort
         self.name = name
         self._community = community
-        self._prev_communities_fun = communities_fun
-        self.announcements = announcements
+        self.ctx = context
         self.constraints = []
         self.match_synthesized = None
         self.match_syn_map = {}
@@ -84,12 +138,11 @@ class SMTCommunity(object):
         """
         Return true if concrete Community object defined for all
         known announcements in self.announcements
-        :return:
         """
         if self._community == VALUENOTSET:
             return False
         concrete = True
-        for _, ann in self.announcements.iteritems():
+        for _, ann in self.ctx.announcements.iteritems():
             if ann.COMMUNITIES[self._community] not in ['T', 'F']:
                 return False
         return concrete
@@ -97,9 +150,9 @@ class SMTCommunity(object):
     def _gen_match_func(self):
         if self._community != VALUENOTSET:
             if self.is_concrete():
-                func = lambda x: self.announcements[str(x)].COMMUNITIES[self._community] == 'T'
+                func = lambda x: self.ctx.announcements[str(x)].COMMUNITIES[self._community] == 'T'
                 return func
-            return self._prev_communities_fun[self._community]
+            return self.ctx.communities_fun[self._community]
         else:
             # This is a bit tricky to handle
             # In case the community match is EMPTY,
@@ -110,20 +163,20 @@ class SMTCommunity(object):
             # and the variable _Selected_Community tells us which one that successfully
             # mapped to our dummy match
             f_name = '%s_Synthesize_Comm_Match' % self.name
-            dummy_match = z3.Function(f_name, self.ann_sort, z3.BoolSort())
+            dummy_match = z3.Function(f_name, self.ctx.announcement_sort, z3.BoolSort())
             c_name = '%s_Selected_Comm_Match' % self.name
             self.match_synthesized = z3.Const(c_name, z3.IntSort())
             self.match_syn_map = {}
             constrains = []
-            for i, community in enumerate(sorted(self._prev_communities_fun.keys())):
+            for i, community in enumerate(sorted(self.ctx.communities_fun.keys())):
                 # TODO: there are some room for partial eval
-                tmp = z3.Const('%s_Tmp%d' % (self.name, i), self.ann_sort)
+                tmp = z3.Const('%s_Tmp%d' % (self.name, i), self.ctx.announcement_sort)
                 self.match_syn_map[i] = community
                 constrains.append(
                     z3.And(self.match_synthesized == i,
                            z3.ForAll(
                                [tmp],
-                               dummy_match(tmp) == self._prev_communities_fun[community](tmp)
+                               dummy_match(tmp) == self.ctx.communities_fun[community](tmp)
                            ))
                 )
             self.constraints = [z3.Or(*constrains)]
@@ -144,34 +197,23 @@ class SMTCommunityList(object):
     """
     Synthesis list of Communities (AND)
     """
-    def __init__(self, name,
-                 community_list,
-                 announcement_sort,
-                 announcements,
-                 communities_fun):
+    def __init__(self, name, community_list, context):
         """
-        :param communities: CommunityList object
         :param name: unique name to make the SMT variables more readable
-        :param announcement_sort: Z3 sort for announcement types
-        :param announcements: dict of Announcements names -> z3 variables
-        :param communities_fun: dict [Community -> z3 match function]
+        :param communities: CommunityList object
+        :param context: SMTContext
         """
         assert isinstance(community_list, CommunityList)
-        self.ann_sort = announcement_sort
         self.name = name
-        self._prev_communities_fun = communities_fun
-        self.announcements = announcements
+        self._community_list = community_list
+        self.ctx = context
         self.constraints = []
         self.match_synthesized = None
         self.match_syn_map = {}
-        self._community_list = community_list
         self._smt_matches = []
-        for i, community in enumerate(self._community_list.communities):
-            smt = SMTCommunity(community=community,
-                               name='%s_%d' % (name, i),
-                               announcement_sort=announcement_sort,
-                               announcements=announcements,
-                               communities_fun=communities_fun)
+        for i, comm in enumerate(self._community_list.communities):
+            name = '%s_%d' % (self.name, i)
+            smt = SMTCommunity(name=name, community=comm, context=self.ctx)
             self._smt_matches.append(smt)
         self.match_fun = self._gen_match_func()
 
@@ -223,19 +265,16 @@ class SMTIpPrefix(object):
     Synthesis one IPPrefix
     TODO: Support longest prefix matching
     """
-
-    def __init__(self, name, prefix, prefixes, prefix_sort, prefix_fun,
-                 announcements, announcement_sort):
+    def __init__(self, name, prefix, context):
         """
+        :param name: unique name to make the SMT variables more readable
+        :param prefix: Prefix or VALUENOTSET
+        :param context: SMTContext
         """
         assert prefix == VALUENOTSET or isinstance(prefix, basestring)
         self.name = name
         self._prefix = prefix
-        self.prefixes = prefixes
-        self.prefix_sort = prefix_sort
-        self.prefix_fun = prefix_fun
-        self.announcements = announcements
-        self.ann_sort = announcement_sort
+        self.ctx = context
 
         self.constraints = []
         self.match_synthesized = None
@@ -261,30 +300,30 @@ class SMTIpPrefix(object):
         Return true if concrete Prefix object
         :return: boolean
         """
-        return  self._prefix != VALUENOTSET
+        return self._prefix != VALUENOTSET
 
     def _gen_match_func(self):
 
         if self._prefix != VALUENOTSET:
-            match_fun = lambda x: self.prefix_fun(x) == self.prefixes[self._prefix]
+            match_fun = lambda x: self.ctx.prefix_fun(x) == self.ctx.prefixes_vars[self._prefix]
         else:
             dummy_match = z3.Function(
                 '%s_Synthesize_Prefix_Match' % self.name,
-                self.ann_sort, z3.BoolSort())
+                self.ctx.announcement_sort, z3.BoolSort())
             self.match_synthesized = z3.Const(
                 '%s_Selected_Prefix_Match' % self.name, z3.IntSort())
             self.match_syn_map = {}
             constraints = []
-            for i, prefix in enumerate(sorted(self.prefixes.keys())):
-                prefix_var = self.prefixes[prefix]
-                tmp = z3.Const('%s_Tmp%d' % (self.name, i), self.ann_sort)
+            for i, prefix in enumerate(sorted(self.ctx.prefixes_vars.keys())):
+                prefix_var = self.ctx.prefixes_vars[prefix]
+                tmp = z3.Const('%s_Tmp%d' % (self.name, i), self.ctx.announcement_sort)
                 self.match_syn_map[i] = prefix
                 constraints.append(
                     z3.And(self.match_synthesized == i,
                            z3.ForAll(
                                [tmp],
                                dummy_match(tmp) == z3.If(
-                                   self.prefix_fun(tmp) == prefix_var,
+                                   self.ctx.prefix_fun(tmp) == prefix_var,
                                    True,
                                    False))))
             self.constraints = [z3.Or(*constraints)]
@@ -304,30 +343,16 @@ class SMTIpPrefixList(object):
     """
     Synthesis list of IP Prefixes (AND)
     """
-    def __init__(self, name,
-                 prefix_list,
-                 prefix_sort,
-                 prefixes,
-                 prefix_fun,
-                 announcements,
-                 announcement_sort):
+    def __init__(self, name, prefix_list, context):
         """
         :param name: unique name to make the SMT variables more readable
         :param prefix_list: IpPrefixlist object
-        :param prefix_sort: Z3 sort for prefix types
-        :param prefixes: dict of Prefixes names -> Z3 variable
-        :param prefix_fun: dict [Prefix name -> z3 match function]
-        :param announcements: dict of Announcements names -> z3 variables
-        :param announcement_sort: Z3 sort for announcement types
+        :param context: SMTContext
         """
         assert isinstance(prefix_list, IpPrefixList)
         self.name = name
         self.prefix_list = prefix_list
-        self.prefix_sort = prefix_sort
-        self.prefixes = prefixes
-        self.prefix_fun = prefix_fun
-        self.ann_sort = announcement_sort
-        self.announcements = announcements
+        self.ctx = context
 
         self.constraints = []
         self.match_synthesized = None
@@ -335,15 +360,8 @@ class SMTIpPrefixList(object):
 
         self._smt_matches = []
         for i, prefix in enumerate(self.prefix_list.networks):
-            smt = SMTIpPrefix(
-                name='%s_%d' % (name, i),
-                prefix=prefix,
-                prefixes=self.prefixes,
-                prefix_sort=self.prefix_sort,
-                prefix_fun=self.prefix_fun,
-                announcements=self.announcements,
-                announcement_sort=self.ann_sort
-            )
+            name = '%s_%d' % (self.name, i)
+            smt = SMTIpPrefix(name=name, prefix=prefix, context=self.ctx)
             self._smt_matches.append(smt)
         self.match_fun = self._gen_match_func()
 

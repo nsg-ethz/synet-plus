@@ -27,6 +27,7 @@ from synet.utils.policy import SMTCommunity
 from synet.utils.policy import SMTCommunityList
 from synet.utils.policy import SMTIpPrefix
 from synet.utils.policy import SMTIpPrefixList
+from synet.utils.policy import SMTContext
 
 
 __author__ = "Ahmed El-Hassany"
@@ -96,46 +97,40 @@ class SMTSetup(unittest.TestCase):
             prefix_var = self.prefix_map[prefix]
             solver.add(self.prefix_func(ann_var) == prefix_var)
 
+    def get_context(self):
+        ctx = SMTContext(
+            announcements=self.anns,
+            announcements_vars=self.announcements,
+            announcement_sort=self.ann_sort,
+            communities_fun=self.communities_func,
+            prefixes_vars=self.prefix_map,
+            prefix_sort=self.prefix_sort,
+            prefix_fun=self.prefix_func
+        )
+        return ctx
+
 
 class SMTCommunityTest(SMTSetup):
+    def get_solver(self):
+        solver = z3.Solver()
+        self._load_communities_smt(solver)
+        return solver
+
     def test_community_match(self):
-        c1_match = SMTCommunity(
-            community=self.all_communities[0],
-            name='rm1',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
 
-        c2_match = SMTCommunity(
-            community=self.all_communities[1],
-            name='rm2',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
+        c1_match = SMTCommunity(name='rm1', community=c1, context=ctx)
+        c2_match = SMTCommunity(name='rm2', community=c2, context=ctx)
+        c3_match = SMTCommunity(name='rm3', community=c3, context=ctx)
+        wild1_match = SMTCommunity(community=VALUENOTSET, name='rm4', context=ctx)
 
-        c3_match = SMTCommunity(
-            community=self.all_communities[2],
-            name='rm3',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
-
-        wild1_match = SMTCommunity(
-            community=VALUENOTSET,
-            name='rm4',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
-
-        def get_solver():
-            solver = z3.Solver()
-            self._load_communities_smt(solver)
-            return solver
-
-        s1 = get_solver()
-        s2 = get_solver()
-        s3 = get_solver()
-        s4 = get_solver()
+        s1 = self.get_solver()
+        s2 = self.get_solver()
+        s3 = self.get_solver()
+        s4 = self.get_solver()
         s1.add(c1_match.match_fun(self.ann_map['Ann1_Google']) == True)
         s1.add(wild1_match.constraints)
         s2.add(c2_match.match_fun(self.ann_map['Ann1_Google']) == False)
@@ -156,57 +151,29 @@ class SMTCommunityTest(SMTSetup):
         c2_val = c2_match.get_val(m2)
         c3_val = c3_match.get_val(m3)
         wild1_val = wild1_match.get_val(m4)
-        self.assertEquals(c1_val, self.all_communities[0])
-        self.assertEquals(c2_val, self.all_communities[1])
-        self.assertEquals(c3_val, self.all_communities[2])
-        self.assertEquals(c1_match.get_config(m1), self.all_communities[0])
-        self.assertEquals(c2_match.get_config(m2), self.all_communities[1])
-        self.assertEquals(c3_match.get_config(m3), self.all_communities[2])
-        self.assertIn(wild1_val,
-                      [self.all_communities[0], self.all_communities[2]])
+        self.assertEquals(c1_val, c1)
+        self.assertEquals(c2_val, c2)
+        self.assertEquals(c3_val, c3)
+        self.assertEquals(c1_match.get_config(m1), c1)
+        self.assertEquals(c2_match.get_config(m2), c2)
+        self.assertEquals(c3_match.get_config(m3), c3)
+        self.assertIn(wild1_val, [c1, c3])
 
     def test_communities_and_match(self):
-        c1_match = SMTCommunity(
-            community=self.all_communities[0],
-            name='rm1',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
+        ctx = self.get_context()
 
-        c2_match = SMTCommunity(
-            community=self.all_communities[1],
-            name='rm2',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
 
-        c3_match = SMTCommunity(
-            community=self.all_communities[2],
-            name='rm3',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
+        c1_match = SMTCommunity(name='rm1', community=c1, context=ctx)
+        c2_match = SMTCommunity(name='rm2', community=c2, context=ctx)
+        c3_match = SMTCommunity(name='rm3', community=c3, context=ctx)
+        wild1_match = SMTCommunity('rm4', community=VALUENOTSET, context=ctx)
+        wild2_match = SMTCommunity('rm5', community=VALUENOTSET, context=ctx)
 
-        wild1_match = SMTCommunity(
-            community=VALUENOTSET,
-            name='rm4',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
-
-        wild2_match = SMTCommunity(
-            community=VALUENOTSET,
-            name='rm5',
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
-
-        def get_solver():
-            solver = z3.Solver()
-            self._load_communities_smt(solver)
-            return solver
-
-        s1 = get_solver()
+        s1 = self.get_solver()
+        s2 = self.get_solver()
         match1 = c1_match.match_fun(self.ann_map['Ann1_Google'])
         match3 = c3_match.match_fun(self.ann_map['Ann1_Google'])
         s1.add(c1_match.constraints)
@@ -215,44 +182,36 @@ class SMTCommunityTest(SMTSetup):
         s1.add(z3.And(match1 == True, match3 == True))
         self.assertEquals(s1.check(), z3.sat)
 
-        s2 = get_solver()
         match1 = wild1_match.match_fun(self.ann_map['Ann1_Google'])
         match2 = wild2_match.match_fun(self.ann_map['Ann1_Google'])
         s2.add(wild1_match.constraints)
         s2.add(wild2_match.constraints)
-        print match1
         s2.add(z3.And(match1 == True, match2 == True,))
         # To guarantee synthesizing two different values
         s2.add(wild2_match.match_synthesized != wild1_match.match_synthesized)
         self.assertEquals(s2.check(), z3.sat)
         m = s2.model()
-        self.assertIn(wild1_match.get_val(m),
-                      [self.all_communities[0], self.all_communities[2]])
-        self.assertIn(wild2_match.get_val(m),
-                      [self.all_communities[0], self.all_communities[2]])
+        self.assertIn(wild1_match.get_val(m), [c1, c3])
+        self.assertIn(wild2_match.get_val(m), [c1, c3])
         self.assertNotEqual(wild1_match.get_val(m), wild2_match.get_val(m))
 
 
-class SMTCommunityListMatchTest(SMTSetup):
+class SMTCommunityListTest(SMTSetup):
     def test_communities_list(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
         c1_list = CommunityList(1, Access.permit,
                                 [self.all_communities[0],
                                  self.all_communities[2]])
         l1_match = SMTCommunityList(
-            name='rm1',
-            community_list= c1_list,
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
-
+            name='rm1', community_list= c1_list, context=ctx)
         c2_list = CommunityList(1, Access.permit,
                                 [VALUENOTSET, VALUENOTSET])
         l2_match = SMTCommunityList(
-            name='rm2',
-            community_list=c2_list,
-            announcement_sort=self.ann_sort,
-            announcements=self.anns,
-            communities_fun=self.communities_func)
+            name='rm2', community_list=c2_list, context=ctx)
 
         def get_solver():
             solver = z3.Solver()
@@ -265,8 +224,7 @@ class SMTCommunityListMatchTest(SMTSetup):
         s1.add(l1_match.constraints)
         self.assertEquals(s1.check(), z3.sat)
         m = s1.model()
-        self.assertEquals(l1_match.get_val(m),
-                          [self.all_communities[0], self.all_communities[2]])
+        self.assertEquals(l1_match.get_val(m), [c1, c3])
 
         self.assertEquals(l1_match.get_config(m), c1_list)
 
@@ -276,9 +234,7 @@ class SMTCommunityListMatchTest(SMTSetup):
         s2.add(l2_match.constraints)
         self.assertEquals(s2.check(), z3.sat)
         m = s2.model()
-        self.assertEquals(set(l2_match.get_val(m)),
-                          set([self.all_communities[0],
-                               self.all_communities[2]]))
+        self.assertEquals(set(l2_match.get_val(m)), set([c1, c3]))
         self.assertEquals(l2_match.get_config(m), c1_list)
 
 
@@ -306,45 +262,23 @@ class SMTPrefixTest(SMTSetup):
         }
 
     def test_prefix_match(self):
+        ctx = self.get_context()
+
         p1_match = SMTIpPrefix(
             name='p1',
-            prefix='Google',
-            prefixes=self.prefix_map,
-            prefix_sort=self.prefix_sort,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
+            prefix='Google', context=ctx)
 
         p2_match = SMTIpPrefix(
             name='p2',
-            prefix='Yahoo',
-            prefixes=self.prefix_map,
-            prefix_sort=self.prefix_sort,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
+            prefix='Yahoo', context=ctx)
 
         p3_match = SMTIpPrefix(
             name='p3',
-            prefix=VALUENOTSET,
-            prefixes=self.prefix_map,
-            prefix_sort=self.prefix_sort,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
+            prefix=VALUENOTSET, context=ctx)
 
         p4_match = SMTIpPrefix(
             name='p4',
-            prefix=VALUENOTSET,
-            prefixes=self.prefix_map,
-            prefix_sort=self.prefix_sort,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
+            prefix=VALUENOTSET, context=ctx)
 
         def get_solver():
             s = z3.Solver()
@@ -393,6 +327,7 @@ class SMTIpPrefixListTest(SMTSetup):
         }
 
     def test_ip_prefix_list(self):
+        ctx = self.get_context()
         p1_list = IpPrefixList(1, access=Access.permit,
                                networks=['Google'])
         p2_list = IpPrefixList(2, access=Access.permit,
@@ -402,44 +337,10 @@ class SMTIpPrefixListTest(SMTSetup):
         p4_list = IpPrefixList(2, access=Access.permit,
                                networks=[VALUENOTSET])
 
-        l1_match = SMTIpPrefixList(
-            name = 'pl1',
-            prefix_list=p1_list,
-            prefix_sort=self.prefix_sort,
-            prefixes=self.prefix_map,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
-
-        l2_match = SMTIpPrefixList(
-            name='pl2',
-            prefix_list=p2_list,
-            prefix_sort=self.prefix_sort,
-            prefixes=self.prefix_map,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
-        l3_match = SMTIpPrefixList(
-            name='pl3',
-            prefix_list=p3_list,
-            prefix_sort=self.prefix_sort,
-            prefixes=self.prefix_map,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
-
-        l4_match = SMTIpPrefixList(
-            name='pl4',
-            prefix_list=p4_list,
-            prefix_sort=self.prefix_sort,
-            prefixes=self.prefix_map,
-            prefix_fun=self.prefix_func,
-            announcements=self.anns,
-            announcement_sort=self.ann_sort
-        )
+        l1_match = SMTIpPrefixList(name='pl1', prefix_list=p1_list, context=ctx)
+        l2_match = SMTIpPrefixList(name='pl2', prefix_list=p2_list, context=ctx)
+        l3_match = SMTIpPrefixList(name='pl3', prefix_list=p3_list, context=ctx)
+        l4_match = SMTIpPrefixList(name='pl4', prefix_list=p4_list, context=ctx)
 
         def get_solver():
             solver = z3.Solver()
