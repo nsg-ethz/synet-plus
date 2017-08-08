@@ -25,6 +25,8 @@ from synet.topo.bgp import IpPrefixList
 
 from synet.utils.policy import SMTCommunity
 from synet.utils.policy import SMTCommunityList
+from synet.utils.policy import SMTIpPrefix
+from synet.utils.policy import SMTIpPrefixList
 
 
 __author__ = "Ahmed El-Hassany"
@@ -57,6 +59,13 @@ class SMTSetup(unittest.TestCase):
         ann_map = dict([(str(ann), ann) for ann in self.announcements])
         self.ann_map = ann_map
 
+        anns_list = list(set([ann.PREFIX for ann in self.anns.values()]))
+        (self.prefix_sort, self.prefixes) = z3.EnumSort('PrefixSort', anns_list)
+
+        prefix_map = dict([(str(prefix), prefix) for prefix in self.prefixes])
+        self.prefix_map = prefix_map
+        self.prefix_func = z3.Function('PrefixFunc', self.ann_sort, self.prefix_sort)
+
         # Create functions for communities
         self.communities_func = {}
         self.reverse_communities = {}
@@ -68,7 +77,7 @@ class SMTSetup(unittest.TestCase):
     def _load_communities_smt(self, solver):
         for name in sorted(self.anns.keys()):
             var = self.ann_map[name]
-            ann = self.anns[name]#
+            ann = self.anns[name]
             # Assign communities
             for community, val in ann.COMMUNITIES.iteritems():
                 c_name = str(community)
@@ -78,6 +87,14 @@ class SMTSetup(unittest.TestCase):
                     solver.assert_and_track(c_fun(var) == True, assert_name)
                 elif val == 'F':
                     solver.assert_and_track(c_fun(var) == False, assert_name)
+
+    def _load_prefixes_smt(self, solver):
+        for name, ann in self.anns.iteritems():
+            ann = self.anns[name]
+            ann_var = self.ann_map[name]
+            prefix = ann.PREFIX
+            prefix_var = self.prefix_map[prefix]
+            solver.add(self.prefix_func(ann_var) == prefix_var)
 
 
 class SMTCommunityTest(SMTSetup):
@@ -264,3 +281,189 @@ class SMTCommunityListMatchTest(SMTSetup):
                                self.all_communities[2]]))
         self.assertEquals(l2_match.get_config(m), c1_list)
 
+
+class SMTPrefixTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_prefix_match(self):
+        p1_match = SMTIpPrefix(
+            name='p1',
+            prefix='Google',
+            prefixes=self.prefix_map,
+            prefix_sort=self.prefix_sort,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        p2_match = SMTIpPrefix(
+            name='p2',
+            prefix='Yahoo',
+            prefixes=self.prefix_map,
+            prefix_sort=self.prefix_sort,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        p3_match = SMTIpPrefix(
+            name='p3',
+            prefix=VALUENOTSET,
+            prefixes=self.prefix_map,
+            prefix_sort=self.prefix_sort,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        p4_match = SMTIpPrefix(
+            name='p4',
+            prefix=VALUENOTSET,
+            prefixes=self.prefix_map,
+            prefix_sort=self.prefix_sort,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_prefixes_smt(s)
+            return s
+
+        s1 = get_solver()
+        s1.add(p1_match.match_fun(self.ann_map['Ann1_Google']) == True)
+        s1.add(p2_match.match_fun(self.ann_map['Ann1_Google']) == False)
+        s1.add(p1_match.match_fun(self.ann_map['Ann2_Yahoo']) == False)
+        s1.add(p2_match.match_fun(self.ann_map['Ann2_Yahoo']) == True)
+        s1.add(p3_match.match_fun(self.ann_map['Ann1_Google']) == True)
+        s1.add(p3_match.match_fun(self.ann_map['Ann2_Yahoo']) == False)
+        s1.add(p3_match.constraints)
+        s1.add(p4_match.match_fun(self.ann_map['Ann1_Google']) == False)
+        s1.add(p4_match.match_fun(self.ann_map['Ann2_Yahoo']) == True)
+        s1.add(p4_match.constraints)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        print m
+        self.assertEquals(p3_match.get_val(m), 'Google')
+        self.assertEquals(p4_match.get_val(m), 'Yahoo')
+
+
+class SMTIpPrefixListTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_ip_prefix_list(self):
+        p1_list = IpPrefixList(1, access=Access.permit,
+                               networks=['Google'])
+        p2_list = IpPrefixList(2, access=Access.permit,
+                               networks=['Yahoo'])
+        p3_list = IpPrefixList(1, access=Access.permit,
+                               networks=[VALUENOTSET])
+        p4_list = IpPrefixList(2, access=Access.permit,
+                               networks=[VALUENOTSET])
+
+        l1_match = SMTIpPrefixList(
+            name = 'pl1',
+            prefix_list=p1_list,
+            prefix_sort=self.prefix_sort,
+            prefixes=self.prefix_map,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        l2_match = SMTIpPrefixList(
+            name='pl2',
+            prefix_list=p2_list,
+            prefix_sort=self.prefix_sort,
+            prefixes=self.prefix_map,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+        l3_match = SMTIpPrefixList(
+            name='pl3',
+            prefix_list=p3_list,
+            prefix_sort=self.prefix_sort,
+            prefixes=self.prefix_map,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        l4_match = SMTIpPrefixList(
+            name='pl4',
+            prefix_list=p4_list,
+            prefix_sort=self.prefix_sort,
+            prefixes=self.prefix_map,
+            prefix_fun=self.prefix_func,
+            announcements=self.anns,
+            announcement_sort=self.ann_sort
+        )
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_prefixes_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
+        match2 = l2_match.match_fun(self.ann_map['Ann2_Yahoo'])
+        match3 = l3_match.match_fun(self.ann_map['Ann1_Google'])
+        match4 = l4_match.match_fun(self.ann_map['Ann2_Yahoo'])
+        s1.add(match1 == True)
+        s1.add(match2 == True)
+        s1.add(match3 == True)
+        s1.add(match4 == True)
+        s1.add(l1_match.constraints)
+        s1.add(l2_match.constraints)
+        s1.add(l3_match.constraints)
+        s1.add(l4_match.constraints)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(l1_match.get_val(m), ['Google'])
+        self.assertEquals(l2_match.get_val(m), ['Yahoo'])
+        self.assertEquals(l3_match.get_val(m), ['Google'])
+        self.assertEquals(l4_match.get_val(m), ['Yahoo'])
+        self.assertEquals(l3_match.get_config(m), p1_list)
+        self.assertEquals(l4_match.get_config(m), p2_list)

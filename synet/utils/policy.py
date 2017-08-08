@@ -33,6 +33,7 @@ import z3
 from synet.topo.bgp import VALUENOTSET
 from synet.topo.bgp import Community
 from synet.topo.bgp import CommunityList
+from synet.topo.bgp import IpPrefixList
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -149,10 +150,10 @@ class SMTCommunityList(object):
                  announcements,
                  communities_fun):
         """
-        :param communities: list of Community object or VALUENOTSET
+        :param communities: CommunityList object
         :param name: unique name to make the SMT variables more readable
         :param announcement_sort: Z3 sort for announcement types
-        :param announcements: dict of Announcements
+        :param announcements: dict of Announcements names -> z3 variables
         :param communities_fun: dict [Community -> z3 match function]
         """
         assert isinstance(community_list, CommunityList)
@@ -215,3 +216,174 @@ class SMTCommunityList(object):
         return CommunityList(list_id=self._community_list.list_id,
                              access=self._community_list.access,
                              communities=communities)
+
+
+class SMTIpPrefix(object):
+    """
+    Synthesis one IPPrefix
+    TODO: Support longest prefix matching
+    """
+
+    def __init__(self, name, prefix, prefixes, prefix_sort, prefix_fun,
+                 announcements, announcement_sort):
+        """
+        """
+        assert prefix == VALUENOTSET or isinstance(prefix, basestring)
+        self.name = name
+        self._prefix = prefix
+        self.prefixes = prefixes
+        self.prefix_sort = prefix_sort
+        self.prefix_fun = prefix_fun
+        self.announcements = announcements
+        self.ann_sort = announcement_sort
+
+        self.constraints = []
+        self.match_synthesized = None
+        self.match_syn_map = {}
+
+        self.match_fun = self._gen_match_func()
+
+    def get_val(self, model):
+        """
+        Return the synthesized prefix for this match
+        :param model: Z3 model
+        :return: prefix
+        """
+        if self.match_synthesized is None:
+            return self._prefix
+        index = model.eval(self.match_synthesized)
+        index = index.as_long()
+        ret = self.match_syn_map[index]
+        return ret
+
+    def is_concrete(self):
+        """
+        Return true if concrete Prefix object
+        :return: boolean
+        """
+        return  self._prefix != VALUENOTSET
+
+    def _gen_match_func(self):
+
+        if self._prefix != VALUENOTSET:
+            match_fun = lambda x: self.prefix_fun(x) == self.prefixes[self._prefix]
+        else:
+            dummy_match = z3.Function(
+                '%s_Synthesize_Prefix_Match' % self.name,
+                self.ann_sort, z3.BoolSort())
+            self.match_synthesized = z3.Const(
+                '%s_Selected_Prefix_Match' % self.name, z3.IntSort())
+            self.match_syn_map = {}
+            constraints = []
+            for i, prefix in enumerate(sorted(self.prefixes.keys())):
+                prefix_var = self.prefixes[prefix]
+                tmp = z3.Const('%s_Tmp%d' % (self.name, i), self.ann_sort)
+                self.match_syn_map[i] = prefix
+                constraints.append(
+                    z3.And(self.match_synthesized == i,
+                           z3.ForAll(
+                               [tmp],
+                               dummy_match(tmp) == z3.If(
+                                   self.prefix_fun(tmp) == prefix_var,
+                                   True,
+                                   False))))
+            self.constraints = [z3.Or(*constraints)]
+            match_fun = dummy_match
+        return match_fun
+
+    def get_config(self, model):
+        """
+        Get the synthesized Prefix
+        :param model: Z3 model
+        :return: Prefix
+       """
+        return self.get_val(model)
+
+
+class SMTIpPrefixList(object):
+    """
+    Synthesis list of IP Prefixes (AND)
+    """
+    def __init__(self, name,
+                 prefix_list,
+                 prefix_sort,
+                 prefixes,
+                 prefix_fun,
+                 announcements,
+                 announcement_sort):
+        """
+        :param name: unique name to make the SMT variables more readable
+        :param prefix_list: IpPrefixlist object
+        :param prefix_sort: Z3 sort for prefix types
+        :param prefixes: dict of Prefixes names -> Z3 variable
+        :param prefix_fun: dict [Prefix name -> z3 match function]
+        :param announcements: dict of Announcements names -> z3 variables
+        :param announcement_sort: Z3 sort for announcement types
+        """
+        assert isinstance(prefix_list, IpPrefixList)
+        self.name = name
+        self.prefix_list = prefix_list
+        self.prefix_sort = prefix_sort
+        self.prefixes = prefixes
+        self.prefix_fun = prefix_fun
+        self.ann_sort = announcement_sort
+        self.announcements = announcements
+
+        self.constraints = []
+        self.match_synthesized = None
+        self.match_syn_map = {}
+
+        self._smt_matches = []
+        for i, prefix in enumerate(self.prefix_list.networks):
+            smt = SMTIpPrefix(
+                name='%s_%d' % (name, i),
+                prefix=prefix,
+                prefixes=self.prefixes,
+                prefix_sort=self.prefix_sort,
+                prefix_fun=self.prefix_fun,
+                announcements=self.announcements,
+                announcement_sort=self.ann_sort
+            )
+            self._smt_matches.append(smt)
+        self.match_fun = self._gen_match_func()
+
+    def get_val(self, model):
+        """
+        Return the synthesized list of Prefixes for this match
+        :param model: Z3 model
+        :return: list of Community
+        """
+        return [smt.get_val(model) for smt in self._smt_matches]
+
+    def is_concrete(self):
+        """
+        Return true if concrete Prefix object defined
+        :return:
+        """
+        for smt in self._smt_matches:
+            if not smt.is_concrete():
+                return False
+        return True
+
+    def _gen_match_func(self):
+        # Add constraints
+        for smt in self._smt_matches:
+            self.constraints.extend(smt.constraints)
+        dist = [smt.match_synthesized for smt in
+                self._smt_matches if smt.match_synthesized is not None]
+        if len(dist) > 1:
+            unique_c = z3.Distinct(dist)
+            self.constraints.append(unique_c)
+        fun = lambda x: z3.And(*[smt.match_fun(x) for smt in self._smt_matches])
+        return fun
+
+    def get_config(self, model):
+        """
+        Get the synthesized CommunityList
+        :param model: Z3 model
+        :return: CommunityList
+        """
+        prefixes = self.get_val(model)
+        return IpPrefixList(name=self.prefix_list.name,
+                            access=self.prefix_list.access,
+                            networks=prefixes)
