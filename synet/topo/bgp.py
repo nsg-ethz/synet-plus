@@ -56,10 +56,7 @@ class Community(object):
         return "%d:%d" % (high, low)
 
     def __eq__(self, other):
-        if hasattr(other, 'value'):
-            return self.value == other.value
-        else:
-            return self.value == other
+        return self.value == getattr(other, 'value', other)
 
     def __str__(self):
         if self.is_new_format:
@@ -75,12 +72,12 @@ class Community(object):
 class CommunityList(object):
     """Represents a list of communities in a match"""
     def __init__(self, list_id, access, communities):
-        assert isinstance(list_id, int)
+        #assert isinstance(list_id, int)
         assert isinstance(communities, Iterable)
         assert isinstance(access, Access)
         if communities != [VALUENOTSET]:
             for community in communities:
-                assert isinstance(community, Community)
+                assert community == VALUENOTSET or isinstance(community, Community)
         self._list_id = list_id
         self._access = access
         self._communities = communities
@@ -106,7 +103,7 @@ class CommunityList(object):
         self._communities = value
 
     def __eq__(self, other):
-        if not isinstance(object, CommunityList):
+        if not isinstance(other, CommunityList):
             return False
         comm_eq = set(self.communities) == set(other.communities)
         access_eq = self.access == other.access
