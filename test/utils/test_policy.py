@@ -81,6 +81,7 @@ class SMTSetup(unittest.TestCase):
         self._define_types()
 
     def _load_communities_smt(self, solver):
+        vars = []
         for name in sorted(self.anns.keys()):
             var = self.ann_map[name]
             ann = self.anns[name]
@@ -88,11 +89,11 @@ class SMTSetup(unittest.TestCase):
             for community, val in ann.COMMUNITIES.iteritems():
                 c_name = str(community)
                 c_fun = self.communities_func[community]
-                assert_name = 'init_comm_%s_%s' % (str(var), c_name)
                 if val == 'T':
-                    solver.assert_and_track(c_fun(var) == True, assert_name)
+                    vars.append(c_fun(var) == True)
                 elif val == 'F':
-                    solver.assert_and_track(c_fun(var) == False, assert_name)
+                    vars.append(c_fun(var) == False)
+        solver.append(vars)
 
     def _load_prefixes_smt(self, solver):
         for name, ann in self.anns.iteritems():
@@ -239,6 +240,88 @@ class SMTCommunityListTest(SMTSetup):
         m = s2.model()
         self.assertEquals(set(l2_match.get_val(m)), set([c1, c3]))
         self.assertEquals(l2_match.get_config(m), c1_list)
+
+    def test_stress_partial_comp(self):
+        num_communities = 100
+        num_anns = 100
+        self.all_communities = [Community("100:%d" % i) for i in range(num_communities)]
+        self.anns = {}
+        for i in range(num_anns):
+            name = 'Prefix_%d' % i
+            if i == 0:
+                cs = [(self.all_communities[0], 'T')]
+                cs += [(c, 'F') for c in self.all_communities[1:]]
+            else:
+                cs = [(c, 'F') for c in self.all_communities]
+            cs = dict(cs)
+            ann = Announcement(
+                PREFIX=name, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs)
+            self.anns[name] = ann
+
+        self._define_types()
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c1_l = CommunityList(1, Access.permit, [c1])
+        l1_m = SMTCommunityList(name='rm1', community_list= c1_l, context=ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            #self._load_communities_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_m.match_fun(self.ann_map['Prefix_0'])
+        s1.add(match1 == True)
+        s1.add(l1_m.constraints)
+        self.assertTrue(l1_m.is_concrete())
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(l1_m.get_val(m), [c1])
+
+    def test_stress_no_partial_eval(self):
+        num_communities = 100
+        num_anns = 100
+        self.all_communities = [Community("100:%d" % i) for i in range(num_communities)]
+        self.anns = {}
+        for i in range(num_anns):
+            name = 'Prefix_%d' % i
+            if i == 0:
+                cs = [(self.all_communities[0], 'T')]
+                cs += [(c, 'F') for c in self.all_communities[1:]]
+            else:
+                cs = [(c, 'F') for c in self.all_communities]
+            cs = dict(cs)
+            ann = Announcement(
+                PREFIX=name, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs)
+            self.anns[name] = ann
+
+        self._define_types()
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
+        l1_m = SMTCommunityList(name='rm1', community_list= c1_l, context=ctx)
+
+        def get_solver():
+            import time
+            start = time.time()
+            solver = z3.Solver()
+            self._load_communities_smt(solver)
+            end = time.time()
+            print "Loading communties too", (end - start)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_m.match_fun(self.ann_map['Prefix_0'])
+        s1.add(match1 == True)
+        s1.add(l1_m.constraints)
+        self.assertFalse(l1_m.is_concrete())
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(l1_m.get_val(m), [c1])
 
 
 class SMTPrefixTest(SMTSetup):
