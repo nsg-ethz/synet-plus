@@ -124,6 +124,12 @@ class SMTObject(object):
         """
         raise NotImplementedError()
 
+    def is_concrete(self):
+        """
+        Return true if this can be solved with out Z3
+        """
+        raise NotImplementedError()
+
 
 class SMTCommunity(SMTObject):
     """
@@ -444,6 +450,7 @@ class SMTMatch(SMTObject):
         self.ctx = context
         self.constraints = []
         self.smts = []
+        self._is_concrete = False
         self.match_dispatch = {
             MatchCommunitiesList: self._match_comm,
             MatchIpPrefixListList: self._match_ip,
@@ -451,20 +458,26 @@ class SMTMatch(SMTObject):
         }
         self.match_fun = self.match_dispatch[type(match)](match)
 
+    def is_concrete(self):
+        return self._is_concrete
+
     def _match_comm(self, match):
         name = "%s_comm_list" % self.name
         self.smts = [SMTCommunityList(name, match.match, self.ctx)]
         self.constraints.extend(self.smts[0].constraints)
+        self._is_concrete = self.smts[0].is_concrete()
         return self.smts[0].match_fun
 
     def _match_ip(self, match):
         name = "%s_ip_list" % self.name
         self.smts = [SMTIpPrefixList(name, match.match, self.ctx)]
         self.constraints.extend(self.smts[0].constraints)
+        self._is_concrete = self.smts[0].is_concrete()
         return self.smts[0].match_fun
 
     def _match_or(self, match):
         matches = []
+        is_concrete = True
         for i, value in enumerate(match.values):
             name = "%s_or_%d_" % (self.name, i)
             new_match = SMTMatch(name, value, self.ctx)
@@ -473,6 +486,9 @@ class SMTMatch(SMTObject):
             matches.append(match_func)
             self.constraints.extend(constraints)
             self.smts.append(new_match)
+            if not new_match.is_concrete():
+                is_concrete = False
+        self._is_concrete = is_concrete
         match_func = lambda x: z3.Or(*[m(x) for m in matches])
         return match_func
 
@@ -522,6 +538,9 @@ class SMTMatches(SMTObject):
             self.boxes.append(box)
             match_funs.append(box.match_fun)
         return lambda x: z3.And([m(x) for m in match_funs])
+
+    def is_concrete(self):
+        return [] == [box.is_concrete() for box in self.boxes if not box.is_concrete()]
 
     def get_val(self, model):
         return [m.get_val(model) for m in self.boxes]
