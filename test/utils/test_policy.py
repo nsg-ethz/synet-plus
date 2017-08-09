@@ -19,7 +19,6 @@ from synet.topo.bgp import VALUENOTSET
 from synet.topo.bgp import Access
 from synet.topo.bgp import Community
 from synet.topo.bgp import MatchLocalPref
-from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import IpPrefixList
 
 
@@ -28,6 +27,8 @@ from synet.utils.policy import SMTCommunityList
 from synet.utils.policy import SMTIpPrefix
 from synet.utils.policy import SMTIpPrefixList
 from synet.utils.policy import SMTContext
+from synet.utils.policy import SMTMatch
+from synet.utils.policy import OrOp
 
 
 __author__ = "Ahmed El-Hassany"
@@ -368,3 +369,162 @@ class SMTIpPrefixListTest(SMTSetup):
         self.assertEquals(l4_match.get_val(m), ['Yahoo'])
         self.assertEquals(l3_match.get_config(m), p1_list)
         self.assertEquals(l4_match.get_config(m), p2_list)
+
+
+class SMTMatchTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_ip_prefix_list(self):
+        ctx = self.get_context()
+        p1_list = IpPrefixList(1, access=Access.permit,
+                               networks=['Google'])
+        p2_list = IpPrefixList(2, access=Access.permit,
+                               networks=['Yahoo'])
+        p3_list = IpPrefixList(1, access=Access.permit,
+                               networks=[VALUENOTSET])
+        p4_list = IpPrefixList(2, access=Access.permit,
+                               networks=[VALUENOTSET])
+
+        l1_m = MatchIpPrefixListList(prefix_list=p1_list)
+        l2_m = MatchIpPrefixListList(prefix_list=p2_list)
+        l3_m = MatchIpPrefixListList(prefix_list=p3_list)
+        l4_m = MatchIpPrefixListList(prefix_list=p4_list)
+
+        l1_match = SMTMatch(name='m1', match=l1_m, context=ctx)
+        l2_match = SMTMatch(name='m2', match=l2_m, context=ctx)
+        l3_match = SMTMatch(name='m3', match=l3_m, context=ctx)
+        l4_match = SMTMatch(name='m4', match=l4_m, context=ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_prefixes_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
+        match2 = l2_match.match_fun(self.ann_map['Ann2_Yahoo'])
+        match3 = l3_match.match_fun(self.ann_map['Ann1_Google'])
+        match4 = l4_match.match_fun(self.ann_map['Ann2_Yahoo'])
+        s1.add(match1 == True)
+        s1.add(match2 == True)
+        s1.add(match3 == True)
+        s1.add(match4 == True)
+        s1.add(l1_match.constraints)
+        s1.add(l2_match.constraints)
+        s1.add(l3_match.constraints)
+        s1.add(l4_match.constraints)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(l1_match.get_val(m), ['Google'])
+        self.assertEquals(l2_match.get_val(m), ['Yahoo'])
+        self.assertEquals(l3_match.get_val(m), ['Google'])
+        self.assertEquals(l4_match.get_val(m), ['Yahoo'])
+        self.assertEquals(l1_match.get_config(m), l1_m)
+        self.assertEquals(l2_match.get_config(m), l2_m)
+        self.assertEquals(l3_match.get_config(m), l1_m)
+        self.assertEquals(l4_match.get_config(m), l2_m)
+
+    def test_communities_list(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        c1_l = CommunityList(1, Access.permit, [c1, c3])
+        l1_m = MatchCommunitiesList(communities_list=c1_l)
+        c2_l = CommunityList(1, Access.permit, [VALUENOTSET, VALUENOTSET])
+        l2_m = MatchCommunitiesList(communities_list=c2_l)
+
+        l1_match = SMTMatch(name='m1', match=l1_m, context=ctx)
+        l2_match = SMTMatch(name='m2', match=l2_m, context=ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_communities_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
+        s1.add(match1 == True)
+        s1.add(l1_match.constraints)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(l1_match.get_val(m), [c1, c3])
+
+        self.assertEquals(l1_match.get_config(m), l1_m)
+
+        s2 = get_solver()
+        match2 = l2_match.match_fun(self.ann_map['Ann1_Google'])
+        s2.add(match2 == True)
+        s2.add(l2_match.constraints)
+        self.assertEquals(s2.check(), z3.sat)
+        m = s2.model()
+        self.assertEquals(set(l2_match.get_val(m)), set([c1, c3]))
+        self.assertEquals(l2_match.get_config(m), l1_m)
+
+    def test_or(self):
+        ctx = self.get_context()
+        p1_list = IpPrefixList(1, access=Access.permit, networks=['Google'])
+        p2_list = IpPrefixList(2, access=Access.permit, networks=['Yahoo'])
+        p3_list = IpPrefixList(1, access=Access.permit, networks=[VALUENOTSET])
+        p4_list = IpPrefixList(2, access=Access.permit, networks=[VALUENOTSET])
+
+        l1_m = MatchIpPrefixListList(prefix_list=p1_list)
+        l2_m = MatchIpPrefixListList(prefix_list=p2_list)
+        l3_m = MatchIpPrefixListList(prefix_list=p3_list)
+        l4_m = MatchIpPrefixListList(prefix_list=p4_list)
+
+        or1 = OrOp(values=[l1_m, l2_m])
+        or2 = OrOp(values=[l1_m, l3_m])
+        or3 = OrOp(values=[l3_m, l4_m])
+
+        l1_match = SMTMatch(name='m1', match=or1, context=ctx)
+        l2_match = SMTMatch(name='m2', match=or2, context=ctx)
+        l3_match = SMTMatch(name='m3', match=or3, context=ctx)
+
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_prefixes_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
+        match2 = l2_match.match_fun(self.ann_map['Ann2_Yahoo'])
+        match3 = l3_match.match_fun(self.ann_map['Ann1_Google'])
+
+        s1.add(match1 == True)
+        s1.add(match2 == True)
+        s1.add(match3 == True)
+        s1.add(l1_match.constraints)
+        s1.add(l2_match.constraints)
+        s1.add(l3_match.constraints)
+
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(len(l1_match.get_val(m)), 2)
+        self.assertEquals(len(l2_match.get_val(m)), 2)
+        self.assertEquals(len(l3_match.get_val(m)), 2)
+        self.assertEquals(l1_match.get_val(m), [['Google'], ['Yahoo']])
+        self.assertEquals(l2_match.get_val(m), [['Google'], ['Yahoo']])
+        self.assertEquals(l1_match.get_config(m), [l1_m, l2_m])

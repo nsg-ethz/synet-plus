@@ -34,6 +34,8 @@ from synet.topo.bgp import VALUENOTSET
 from synet.topo.bgp import Community
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
+from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchCommunitiesList
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -405,3 +407,65 @@ class SMTIpPrefixList(object):
         return IpPrefixList(name=self.prefix_list.name,
                             access=self.prefix_list.access,
                             networks=prefixes)
+
+
+class SMTMatch(object):
+    """
+    A single match is OR between a list of the same object type
+    """
+    def __init__(self, name, match, context):
+        self.name = name
+        self.match = match
+        self.ctx = context
+        self.constraints = []
+        self.smts = []
+        self.match_dispatch = {
+            MatchCommunitiesList: self._match_comm,
+            MatchIpPrefixListList: self._match_ip,
+            OrOp: self._match_or
+        }
+        self.match_fun = self.match_dispatch[type(match)](match)
+
+    def _match_comm(self, match):
+        name = "%s_comm_list" % self.name
+        self.smts = [SMTCommunityList(name, match.match, self.ctx)]
+        self.constraints.extend(self.smts[0].constraints)
+        return self.smts[0].match_fun
+
+    def _match_ip(self, match):
+        name = "%s_ip_list" % self.name
+        self.smts = [SMTIpPrefixList(name, match.match, self.ctx)]
+        self.constraints.extend(self.smts[0].constraints)
+        return self.smts[0].match_fun
+
+    def _match_or(self, match):
+        matches = []
+        for i, match in enumerate(match.values):
+            name = "%s_or" % self.name
+            new_match = SMTMatch(name, match, self.ctx)
+            match_func = new_match.match_fun
+            constraints = new_match.constraints
+            matches.append(match_func)
+            self.constraints.extend(constraints)
+            self.smts.append(new_match)
+        match_func = lambda x: z3.Or(*[m(x) for m in matches])
+        return match_func
+
+    def get_val(self, model):
+        if len(self.smts) == 1:
+            return self.smts[0].get_val(model)
+        else:
+            return [smt.get_val(model) for smt in self.smts]
+
+    def _get_single_config(self, smt, model):
+        config = smt.get_config(model)
+        if isinstance(self.match, MatchCommunitiesList):
+            return MatchCommunitiesList(config)
+        elif isinstance(self.match, MatchIpPrefixListList):
+            return MatchIpPrefixListList(config)
+        return config
+
+    def get_config(self, model):
+        if isinstance(self.match, OrOp):
+            return [smt.get_config(model) for smt in self.smts]
+        return self._get_single_config(self.smts[0], model)
