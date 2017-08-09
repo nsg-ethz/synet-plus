@@ -53,11 +53,10 @@ class SMTSetup(unittest.TestCase):
             'Ann1_Google': ann1,
         }
 
-    def setUp(self):
-        self._pre_load()
+    def _define_types(self):
         # Ann Type
         (self.ann_sort, self.announcements) = \
-            z3.EnumSort('AnnouncementSort',self.anns.keys())
+            z3.EnumSort('AnnouncementSort', self.anns.keys())
 
         ann_map = dict([(str(ann), ann) for ann in self.announcements])
         self.ann_map = ann_map
@@ -76,6 +75,10 @@ class SMTSetup(unittest.TestCase):
             name = 'Has_%s' % c
             self.communities_func[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
             self.reverse_communities[name] = c
+
+    def setUp(self):
+        self._pre_load()
+        self._define_types()
 
     def _load_communities_smt(self, solver):
         for name in sorted(self.anns.keys()):
@@ -127,20 +130,20 @@ class SMTCommunityTest(SMTSetup):
         c1_match = SMTCommunity(name='rm1', community=c1, context=ctx)
         c2_match = SMTCommunity(name='rm2', community=c2, context=ctx)
         c3_match = SMTCommunity(name='rm3', community=c3, context=ctx)
-        wild1_match = SMTCommunity(community=VALUENOTSET, name='rm4', context=ctx)
+        w1_match = SMTCommunity(community=VALUENOTSET, name='rm4', context=ctx)
 
         s1 = self.get_solver()
         s2 = self.get_solver()
         s3 = self.get_solver()
         s4 = self.get_solver()
         s1.add(c1_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s1.add(wild1_match.constraints)
+        s1.add(w1_match.constraints)
         s2.add(c2_match.match_fun(self.ann_map['Ann1_Google']) == False)
-        s2.add(wild1_match.constraints)
+        s2.add(w1_match.constraints)
         s3.add(c3_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s3.add(wild1_match.constraints)
-        s4.add(wild1_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s4.add(wild1_match.constraints)
+        s3.add(w1_match.constraints)
+        s4.add(w1_match.match_fun(self.ann_map['Ann1_Google']) == True)
+        s4.add(w1_match.constraints)
         self.assertEquals(s1.check(), z3.sat)
         self.assertEquals(s2.check(), z3.sat)
         self.assertEquals(s3.check(), z3.sat)
@@ -152,7 +155,7 @@ class SMTCommunityTest(SMTSetup):
         c1_val = c1_match.get_val(m1)
         c2_val = c2_match.get_val(m2)
         c3_val = c3_match.get_val(m3)
-        wild1_val = wild1_match.get_val(m4)
+        wild1_val = w1_match.get_val(m4)
         self.assertEquals(c1_val, c1)
         self.assertEquals(c2_val, c2)
         self.assertEquals(c3_val, c3)
@@ -205,9 +208,7 @@ class SMTCommunityListTest(SMTSetup):
         c2 = self.all_communities[1]
         c3 = self.all_communities[2]
 
-        c1_list = CommunityList(1, Access.permit,
-                                [self.all_communities[0],
-                                 self.all_communities[2]])
+        c1_list = CommunityList(1, Access.permit, [c1, c3])
         l1_match = SMTCommunityList(
             name='rm1', community_list= c1_list, context=ctx)
         c2_list = CommunityList(1, Access.permit,
@@ -266,21 +267,10 @@ class SMTPrefixTest(SMTSetup):
     def test_prefix_match(self):
         ctx = self.get_context()
 
-        p1_match = SMTIpPrefix(
-            name='p1',
-            prefix='Google', context=ctx)
-
-        p2_match = SMTIpPrefix(
-            name='p2',
-            prefix='Yahoo', context=ctx)
-
-        p3_match = SMTIpPrefix(
-            name='p3',
-            prefix=VALUENOTSET, context=ctx)
-
-        p4_match = SMTIpPrefix(
-            name='p4',
-            prefix=VALUENOTSET, context=ctx)
+        p1_match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+        p2_match = SMTIpPrefix(name='p2', prefix='Yahoo', context=ctx)
+        p3_match = SMTIpPrefix(name='p3', prefix=VALUENOTSET, context=ctx)
+        p4_match = SMTIpPrefix(name='p4', prefix=VALUENOTSET, context=ctx)
 
         def get_solver():
             s = z3.Solver()
@@ -300,7 +290,6 @@ class SMTPrefixTest(SMTSetup):
         s1.add(p4_match.constraints)
         self.assertEquals(s1.check(), z3.sat)
         m = s1.model()
-        print m
         self.assertEquals(p3_match.get_val(m), 'Google')
         self.assertEquals(p4_match.get_val(m), 'Yahoo')
 
@@ -330,14 +319,10 @@ class SMTIpPrefixListTest(SMTSetup):
 
     def test_ip_prefix_list(self):
         ctx = self.get_context()
-        p1_list = IpPrefixList(1, access=Access.permit,
-                               networks=['Google'])
-        p2_list = IpPrefixList(2, access=Access.permit,
-                               networks=['Yahoo'])
-        p3_list = IpPrefixList(1, access=Access.permit,
-                               networks=[VALUENOTSET])
-        p4_list = IpPrefixList(2, access=Access.permit,
-                               networks=[VALUENOTSET])
+        p1_list = IpPrefixList(1, access=Access.permit, networks=['Google'])
+        p2_list = IpPrefixList(2, access=Access.permit, networks=['Yahoo'])
+        p3_list = IpPrefixList(1, access=Access.permit, networks=[VALUENOTSET])
+        p4_list = IpPrefixList(2, access=Access.permit, networks=[VALUENOTSET])
 
         l1_match = SMTIpPrefixList(name='pl1', prefix_list=p1_list, context=ctx)
         l2_match = SMTIpPrefixList(name='pl2', prefix_list=p2_list, context=ctx)
@@ -397,14 +382,11 @@ class SMTMatchTest(SMTSetup):
 
     def test_ip_prefix_list(self):
         ctx = self.get_context()
-        p1_list = IpPrefixList(1, access=Access.permit,
-                               networks=['Google'])
-        p2_list = IpPrefixList(2, access=Access.permit,
-                               networks=['Yahoo'])
-        p3_list = IpPrefixList(1, access=Access.permit,
-                               networks=[VALUENOTSET])
-        p4_list = IpPrefixList(2, access=Access.permit,
-                               networks=[VALUENOTSET])
+
+        p1_list = IpPrefixList(1, access=Access.permit, networks=['Google'])
+        p2_list = IpPrefixList(2, access=Access.permit, networks=['Yahoo'])
+        p3_list = IpPrefixList(1, access=Access.permit, networks=[VALUENOTSET])
+        p4_list = IpPrefixList(2, access=Access.permit, networks=[VALUENOTSET])
 
         l1_m = MatchIpPrefixListList(prefix_list=p1_list)
         l2_m = MatchIpPrefixListList(prefix_list=p2_list)
