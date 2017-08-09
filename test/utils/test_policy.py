@@ -28,6 +28,7 @@ from synet.utils.policy import SMTIpPrefix
 from synet.utils.policy import SMTIpPrefixList
 from synet.utils.policy import SMTContext
 from synet.utils.policy import SMTMatch
+from synet.utils.policy import SMTMatches
 from synet.utils.policy import OrOp
 
 
@@ -528,3 +529,57 @@ class SMTMatchTest(SMTSetup):
         self.assertEquals(l1_match.get_val(m), [['Google'], ['Yahoo']])
         self.assertEquals(l2_match.get_val(m), [['Google'], ['Yahoo']])
         self.assertEquals(l1_match.get_config(m), [l1_m, l2_m])
+
+
+class SMTMatchesTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'F'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_matches(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c3 = self.all_communities[2]
+
+        c1_l = CommunityList(1, Access.permit, [c1, c3])
+        l1_m = MatchCommunitiesList(communities_list=c1_l)
+
+        p1_list = IpPrefixList(1, access=Access.permit, networks=['Google'])
+        l2_m = MatchIpPrefixListList(prefix_list=p1_list)
+
+        l1_match = SMTMatches(name='m1', matches=[l1_m, l2_m], context=ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_prefixes_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
+        s1.add(match1 == True)
+        s1.add(l1_match.constraints)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertIn(['Google'], l1_match.get_val(m))
+        self.assertIn(c1_l.communities, l1_match.get_val(m))
+        self.assertIn(l1_m, l1_match.get_config(m))
+        self.assertIn(l2_m, l1_match.get_config(m))
+

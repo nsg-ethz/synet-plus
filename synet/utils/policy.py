@@ -469,3 +469,37 @@ class SMTMatch(object):
         if isinstance(self.match, OrOp):
             return [smt.get_config(model) for smt in self.smts]
         return self._get_single_config(self.smts[0], model)
+
+
+class SMTMatches(object):
+    """
+    A multiple matches with AND operator
+    """
+    def __init__(self, name, matches, context):
+        """
+        :param name: unique name to make the SMT variables more readable
+        :param matches: List of Match objects
+        :param context: SMTContext
+        """
+        self.name = name
+        self.matches = matches
+        self.ctx = context
+        self.constraints = []
+        self.boxes = []
+        self.match_fun = self._load_matches()
+
+    def _load_matches(self):
+        match_funs = []
+        for i, match in enumerate(self.matches):
+            name = "%s_and_%d_" % (self.name, i)
+            box = SMTMatch(name=name, match=match, context=self.ctx)
+            self.constraints.extend(box.constraints)
+            self.boxes.append(box)
+            match_funs.append(box.match_fun)
+        return lambda x: z3.And([m(x) for m in match_funs])
+
+    def get_val(self, model):
+        return [m.get_val(model) for m in self.boxes]
+
+    def get_config(self, model):
+        return [m.get_config(model) for m in self.boxes]
