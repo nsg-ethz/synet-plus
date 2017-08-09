@@ -192,6 +192,9 @@ class MatchCommunitiesList(Match):
             raise ValueError("Match already set to %s" % self._match)
         self._match = value
 
+    def __eq__(self, other):
+        return self.match == getattr(other, 'match', None)
+
     def __str__(self):
         return "MatchCommunitiesList(%s)" % self.match
 
@@ -215,6 +218,9 @@ class MatchIpPrefixListList(Match):
         if self._match != VALUENOTSET:
             raise ValueError("Match already set to %s" % self._match)
         self._match = value
+
+    def __eq__(self, other):
+        return self.match == getattr(other, 'match', None)
 
     def __str__(self):
         return "MatchIpPrefixListList(%s)" % self.match
@@ -288,6 +294,7 @@ class ActionSetLocalPref(Action):
 
     def __repr__(self):
         return self.__str__()
+
 
 class ActionString(Action):
     def __init__(self, value):
