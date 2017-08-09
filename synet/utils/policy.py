@@ -26,7 +26,6 @@ If a set command is not present in a route-map permit clause then
     the route is redistributed without modification of its current attributes.
 """
 
-
 from collections import namedtuple
 import z3
 
@@ -40,7 +39,6 @@ from synet.topo.bgp import MatchCommunitiesList
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
-
 AndOp = namedtuple('AndOp', ['values'])
 OrOp = namedtuple('OrOp', ['values'])
 
@@ -49,6 +47,7 @@ class SMTContext(object):
     """
     Hold SMT Context needed for the policy synthesis
     """
+
     def __init__(self, announcements, announcements_vars, announcement_sort,
                  communities_fun, prefixes_vars, prefix_sort, prefix_fun):
         """
@@ -108,6 +107,7 @@ class SMTObject(object):
     """
     Parent object for SMT helper classes
     """
+
     def get_val(self, model):
         """
         Return the concrete or synthesized value
@@ -129,6 +129,7 @@ class SMTCommunity(SMTObject):
     """
     Synthesis one Community match
     """
+
     def __init__(self, name, community, context):
         """
         :param community: Community object or VALUENOTSET
@@ -219,6 +220,7 @@ class SMTCommunityList(SMTObject):
     """
     Synthesis list of Communities (AND)
     """
+
     def __init__(self, name, community_list, context):
         """
         :param name: unique name to make the SMT variables more readable
@@ -287,6 +289,7 @@ class SMTIpPrefix(SMTObject):
     Synthesis one IPPrefix
     TODO: Support longest prefix matching
     """
+
     def __init__(self, name, prefix, context):
         """
         :param name: unique name to make the SMT variables more readable
@@ -365,6 +368,7 @@ class SMTIpPrefixList(SMTObject):
     """
     Synthesis list of IP Prefixes (AND)
     """
+
     def __init__(self, name, prefix_list, context):
         """
         :param name: unique name to make the SMT variables more readable
@@ -433,6 +437,7 @@ class SMTMatch(SMTObject):
     """
     A single match is OR between a list of the same object type
     """
+
     def __init__(self, name, match, context):
         self.name = name
         self.match = match
@@ -494,6 +499,7 @@ class SMTMatches(SMTObject):
     """
     A multiple matches with AND operator
     """
+
     def __init__(self, name, matches, context):
         """
         :param name: unique name to make the SMT variables more readable
