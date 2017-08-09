@@ -104,11 +104,31 @@ class SMTContext(object):
         return self._prefix_fun
 
 
-class SMTCommunity(object):
+class SMTObject(object):
+    """
+    Parent object for SMT helper classes
+    """
+    def get_val(self, model):
+        """
+        Return the concrete or synthesized value
+        :param model: Z3 model
+        :return: dependent on the subclass
+        """
+        raise NotImplementedError()
+
+    def get_config(self, model):
+        """
+        Return the concrete or synthesized configuration instance
+        :param model: Z3 model
+        :return: dependent on the subclass
+        """
+        raise NotImplementedError()
+
+
+class SMTCommunity(SMTObject):
     """
     Synthesis one Community match
     """
-
     def __init__(self, name, community, context):
         """
         :param community: Community object or VALUENOTSET
@@ -195,7 +215,7 @@ class SMTCommunity(object):
         return self.get_val(model)
 
 
-class SMTCommunityList(object):
+class SMTCommunityList(SMTObject):
     """
     Synthesis list of Communities (AND)
     """
@@ -262,7 +282,7 @@ class SMTCommunityList(object):
                              communities=communities)
 
 
-class SMTIpPrefix(object):
+class SMTIpPrefix(SMTObject):
     """
     Synthesis one IPPrefix
     TODO: Support longest prefix matching
@@ -341,7 +361,7 @@ class SMTIpPrefix(object):
         return self.get_val(model)
 
 
-class SMTIpPrefixList(object):
+class SMTIpPrefixList(SMTObject):
     """
     Synthesis list of IP Prefixes (AND)
     """
@@ -409,7 +429,7 @@ class SMTIpPrefixList(object):
                             networks=prefixes)
 
 
-class SMTMatch(object):
+class SMTMatch(SMTObject):
     """
     A single match is OR between a list of the same object type
     """
@@ -440,9 +460,9 @@ class SMTMatch(object):
 
     def _match_or(self, match):
         matches = []
-        for i, match in enumerate(match.values):
-            name = "%s_or" % self.name
-            new_match = SMTMatch(name, match, self.ctx)
+        for i, value in enumerate(match.values):
+            name = "%s_or_%d_" % (self.name, i)
+            new_match = SMTMatch(name, value, self.ctx)
             match_func = new_match.match_fun
             constraints = new_match.constraints
             matches.append(match_func)
@@ -454,8 +474,7 @@ class SMTMatch(object):
     def get_val(self, model):
         if len(self.smts) == 1:
             return self.smts[0].get_val(model)
-        else:
-            return [smt.get_val(model) for smt in self.smts]
+        return [smt.get_val(model) for smt in self.smts]
 
     def _get_single_config(self, smt, model):
         config = smt.get_config(model)
@@ -471,7 +490,7 @@ class SMTMatch(object):
         return self._get_single_config(self.smts[0], model)
 
 
-class SMTMatches(object):
+class SMTMatches(SMTObject):
     """
     A multiple matches with AND operator
     """
