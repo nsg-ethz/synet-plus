@@ -30,6 +30,8 @@ from synet.utils.policy import SMTContext
 from synet.utils.policy import SMTMatch
 from synet.utils.policy import SMTMatches
 from synet.utils.policy import OrOp
+from synet.utils.policy import SMTSetLocalPref
+from synet.utils.policy import SMTSetCommunity
 
 
 __author__ = "Ahmed El-Hassany"
@@ -66,14 +68,15 @@ class SMTSetup(unittest.TestCase):
 
         prefix_map = dict([(str(prefix), prefix) for prefix in self.prefixes])
         self.prefix_map = prefix_map
-        self.prefix_func = z3.Function('PrefixFunc', self.ann_sort, self.prefix_sort)
+        self.prefix_fun = z3.Function('PrefixFunc', self.ann_sort, self.prefix_sort)
+        self.local_pref_fun = z3.Function('LocalPref', self.ann_sort, z3.IntSort())
 
         # Create functions for communities
-        self.communities_func = {}
+        self.communities_fun = {}
         self.reverse_communities = {}
         for c in self.all_communities:
             name = 'Has_%s' % c
-            self.communities_func[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
+            self.communities_fun[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
             self.reverse_communities[name] = c
 
     def setUp(self):
@@ -88,7 +91,7 @@ class SMTSetup(unittest.TestCase):
             # Assign communities
             for community, val in ann.COMMUNITIES.iteritems():
                 c_name = str(community)
-                c_fun = self.communities_func[community]
+                c_fun = self.communities_fun[community]
                 if val == 'T':
                     vars.append(c_fun(var) == True)
                 elif val == 'F':
@@ -101,17 +104,24 @@ class SMTSetup(unittest.TestCase):
             ann_var = self.ann_map[name]
             prefix = ann.PREFIX
             prefix_var = self.prefix_map[prefix]
-            solver.add(self.prefix_func(ann_var) == prefix_var)
+            solver.add(self.prefix_fun(ann_var) == prefix_var)
+
+    def _load_local_prefs(self, solver):
+        for name, ann in self.anns.iteritems():
+            ann_var = self.ann_map[name]
+            localpref = ann.LOCAL_PREF
+            solver.add(self.local_pref_fun(ann_var) == localpref)
 
     def get_context(self):
         ctx = SMTContext(
             announcements=self.anns,
             announcements_vars=self.announcements,
             announcement_sort=self.ann_sort,
-            communities_fun=self.communities_func,
+            communities_fun=self.communities_fun,
             prefixes_vars=self.prefix_map,
             prefix_sort=self.prefix_sort,
-            prefix_fun=self.prefix_func
+            prefix_fun=self.prefix_fun,
+            local_pref_fun=self.local_pref_fun
         )
         return ctx
 
@@ -203,6 +213,7 @@ class SMTCommunityTest(SMTSetup):
 
 
 class SMTCommunityListTest(SMTSetup):
+
     def test_communities_list(self):
         ctx = self.get_context()
         c1 = self.all_communities[0]
@@ -648,3 +659,111 @@ class SMTMatchesTest(SMTSetup):
         self.assertIn(l1_m, l1_match.get_config(m))
         self.assertIn(l2_m, l1_match.get_config(m))
 
+
+class SMTSetLocalPrefTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_set(self):
+        ctx = self.get_context()
+        ann = self.ann_map['Ann1_Google']
+        set1 = SMTSetLocalPref(name='s1', localpref=200, context=ctx)
+        set2 = SMTSetLocalPref(name='s2', localpref=VALUENOTSET, context=ctx)
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_local_prefs(s)
+            return s
+
+        s1 = get_solver()
+        s2 = get_solver()
+
+        self.assertTrue(set1.is_concrete())
+        self.assertEquals(s1.check(), z3.sat)
+        ctx1 = set1.get_new_context()
+        model1 = s1.model()
+        self.assertEquals(ctx1.local_pref_fun(ann), 200)
+
+        s2.add(set2.action_fun(ann) == 200)
+        s2.add(set2.constraints)
+        self.assertEquals(s2.check(), z3.sat)
+        ctx2 = set2.get_new_context()
+        model2 =s2.model()
+        self.assertFalse(set2.is_concrete())
+        self.assertEquals(set2.get_val(model2), 200)
+        self.assertEquals(model2.eval(ctx2.local_pref_fun(ann)).as_long(), 200)
+
+
+class SMTSetCommunityTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'F'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_set(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c3 = self.all_communities[2]
+        ann = self.ann_map['Ann1_Google']
+
+        set1 = SMTSetCommunity(name='s1', community=c1, context=ctx)
+        set2 = SMTSetCommunity(name='s2', community=VALUENOTSET, context=ctx)
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_local_prefs(s)
+            return s
+
+        s1 = get_solver()
+        s2 = get_solver()
+
+        self.assertTrue(set1.is_concrete())
+        self.assertEquals(s1.check(), z3.sat)
+        ctx1 = set1.get_new_context()
+        model1 = s1.model()
+        self.assertTrue(ctx1.communities_fun(ann))
+
+        s2.add(set2.action_fun(ann) == True)
+        s2.add(set2.constraints)
+        self.assertEquals(s2.check(), z3.sat)
+        ctx2 = set2.get_new_context()
+        model2 =s2.model()
+        self.assertFalse(set2.is_concrete())
+        self.assertTrue(set2.get_val(model2))
+        self.assertTrue(z3.is_true(model2.eval(ctx2.communities_fun(ann))))

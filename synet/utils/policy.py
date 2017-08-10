@@ -35,6 +35,7 @@ from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchCommunitiesList
+from synet.topo.bgp import ActionSetLocalPref
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -49,7 +50,8 @@ class SMTContext(object):
     """
 
     def __init__(self, announcements, announcements_vars, announcement_sort,
-                 communities_fun, prefixes_vars, prefix_sort, prefix_fun):
+                 communities_fun, prefixes_vars, prefix_sort, prefix_fun,
+                 local_pref_fun):
         """
         :param announcements: dict of name -> Announcement
         :param announcements_vars: dict of name -> Z3 Announcement
@@ -58,49 +60,16 @@ class SMTContext(object):
         :param prefixes_vars: dict of name -> Z3 Prefix var
         :param prefix_sort: Z3 prefix type
         :param prefix_fun: prefix -> (z3.function (Announcement->True or False))
+        :param local_pref_fun: Announcement Sort -> Int local pref
         """
-        self._announcements = announcements
-        self._announcements_vars = announcements_vars
-        self._announcement_sort = announcement_sort
-        self._communities_fun = communities_fun
-        self._prefixes_vars = prefixes_vars
-        self._prefix_sort = prefix_sort
-        self._prefix_fun = prefix_fun
-
-    @property
-    def announcements(self):
-        """Returns a dict of name -> Announcement"""
-        return self._announcements
-
-    @property
-    def announcements_vars(self):
-        """Returns a dict of name -> Z3 Announcement var"""
-        return self._announcements_vars
-
-    @property
-    def announcement_sort(self):
-        """Returns Z3 announcement type"""
-        return self._announcement_sort
-
-    @property
-    def communities_fun(self):
-        """Returns a dict of Community -> (z3.function (Announcement->True or False))"""
-        return self._communities_fun
-
-    @property
-    def prefixes_vars(self):
-        """Returns a dict of name -> z3 Prefix var"""
-        return self._prefixes_vars
-
-    @property
-    def prefix_sort(self):
-        """Returns prefix z3 sort"""
-        return self._prefix_sort
-
-    @property
-    def prefix_fun(self):
-        """Returns  a dict prefix -> (z3.function (Announcement->True or False))"""
-        return self._prefix_fun
+        self.announcements = announcements
+        self.announcements_vars = announcements_vars
+        self.announcement_sort = announcement_sort
+        self.communities_fun = communities_fun
+        self.prefixes_vars = prefixes_vars
+        self.prefix_sort = prefix_sort
+        self.prefix_fun = prefix_fun
+        self.local_pref_fun = local_pref_fun
 
 
 class SMTObject(object):
@@ -334,7 +303,6 @@ class SMTIpPrefix(SMTObject):
         return self._prefix != VALUENOTSET
 
     def _gen_match_func(self):
-
         if self._prefix != VALUENOTSET:
             match_fun = lambda x: self.ctx.prefix_fun(x) == self.ctx.prefixes_vars[self._prefix]
         else:
@@ -547,3 +515,142 @@ class SMTMatches(SMTObject):
 
     def get_config(self, model):
         return [m.get_config(model) for m in self.boxes]
+
+
+class SMTAction(SMTObject):
+    """A parent class for Action that changes route attributes"""
+
+    def get_new_context(self):
+        """
+        Return a new contex with the new function that
+        changed the route attributes based on the action.
+        """
+        raise NotImplementedError()
+
+
+class SMTSetLocalPref(SMTAction):
+    """
+    Set the Local Pref for a route
+    """
+
+    def __init__(self, name, localpref, context):
+        assert localpref == VALUENOTSET or isinstance(localpref, int)
+        self.name = name
+        self._localpref = localpref
+        self.constraints = []
+        self.ctx = context
+        self.action_val = None
+        self.action_fun = None
+        self.prev_action_fun = self.ctx.local_pref_fun
+        self._load_action()
+
+    def _load_action(self):
+        if self._localpref != VALUENOTSET:
+            self.action_fun = lambda x: self._localpref
+            return self.action_fun
+
+        self.action_fun = z3.Function("%s_action_fun" % self.name,
+                                      self.ctx.announcement_sort,
+                                      z3.IntSort())
+        self.action_val = z3.Const('%s_action_val' % self.name, z3.IntSort())
+        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
+        # TODO, partial eval
+        self.constraints.append(
+            z3.ForAll(
+                [tmp],
+                self.action_fun(tmp) == self.action_val
+            )
+        )
+        self.constraints.append(self.action_val > 0)
+        return self.action_fun
+
+    def is_concrete(self):
+        return self._localpref != VALUENOTSET
+
+    def get_val(self, model):
+        if self.action_val is None:
+            return self._localpref
+        localpref = model.eval(self.action_val)
+        print self.action_val
+        print model
+        localpref = localpref.as_long()
+        return localpref
+
+    def get_config(self, model):
+        val = self.get_val(model)
+        return ActionSetLocalPref(val)
+
+    def get_new_context(self):
+        ctx = SMTContext(
+            announcements=self.ctx.announcements,
+            announcements_vars=self.ctx.announcements_vars,
+            announcement_sort=self.ctx.announcement_sort,
+            communities_fun=self.ctx.communities_fun,
+            prefixes_vars=self.ctx.prefixes_vars,
+            prefix_sort=self.ctx.prefix_sort,
+            prefix_fun=self.ctx.prefix_fun,
+            local_pref_fun=self.action_fun
+        )
+        return ctx
+
+
+class SMTSetCommunity(SMTAction):
+    """
+    Set a commmunity value of a route
+    """
+
+    def __init__(self, name, community, context):
+        assert community == VALUENOTSET or isinstance(community, Community)
+        self.name = name
+        self._community = community
+        self.constraints = []
+        self.ctx = context
+        self.action_val = None
+        self.action_fun = None
+        self.prev_action_fun = self.ctx.communities_fun
+        self._load_action()
+
+    def _load_action(self):
+        if self._community != VALUENOTSET:
+            self.action_fun = lambda x: self._community
+            return self.action_fun
+
+        self.action_fun = z3.Function("%s_action_fun" % self.name,
+                                      self.ctx.announcement_sort,
+                                      z3.BoolSort())
+        self.action_val = z3.Const('%s_action_val' % self.name, z3.BoolSort())
+        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
+        # TODO, partial eval
+        self.constraints.append(
+            z3.ForAll(
+                [tmp],
+                self.action_fun(tmp) == self.action_val
+            )
+        )
+        return self.action_fun
+
+    def is_concrete(self):
+        return self._community != VALUENOTSET
+
+    def get_val(self, model):
+        if self.action_val is None:
+            return self._community
+        community = model.eval(self.action_val)
+        return z3.is_true(community)
+
+    def get_config(self, model):
+        val = self.get_val(model)
+        return ActionSetLocalPref(val)
+
+    def get_new_context(self):
+        ctx = SMTContext(
+            announcements=self.ctx.announcements,
+            announcements_vars=self.ctx.announcements_vars,
+            announcement_sort=self.ctx.announcement_sort,
+            communities_fun=self.action_fun,
+            prefixes_vars=self.ctx.prefixes_vars,
+            prefix_sort=self.ctx.prefix_sort,
+            prefix_fun=self.ctx.prefix_fun,
+            local_pref_fun=self.ctx.local_pref_fun
+        )
+        return ctx
