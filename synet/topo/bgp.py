@@ -289,6 +289,11 @@ class ActionSetLocalPref(Action):
             raise ValueError("Value alread set to %s" % self._value)
         self._value = value
 
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
     def __str__(self):
         return "SetLocalPref(%s)" % self.value
 
