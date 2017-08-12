@@ -24,8 +24,13 @@ If a match command is not present, all routes match the clause.
 
 If a set command is not present in a route-map permit clause then
     the route is redistributed without modification of its current attributes.
+
+
+List of route maps
+https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/26634-bgp-toc.html#routemaps
 """
 
+from collections import Iterable
 from collections import namedtuple
 import z3
 
@@ -36,6 +41,7 @@ from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import ActionSetCommunity
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -533,10 +539,18 @@ class SMTSetLocalPref(SMTAction):
     Set the Local Pref for a route
     """
 
-    def __init__(self, name, localpref, context):
+    def __init__(self, name, localpref, match, context):
+        """
+        :param name: a unique name to generate the SMT vars and fun
+        :param localpref: int or VALUENOTSET
+        :param match: and SMTObject with a match_fun
+        :param context: SMTContext
+        """
         assert localpref == VALUENOTSET or isinstance(localpref, int)
+        assert isinstance(match, SMTObject)
         self.name = name
         self._localpref = localpref
+        self.match = match
         self.constraints = []
         self.ctx = context
         self.action_val = None
@@ -545,34 +559,31 @@ class SMTSetLocalPref(SMTAction):
         self._load_action()
 
     def _load_action(self):
-        if self._localpref != VALUENOTSET:
-            self.action_fun = lambda x: self._localpref
-            return self.action_fun
-
-        self.action_fun = z3.Function("%s_action_fun" % self.name,
+        self.action_fun = z3.Function("%s_set_localpref_fun" % self.name,
                                       self.ctx.announcement_sort,
                                       z3.IntSort())
-        self.action_val = z3.Const('%s_action_val' % self.name, z3.IntSort())
-        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
-        # TODO, partial eval
-        self.constraints.append(
-            z3.ForAll(
-                [tmp],
-                self.action_fun(tmp) == self.action_val
-            )
-        )
-        self.constraints.append(self.action_val > 0)
+        self.action_val = z3.Const('%s_localpref_val' % self.name, z3.IntSort())
+        if self._localpref != VALUENOTSET:
+            self.constraints.append(self.action_val == self._localpref)
+        else:
+            self.constraints.append(self.action_val > 0)
+
+        for val in self.ctx.announcements_vars:
+            c = self.action_fun(val) == z3.If(self.match.match_fun(val) == True,
+                                              self.action_val,
+                                              self.prev_action_fun(val))
+            self.constraints.append(c)
+
         return self.action_fun
 
     def is_concrete(self):
-        return self._localpref != VALUENOTSET
+        # TODO: concerte values for Actions
+        return False
 
     def get_val(self, model):
-        if self.action_val is None:
+        if self._localpref != VALUENOTSET:
             return self._localpref
         localpref = model.eval(self.action_val)
-        print self.action_val
-        print model
         localpref = localpref.as_long()
         return localpref
 
@@ -599,58 +610,169 @@ class SMTSetCommunity(SMTAction):
     Set a commmunity value of a route
     """
 
-    def __init__(self, name, community, context):
-        assert community == VALUENOTSET or isinstance(community, Community)
+    def __init__(self, name, communities, additive, match, context):
+        assert isinstance(communities, Iterable)
+        for comm in communities:
+            assert isinstance(comm, Community)
+        assert isinstance(match, SMTObject)
         self.name = name
-        self._community = community
+        self._communities = communities
+        self.match = match
+        self.additive = additive
         self.constraints = []
         self.ctx = context
-        self.action_val = None
-        self.action_fun = None
         self.prev_action_fun = self.ctx.communities_fun
+        self.new_comm_fun = {}
         self._load_action()
 
     def _load_action(self):
-        if self._community != VALUENOTSET:
-            self.action_fun = lambda x: self._community
-            return self.action_fun
+        ann_sort = self.ctx.announcement_sort
+        match_fun = self.match.match_fun
 
-        self.action_fun = z3.Function("%s_action_fun" % self.name,
-                                      self.ctx.announcement_sort,
-                                      z3.BoolSort())
-        self.action_val = z3.Const('%s_action_val' % self.name, z3.BoolSort())
-        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
-        # TODO, partial eval
-        self.constraints.append(
-            z3.ForAll(
+        def get_prev(comm):
+            if self.additive:
+                return self.prev_action_fun[comm]
+            else:
+                return lambda x: z3.If(match_fun(x) == True,
+                                       False,
+                                       self.prev_action_fun[comm](x))
+
+        def get_new_community(comm):
+            name = "%s_set_comm_%s_fun" % (self.name, comm)
+            fun = z3.Function(name, ann_sort, z3.BoolSort())
+            name = '%s_%s_Tmp' % (self.name, comm)
+            tmp = z3.Const(name, ann_sort)
+            prev = get_prev(comm)
+            if comm not in self._communities:
+                return prev
+            c = z3.ForAll(
                 [tmp],
-                self.action_fun(tmp) == self.action_val
+                fun(tmp) == z3.If(match_fun(tmp) == True, True, prev(tmp))
             )
-        )
-        return self.action_fun
+            self.constraints.append(c)
+            return fun
+
+        #def syn_new_community(n, not_set_vals):
+        #    f_name = '%s_%s_Synthesize_Comm_Match' % (self.name, n)
+        #    fun = z3.Function(f_name, ann_sort, z3.BoolSort())
+        #    c_name = '%s_%s_Selected_Comm_Match' % (self.name, n)
+        #    syn_index = z3.Const(c_name, z3.IntSort())
+        #    syn_map = {}
+        #    constrains = []
+        #    for i, community in enumerate(sorted(not_set_vals)):
+        #        # TODO: there are some room for partial eval
+        #        tmp = z3.Const('%s_%s_Tmp%d' % (self.name, n, i), ann_sort)
+        #        syn_map[i] = community
+        #        prev = get_prev(community)
+        #        constrains.append(
+        #            z3.And(
+        #                z3.If(
+        #                    syn_index == i,
+        #                    z3.ForAll(
+        #                        [tmp],
+        #                        fun(tmp) == z3.If(match_fun(tmp), True, prev(tmp))),
+        #                    z3.ForAll(
+        #                        [tmp],
+        #                        fun(tmp) == prev(tmp)
+        #                    ))))
+        #        self.new_comm_fun[community] = lambda x: z3.If(syn_index == i, fun(x), prev(x))
+        #    self.constraints.append(z3.Or(*constrains))
+        #    return (fun, syn_index, syn_map)
+        #
+        #not_set_vals = [comm for comm in self.prev_action_fun
+        #                if comm not in self._communities]
+
+        self.synthesized_communities = []
+        for n, community in enumerate(self._communities):
+            if community != VALUENOTSET:
+                self.new_comm_fun[community] = get_new_community(community)
+                self.synthesized_communities.append(community)
+            #else:
+            #new_fun, syn_index, syn_map = syn_new_community(n, not_set_vals)
+            #self.synthesized_communities.append((syn_index, syn_map))
+        # Fill remaining communities
+        for community in self.prev_action_fun:
+            if community not in self.new_comm_fun:
+                self.new_comm_fun[community] = get_prev(community)
+
 
     def is_concrete(self):
-        return self._community != VALUENOTSET
+        return False
 
     def get_val(self, model):
-        if self.action_val is None:
-            return self._community
-        community = model.eval(self.action_val)
-        return z3.is_true(community)
+
+        if VALUENOTSET not in self._communities:
+            return self._communities
+        vals = []
+        for val in self.synthesized_communities:
+            if isinstance(val, tuple):
+                syn_index, syn_map = val
+                index = model.eval(syn_index).as_long()
+                print syn_map
+                val = syn_map[index]
+                vals.append(val)
+            else:
+                vals.append(val)
+        return vals
 
     def get_config(self, model):
         val = self.get_val(model)
-        return ActionSetLocalPref(val)
+        return ActionSetCommunity(val)
 
     def get_new_context(self):
         ctx = SMTContext(
             announcements=self.ctx.announcements,
             announcements_vars=self.ctx.announcements_vars,
             announcement_sort=self.ctx.announcement_sort,
-            communities_fun=self.action_fun,
+            communities_fun=self.new_comm_fun,
             prefixes_vars=self.ctx.prefixes_vars,
             prefix_sort=self.ctx.prefix_sort,
             prefix_fun=self.ctx.prefix_fun,
             local_pref_fun=self.ctx.local_pref_fun
         )
         return ctx
+
+
+class SMTActions(SMTAction):
+    def __init__(self, name, match, actions, context):
+        self.name = name
+        self.match = match
+        self.actions = actions
+        self.ctx = context
+        self.action_dispatch = {
+            ActionSetLocalPref: self._set_localpref,
+            ActionSetCommunity: self._set_community,
+            #Act
+        }
+        self.boxes = []
+        self.constraints = []
+        prev_ctx = self.ctx
+        for i, action in enumerate(self.actions):
+            new_name = "%s_%d" % (self.name, i)
+            fun = self.action_dispatch[type(action)]
+            box = fun(name=new_name, action=action, context=prev_ctx)
+            prev_ctx = box.get_new_context()
+            self.boxes.append(box)
+            self.constraints.extend(box.constraints)
+        self._new_context = prev_ctx
+
+    def is_concrete(self):
+        return [] == [b for b in self.boxes if b.is_concrete() is False]
+
+    def get_val(self, model):
+        return [b.get_val(model) for b in self.boxes]
+
+    def get_config(self, model):
+        return [b.get_config(model) for b in self.boxes]
+
+    def get_new_context(self):
+        return  self._new_context
+
+    def _set_localpref(self, name, action, context):
+        return SMTSetLocalPref(name=name, localpref=action.value,
+                               match=self.match, context=context)
+
+    def _set_community(self, name, action, context):
+        return SMTSetCommunity(name=name, communities=action.communities,
+                               match=self.match, additive=action.additive,
+                               context=context)

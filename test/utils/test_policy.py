@@ -22,6 +22,7 @@ from synet.topo.bgp import MatchLocalPref
 from synet.topo.bgp import IpPrefixList
 
 
+from synet.utils.policy import SMTActions
 from synet.utils.policy import SMTCommunity
 from synet.utils.policy import SMTCommunityList
 from synet.utils.policy import SMTIpPrefix
@@ -685,32 +686,50 @@ class SMTSetLocalPrefTest(SMTSetup):
 
     def test_set(self):
         ctx = self.get_context()
-        ann = self.ann_map['Ann1_Google']
-        set1 = SMTSetLocalPref(name='s1', localpref=200, context=ctx)
-        set2 = SMTSetLocalPref(name='s2', localpref=VALUENOTSET, context=ctx)
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+
+        set1 = SMTSetLocalPref(name='s1', localpref=200,
+                               match=match, context=ctx)
+        set2 = SMTSetLocalPref(name='s2', localpref=VALUENOTSET,
+                               match=match, context=ctx)
 
         def get_solver():
             s = z3.Solver()
+            self._load_prefixes_smt(s)
             self._load_local_prefs(s)
             return s
 
         s1 = get_solver()
         s2 = get_solver()
 
-        self.assertTrue(set1.is_concrete())
+        s1.add(set1.action_fun(ann1) == 200)
+        self.assertFalse(set1.is_concrete())
+        s1.add(set1.constraints)
+
         self.assertEquals(s1.check(), z3.sat)
         ctx1 = set1.get_new_context()
         model1 = s1.model()
-        self.assertEquals(ctx1.local_pref_fun(ann), 200)
+        self.assertEquals(set1.get_val(model1), 200)
+        self.assertEquals(model1.eval(set1.action_fun(ann1)).as_long(), 200)
+        self.assertEquals(model1.eval(set1.action_fun(ann2)).as_long(), 100)
+        self.assertEquals(model1.eval(ctx1.local_pref_fun(ann1)).as_long(), 200)
+        self.assertEquals(model1.eval(ctx1.local_pref_fun(ann2)).as_long(), 100)
+        self.assertEquals(set1.get_config(model1), ActionSetLocalPref(200))
 
-        s2.add(set2.action_fun(ann) == 200)
+        s2.add(set2.action_val == 200)
         s2.add(set2.constraints)
         self.assertEquals(s2.check(), z3.sat)
         ctx2 = set2.get_new_context()
         model2 =s2.model()
         self.assertFalse(set2.is_concrete())
         self.assertEquals(set2.get_val(model2), 200)
-        self.assertEquals(model2.eval(ctx2.local_pref_fun(ann)).as_long(), 200)
+        self.assertEquals(model2.eval(set2.action_fun(ann1)).as_long(), 200)
+        self.assertEquals(model2.eval(set2.action_fun(ann2)).as_long(), 100)
+        self.assertEquals(model2.eval(ctx2.local_pref_fun(ann1)).as_long(), 200)
+        self.assertEquals(model2.eval(ctx2.local_pref_fun(ann2)).as_long(), 100)
+        self.assertEquals(set2.get_config(model2), ActionSetLocalPref(200))
 
 
 class SMTSetCommunityTest(SMTSetup):
@@ -724,46 +743,215 @@ class SMTSetCommunityTest(SMTSetup):
         ann1 = Announcement(
             PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
             AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
-            COMMUNITIES={c1: 'T', c2: 'F', c3: 'F'})
+            COMMUNITIES={c1: 'F', c2: 'F', c3: 'T'})
 
         ann2 = Announcement(
             PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
             AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
-            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+            COMMUNITIES={c1: 'F', c2: 'T', c3: 'T'})
 
         self.anns = {
             'Ann1_Google': ann1,
             'Ann2_Yahoo': ann2,
         }
 
-    def test_set(self):
+    def get_solver(self):
+        s = z3.Solver()
+        self._load_prefixes_smt(s)
+        self._load_communities_smt(s)
+        return s
+
+    def test_set_concrete_additive(self):
         ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
         c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
         c3 = self.all_communities[2]
-        ann = self.ann_map['Ann1_Google']
 
-        set1 = SMTSetCommunity(name='s1', community=c1, context=ctx)
-        set2 = SMTSetCommunity(name='s2', community=VALUENOTSET, context=ctx)
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
 
-        def get_solver():
-            s = z3.Solver()
-            self._load_local_prefs(s)
-            return s
+        set1 = SMTSetCommunity(name='s1', communities=[c1, c2],
+                               additive=True, match=match, context=ctx)
 
-        s1 = get_solver()
-        s2 = get_solver()
+        # Concrete, Additive = True
+        s = self.get_solver()
+        s.add(set1.constraints)
+        s.add(match.constraints)
 
-        self.assertTrue(set1.is_concrete())
-        self.assertEquals(s1.check(), z3.sat)
-        ctx1 = set1.get_new_context()
-        model1 = s1.model()
-        self.assertTrue(ctx1.communities_fun(ann))
+        self.assertEquals(s.check(), z3.sat)
+        self.assertFalse(set1.is_concrete())
+        ctx = set1.get_new_context()
+        model = s.model()
+        self.assertEquals(set1.get_val(model), [c1, c2])
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c3](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c3](ann2))))
+        self.assertEquals(set1.get_config(model), ActionSetCommunity([c1, c2]))
 
-        s2.add(set2.action_fun(ann) == True)
-        s2.add(set2.constraints)
-        self.assertEquals(s2.check(), z3.sat)
-        ctx2 = set2.get_new_context()
-        model2 =s2.model()
-        self.assertFalse(set2.is_concrete())
-        self.assertTrue(set2.get_val(model2))
-        self.assertTrue(z3.is_true(model2.eval(ctx2.communities_fun(ann))))
+    def test_set_concrete_notadditive(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+        set1 = SMTSetCommunity(name='s1', communities=[c1, c2],
+                               additive=False, match=match, context=ctx)
+
+        s = self.get_solver()
+        # Concrete, Additive = False
+
+        self.assertFalse(set1.is_concrete())
+        s.add(set1.constraints)
+        s.add(match.constraints)
+
+        self.assertEquals(s.check(), z3.sat)
+        ctx = set1.get_new_context()
+        model = s.model()
+        self.assertEquals(set1.get_val(model), [c1, c2])
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c3](ann2))))
+        self.assertEquals(set1.get_config(model), ActionSetCommunity([c1, c2]))
+
+    @unittest.skip
+    def test_set_notconcrete_additive(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+        set1 = SMTSetCommunity(name='s2', communities=[c1, VALUENOTSET],
+                               additive=True, match=match, context=ctx)
+
+        # Not Concrete, Additive = True
+        s = self.get_solver()
+        self.assertFalse(set1.is_concrete())
+        s.add(set1.constraints)
+        s.add(match.constraints)
+
+        self.assertEquals(s.check(), z3.sat)
+
+        ctx = set1.get_new_context()
+        model = s.model()
+        self.assertEquals(set1.get_val(model), [c1, c2])
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertEquals(set1.get_config(model), ActionSetCommunity([c1, c2]))
+
+    @unittest.skip
+    def test_set_notconcrete_notadditive(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+        set1 = SMTSetCommunity(name='s1', communities=[c1, VALUENOTSET, VALUENOTSET],
+                               additive=False, match=match, context=ctx)
+
+        s = self.get_solver()
+        # Concrete, Additive = False
+
+        self.assertFalse(set1.is_concrete())
+        s.add(set1.constraints)
+        s.add(match.constraints)
+
+        self.assertEquals(s.check(), z3.sat)
+        ctx = set1.get_new_context()
+        model = s.model()
+        print s.to_smt2()
+        self.assertEquals(set1.get_val(model), [c1, c2])
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann2))))
+        self.assertEquals(set1.get_config(model), ActionSetCommunity([c1, c2]))
+
+
+
+class SMTActionsTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'F', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'F', c2: 'T', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def get_solver(self):
+        s = z3.Solver()
+        self._load_prefixes_smt(s)
+        self._load_communities_smt(s)
+        return s
+
+    def test_set_actions(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+
+        set_c = ActionSetCommunity(communities=[c1, c2], additive=False)
+        set_pref = ActionSetLocalPref(200)
+        actions = SMTActions(name='s1', match=match,
+                             actions=[set_c, set_pref], context=ctx)
+
+
+        # Concrete, Additive = True
+        s = self.get_solver()
+        s.add(actions.constraints)
+        s.add(match.constraints)
+        ctx = actions.get_new_context()
+        s.add(ctx.local_pref_fun(ann1) == 200)
+
+        self.assertEquals(s.check(), z3.sat)
+        self.assertFalse(actions.is_concrete())
+
+        model = s.model()
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c3](ann2))))
+        self.assertEquals(actions.get_config(model), [set_c, set_pref])
+
+
