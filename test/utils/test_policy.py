@@ -7,6 +7,7 @@ from synet.synthesis.ebgp import Announcement
 from synet.synthesis.ebgp import BGP_ATTRS_ORIGIN
 from synet.synthesis.ebgp import EBGP
 
+from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import ActionSetCommunity
@@ -81,6 +82,8 @@ class SMTSetup(unittest.TestCase):
             self.communities_fun[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
             self.reverse_communities[name] = c
 
+        self.route_denied_fun = z3.Function('route_denied', self.ann_sort, z3.BoolSort())
+
     def setUp(self):
         self._pre_load()
         self._define_types()
@@ -114,6 +117,13 @@ class SMTSetup(unittest.TestCase):
             localpref = ann.LOCAL_PREF
             solver.add(self.local_pref_fun(ann_var) == localpref)
 
+    def _load_route_denied(self, solver):
+        tmp = z3.Const('deny_tmp', self.ann_sort)
+        solver.add(
+            z3.ForAll(
+                [tmp],
+                self.route_denied_fun(tmp) == False))
+
     def get_context(self):
         ctx = SMTContext(
             announcements=self.anns,
@@ -123,7 +133,8 @@ class SMTSetup(unittest.TestCase):
             prefixes_vars=self.prefix_map,
             prefix_sort=self.prefix_sort,
             prefix_fun=self.prefix_fun,
-            local_pref_fun=self.local_pref_fun
+            local_pref_fun=self.local_pref_fun,
+            route_denied_fun=self.route_denied_fun
         )
         return ctx
 
@@ -1002,6 +1013,7 @@ class SMTRouteMapLineTest(SMTSetup):
         s = z3.Solver()
         self._load_prefixes_smt(s)
         self._load_communities_smt(s)
+        self._load_route_denied(s)
         return s
 
     def test_matches_actions(self):
@@ -1038,9 +1050,8 @@ class SMTRouteMapLineTest(SMTSetup):
         self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
         self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
         self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c3](ann2))))
-        self.assertEquals(l.get_val(model), ([['Google']], [[c1, c2], 200]))
+        self.assertEquals(l.get_val(model), (Access.permit, [['Google']], [[c1, c2], 200]))
         self.assertEquals(l.get_config(model), line)
-
 
     def test_none_actions(self):
         ctx = self.get_context()
@@ -1076,5 +1087,74 @@ class SMTRouteMapLineTest(SMTSetup):
         self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
         self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann2))))
 
-        self.assertEquals(l.get_val(model), ([True], [[c1, c2], 200]))
+        self.assertEquals(l.get_val(model), (Access.permit, [True], [[c1, c2], 200]))
         self.assertEquals(l.get_config(model), line)
+
+    def test_stress(self):
+        num_communities = 2
+        num_anns = 2
+        self.all_communities = [Community("100:%d" % i) for i in range(num_communities)]
+        self.anns = {}
+        for i in range(num_anns / 2):
+            prefix = 'Prefix_%d' % i
+            name1= "Ann_%s_1" % prefix
+            name2= "Ann_%s_2" % prefix
+            cs1 = [(self.all_communities[0], 'T')]
+            cs1 += [(c, 'F') for c in self.all_communities[1:]]
+            cs2 = [(c, 'F') for c in self.all_communities]
+            cs1 = dict(cs1)
+            cs2 = dict(cs2)
+
+            ann1 = Announcement(
+                PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs1)
+            self.anns[name1] = ann1
+
+            ann2 = Announcement(
+                PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs2)
+            self.anns[name2] = ann2
+
+        self._define_types()
+
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
+        matches = [MatchCommunitiesList(c1_l)]
+        actions = [ActionSetLocalPref(VALUENOTSET)]
+        line = RouteMapLine(matches=matches, actions=actions, access=VALUENOTSET, lineno=10)
+
+        rline = SMTRouteMapLine(name='l', line=line, context=ctx)
+        def get_solver():
+            solver = z3.Solver()
+            self._load_communities_smt(solver)
+            self._load_prefixes_smt(solver)
+            self._load_local_prefs(solver)
+            return solver
+
+        s1 = get_solver()
+        s1.add(rline.constraints)
+        ctx = rline.get_new_context()
+        for name, ann in self.ann_map.iteritems():
+            s1.add(rline.route_denied_fun(ann) == False)
+            if name.endswith('_1'):
+                s1.add(ctx.local_pref_fun(ann) == 200)
+
+        self.assertEquals(s1.check(), z3.sat)
+        model = s1.model()
+        for name, ann in self.ann_map.iteritems():
+            if name.endswith('_1'):
+                self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 200)
+            else:
+                self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 100)
+
+
+        new_line = RouteMapLine(
+            matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
+            actions=[ActionSetLocalPref(200)],
+            access=Access.permit,
+            lineno=10
+        )
+        self.assertEquals(rline.get_config(model), new_line)

@@ -34,6 +34,7 @@ from collections import Iterable
 from collections import namedtuple
 import z3
 
+from synet.topo.bgp import Access
 from synet.topo.bgp import VALUENOTSET
 from synet.topo.bgp import Community
 from synet.topo.bgp import CommunityList
@@ -58,7 +59,7 @@ class SMTContext(object):
 
     def __init__(self, announcements, announcements_vars, announcement_sort,
                  communities_fun, prefixes_vars, prefix_sort, prefix_fun,
-                 local_pref_fun):
+                 local_pref_fun, route_denied_fun):
         """
         :param announcements: dict of name -> Announcement
         :param announcements_vars: dict of name -> Z3 Announcement
@@ -68,6 +69,7 @@ class SMTContext(object):
         :param prefix_sort: Z3 prefix type
         :param prefix_fun: prefix -> (z3.function (Announcement->True or False))
         :param local_pref_fun: Announcement Sort -> Int local pref
+        :param route_denied_fun: Announcement Sort -> Boolean (true if route is dropped
         """
         self.announcements = announcements
         self.announcements_vars = announcements_vars
@@ -77,6 +79,7 @@ class SMTContext(object):
         self.prefix_sort = prefix_sort
         self.prefix_fun = prefix_fun
         self.local_pref_fun = local_pref_fun
+        self.route_denied_fun = route_denied_fun
 
 
 class SMTObject(object):
@@ -626,7 +629,8 @@ class SMTSetLocalPref(SMTAction):
             prefixes_vars=self.ctx.prefixes_vars,
             prefix_sort=self.ctx.prefix_sort,
             prefix_fun=self.ctx.prefix_fun,
-            local_pref_fun=self.action_fun
+            local_pref_fun=self.action_fun,
+            route_denied_fun=self.ctx.route_denied_fun
         )
         return ctx
 
@@ -763,7 +767,8 @@ class SMTSetCommunity(SMTAction):
             prefixes_vars=self.ctx.prefixes_vars,
             prefix_sort=self.ctx.prefix_sort,
             prefix_fun=self.ctx.prefix_fun,
-            local_pref_fun=self.ctx.local_pref_fun
+            local_pref_fun=self.ctx.local_pref_fun,
+            route_denied_fun=self.ctx.route_denied_fun
         )
         return ctx
 
@@ -829,13 +834,43 @@ class SMTRouteMapLine(SMTAction):
         self.constraints = []
         self.matches = SMTMatches(name="m_%s" % name,
                                   matches=line.matches, context=context)
-        self.actions = SMTActions(name="a_%s" % name, match=self.matches,
-                                  actions=line.actions, context=context)
         self.constraints.extend(self.matches.constraints)
-        self.constraints.extend(self.actions.constraints)
+        # No need to apply the actions if the route is dropped
+        if line.access != Access.deny:
+            self.actions = SMTActions(name="a_%s" % name, match=self.matches,
+                                      actions=line.actions, context=context)
+            self.constraints.extend(self.actions.constraints)
+        self._load()
+
+    def _load(self):
+        access = self.line.access
+        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
+        prev = self.ctx.route_denied_fun
+        fun = z3.Function('%s_deny' % self.name, self.ctx.announcement_sort, z3.BoolSort())
+        self.route_denied_fun = fun
+        if access in [Access.permit, Access.deny]:
+            val = True if access == Access.deny else False
+        else:
+            val = z3.Const('%s_route_denied' % self.name, z3.BoolSort())
+        self.access_val = val
+        self.constraints.append(
+            z3.ForAll(
+                [tmp],
+                fun(tmp) == z3.If(self.matches.match_fun(tmp) == True,
+                                  val, prev(tmp))))
+
+    def get_access(self, model):
+        """Get the synthesized Access (permit or deny"""
+        if isinstance(self.access_val, bool):
+            denied = self.access_val
+        else:
+            denied = z3.is_true(model.eval(self.access_val))
+        access = Access.deny if denied else Access.permit
+        return access
 
     def get_val(self, model):
-        return (self.matches.get_val(model), self.actions.get_val(model))
+        access = self.get_access(model)
+        return (access, self.matches.get_val(model), self.actions.get_val(model))
 
     def is_concrete(self):
         return False
@@ -844,8 +879,10 @@ class SMTRouteMapLine(SMTAction):
         return RouteMapLine(
             matches=self.matches.get_config(model),
             actions=self.actions.get_config(model),
-            access=self.line.access,
+            access=self.get_access(model),
             lineno=self.line.lineno)
 
     def get_new_context(self):
-        return self.actions.get_new_context()
+        ctx = self.actions.get_new_context()
+        ctx.route_denied_fun = self.route_denied_fun
+        return ctx
