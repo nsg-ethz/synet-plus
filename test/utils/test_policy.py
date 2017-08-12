@@ -33,6 +33,7 @@ from synet.utils.policy import SMTMatches
 from synet.utils.policy import OrOp
 from synet.utils.policy import SMTSetLocalPref
 from synet.utils.policy import SMTSetCommunity
+from synet.utils.policy import SMTRouteMapLine
 
 
 __author__ = "Ahmed El-Hassany"
@@ -660,6 +661,26 @@ class SMTMatchesTest(SMTSetup):
         self.assertIn(l1_m, l1_match.get_config(m))
         self.assertIn(l2_m, l1_match.get_config(m))
 
+    def test_empty_matches(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c3 = self.all_communities[2]
+
+        l1_match = SMTMatches(name='m1', matches=[], context=ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_prefixes_smt(solver)
+            return solver
+
+        s1 = get_solver()
+        match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
+        match2 = l1_match.match_fun(self.ann_map['Ann2_Yahoo'])
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertTrue(z3.is_true(m.eval(match1)))
+        self.assertTrue(z3.is_true(m.eval(match2)))
+
 
 class SMTSetLocalPrefTest(SMTSetup):
     def _pre_load(self):
@@ -888,7 +909,6 @@ class SMTSetCommunityTest(SMTSetup):
         self.assertEquals(set1.get_config(model), ActionSetCommunity([c1, c2]))
 
 
-
 class SMTActionsTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -955,3 +975,106 @@ class SMTActionsTest(SMTSetup):
         self.assertEquals(actions.get_config(model), [set_c, set_pref])
 
 
+class SMTRouteMapLineTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'F', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'F', c2: 'T', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def get_solver(self):
+        s = z3.Solver()
+        self._load_prefixes_smt(s)
+        self._load_communities_smt(s)
+        return s
+
+    def test_matches_actions(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        p1_list = IpPrefixList(1, access=Access.permit, networks=['Google'])
+        match = MatchIpPrefixListList(prefix_list=p1_list)
+        matches = [match]
+
+        set_c = ActionSetCommunity(communities=[c1, c2], additive=False)
+        set_pref = ActionSetLocalPref(200)
+        actions = [set_c, set_pref]
+        line = RouteMapLine(matches=matches, actions=actions,
+                            access=Access.permit, lineno=10)
+
+        l = SMTRouteMapLine(name='l', line=line, context=ctx)
+
+        s = self.get_solver()
+        s.add(l.constraints)
+        s.add(l.matches.match_fun(ann1) == True)
+
+        self.assertEquals(s.check(), z3.sat)
+        ctx = l.get_new_context()
+        model = s.model()
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c3](ann2))))
+        self.assertEquals(l.get_val(model), ([['Google']], [[c1, c2], 200]))
+        self.assertEquals(l.get_config(model), line)
+
+
+    def test_none_actions(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        matches = []
+
+        set_c = ActionSetCommunity(communities=[c1, c2], additive=False)
+        set_pref = ActionSetLocalPref(200)
+        actions = [set_c, set_pref]
+        line = RouteMapLine(matches=matches, actions=actions,
+                            access=Access.permit, lineno=10)
+
+        l = SMTRouteMapLine(name='l', line=line, context=ctx)
+
+        s = self.get_solver()
+        s.add(l.constraints)
+        s.add(l.matches.match_fun(ann1) == True)
+
+        self.assertEquals(s.check(), z3.sat)
+        ctx = l.get_new_context()
+        model = s.model()
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann1))))
+
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann2))))
+
+        self.assertEquals(l.get_val(model), ([True], [[c1, c2], 200]))
+        self.assertEquals(l.get_config(model), line)

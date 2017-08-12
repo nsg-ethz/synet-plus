@@ -42,6 +42,7 @@ from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionSetCommunity
+from synet.topo.bgp import RouteMapLine
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -413,6 +414,23 @@ class SMTIpPrefixList(SMTObject):
                             networks=prefixes)
 
 
+class SMTTrueMatch(SMTObject):
+    """
+    Special Match, that is True for all
+    """
+    def __init__(self):
+        self.match_fun = lambda x: True
+
+    def is_concrete(self):
+        return True
+
+    def get_val(self, model):
+        return True
+
+    def get_config(self, model):
+        return None
+
+
 class SMTMatch(SMTObject):
     """
     A single match is OR between a list of the same object type
@@ -428,12 +446,16 @@ class SMTMatch(SMTObject):
         self.match_dispatch = {
             MatchCommunitiesList: self._match_comm,
             MatchIpPrefixListList: self._match_ip,
-            OrOp: self._match_or
+            OrOp: self._match_or,
+            type(None): self._none_match,
         }
         self.match_fun = self.match_dispatch[type(match)](match)
 
     def is_concrete(self):
         return self._is_concrete
+
+    def _none_match(self, match):
+        self.match_fun = lambda x: True
 
     def _match_comm(self, match):
         name = "%s_comm_list" % self.name
@@ -504,14 +526,15 @@ class SMTMatches(SMTObject):
         self.match_fun = self._load_matches()
 
     def _load_matches(self):
-        match_funs = []
+        if len(self.matches) == 0:
+            box = SMTTrueMatch()
+            self.boxes.append(box)
         for i, match in enumerate(self.matches):
             name = "%s_and_%d_" % (self.name, i)
             box = SMTMatch(name=name, match=match, context=self.ctx)
             self.constraints.extend(box.constraints)
             self.boxes.append(box)
-            match_funs.append(box.match_fun)
-        return lambda x: z3.And([m(x) for m in match_funs])
+        return lambda x: z3.And([box.match_fun(x) for box in self.boxes])
 
     def is_concrete(self):
         return [] == [box.is_concrete() for box in self.boxes if not box.is_concrete()]
@@ -520,7 +543,10 @@ class SMTMatches(SMTObject):
         return [m.get_val(model) for m in self.boxes]
 
     def get_config(self, model):
-        return [m.get_config(model) for m in self.boxes]
+        ret = [m.get_config(model) for m in self.boxes]
+        if ret == [None]:
+            return []
+        return ret
 
 
 class SMTAction(SMTObject):
@@ -607,10 +633,17 @@ class SMTSetLocalPref(SMTAction):
 
 class SMTSetCommunity(SMTAction):
     """
-    Set a commmunity value of a route
+    Set a community value of a route
     """
 
     def __init__(self, name, communities, additive, match, context):
+        """
+        :param name: z3 var name
+        :param communities: list of Community
+        :param additive: if False, all the other communities will be overriden
+        :param match: SMTObject with match_fun
+        :param context: SMTContext
+        """
         assert isinstance(communities, Iterable)
         for comm in communities:
             assert isinstance(comm, Community)
@@ -630,14 +663,17 @@ class SMTSetCommunity(SMTAction):
         match_fun = self.match.match_fun
 
         def get_prev(comm):
+            """Get the community function from the previous context"""
             if self.additive:
                 return self.prev_action_fun[comm]
             else:
+                # Only override communities that matches
                 return lambda x: z3.If(match_fun(x) == True,
                                        False,
                                        self.prev_action_fun[comm](x))
 
         def get_new_community(comm):
+            """Synthesize new community"""
             name = "%s_set_comm_%s_fun" % (self.name, comm)
             fun = z3.Function(name, ann_sort, z3.BoolSort())
             name = '%s_%s_Tmp' % (self.name, comm)
@@ -695,7 +731,6 @@ class SMTSetCommunity(SMTAction):
             if community not in self.new_comm_fun:
                 self.new_comm_fun[community] = get_prev(community)
 
-
     def is_concrete(self):
         return False
 
@@ -734,6 +769,8 @@ class SMTSetCommunity(SMTAction):
 
 
 class SMTActions(SMTAction):
+    """Synthesize list of actions"""
+
     def __init__(self, name, match, actions, context):
         self.name = name
         self.match = match
@@ -742,7 +779,6 @@ class SMTActions(SMTAction):
         self.action_dispatch = {
             ActionSetLocalPref: self._set_localpref,
             ActionSetCommunity: self._set_community,
-            #Act
         }
         self.boxes = []
         self.constraints = []
@@ -776,3 +812,40 @@ class SMTActions(SMTAction):
         return SMTSetCommunity(name=name, communities=action.communities,
                                match=self.match, additive=action.additive,
                                context=context)
+
+
+class SMTRouteMapLine(SMTAction):
+    """Synthesize one RouteMapLine"""
+
+    def __init__(self, name, line, context):
+        """
+        :param name: name for z3 vars
+        :param line: RouteMapLine
+        :param context: SMTContext
+        """
+        self.name = name
+        self.ctx = context
+        self.line = line
+        self.constraints = []
+        self.matches = SMTMatches(name="m_%s" % name,
+                                  matches=line.matches, context=context)
+        self.actions = SMTActions(name="a_%s" % name, match=self.matches,
+                                  actions=line.actions, context=context)
+        self.constraints.extend(self.matches.constraints)
+        self.constraints.extend(self.actions.constraints)
+
+    def get_val(self, model):
+        return (self.matches.get_val(model), self.actions.get_val(model))
+
+    def is_concrete(self):
+        return False
+
+    def get_config(self, model):
+        return RouteMapLine(
+            matches=self.matches.get_config(model),
+            actions=self.actions.get_config(model),
+            access=self.line.access,
+            lineno=self.line.lineno)
+
+    def get_new_context(self):
+        return self.actions.get_new_context()
