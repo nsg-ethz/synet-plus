@@ -380,6 +380,16 @@ class RouteMapLine(object):
     def lineno(self):
         return self._lineno
 
+    def __eq__(self, other):
+        matches = getattr(other, 'matches', None)
+        actions = getattr(other, 'actions', None)
+        access = getattr(other, 'access', None)
+        lineno = getattr(other, 'lineno', None)
+        return self.matches == matches and \
+                self.actions == actions and \
+                self.access == access and \
+                self.lineno == lineno
+
     def __str__(self):
         return "<lineno: %d, access: %s, Matches: %s, Actrions: %s>" \
                % (self.lineno, self.access, self.matches, self.actions)
