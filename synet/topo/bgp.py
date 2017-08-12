@@ -332,6 +332,15 @@ class ActionSetCommunity(Action):
     def additive(self):
         return self._additive
 
+    def __eq__(self, other):
+        return set(self._communities) == set(getattr(other, '_communities', []))
+
+    def __str__(self):
+        return "SetCommunity(%s)" % self._communities
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class RouteMapLine(object):
     def __init__(self, matches, actions, access, lineno=None):
