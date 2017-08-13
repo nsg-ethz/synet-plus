@@ -813,15 +813,13 @@ class SMTSetLocalPrefTest(SMTSetup):
             'Ann2_Yahoo': ann2,
         }
 
-    def test_set(self):
+    def test_set_concrete(self):
         ctx = self.get_context()
         ann1 = self.ann_map['Ann1_Google']
         ann2 = self.ann_map['Ann2_Yahoo']
         match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
 
         set1 = SMTSetLocalPref(name='s1', localpref=200,
-                               match=match, context=ctx)
-        set2 = SMTSetLocalPref(name='s2', localpref=VALUENOTSET,
                                match=match, context=ctx)
 
         def get_solver():
@@ -831,10 +829,9 @@ class SMTSetLocalPrefTest(SMTSetup):
             return s
 
         s1 = get_solver()
-        s2 = get_solver()
 
         s1.add(set1.action_fun(ann1) == 200)
-        self.assertFalse(set1.is_concrete())
+        self.assertTrue(set1.is_concrete())
         s1.add(set1.constraints)
 
         self.assertEquals(s1.check(), z3.sat)
@@ -847,11 +844,29 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertEquals(model1.eval(ctx1.local_pref_fun(ann2)).as_long(), 100)
         self.assertEquals(set1.get_config(model1), ActionSetLocalPref(200))
 
+
+    def test_set_notconcerte(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+
+        set2 = SMTSetLocalPref(name='s2', localpref=VALUENOTSET,
+                               match=match, context=ctx)
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_prefixes_smt(s)
+            self._load_local_prefs(s)
+            return s
+
+        s2 = get_solver()
+        self.assertFalse(set2.is_concrete())
         s2.add(set2.action_val == 200)
         s2.add(set2.constraints)
         self.assertEquals(s2.check(), z3.sat)
         ctx2 = set2.get_new_context()
-        model2 =s2.model()
+        model2 = s2.model()
         self.assertFalse(set2.is_concrete())
         self.assertEquals(set2.get_val(model2), 200)
         self.assertEquals(model2.eval(set2.action_fun(ann1)).as_long(), 200)
@@ -859,6 +874,7 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertEquals(model2.eval(ctx2.local_pref_fun(ann1)).as_long(), 200)
         self.assertEquals(model2.eval(ctx2.local_pref_fun(ann2)).as_long(), 100)
         self.assertEquals(set2.get_config(model2), ActionSetLocalPref(200))
+
 
 
 class SMTSetCommunityTest(SMTSetup):

@@ -127,6 +127,21 @@ class SMTContext(object):
         else:
             return self.prefix_fun(ann_var)
 
+    #def get_local_pref(self, ann_var):
+    #    """
+    #    Return the local pref
+    #    (applies partial eval when possible)
+    #    :param ann_var:
+    #    :return: int or fun
+    #    """
+    #    ann = self.get_ann_by_var(ann_var)
+    #    if ann is None:
+    #        return self.local_pref_fun(ann_var)
+    #    localpref = ann.LOCAL_PREF
+    #    if localpref != VALUENOTSET:
+    #        return localpref
+    #    return self.prefix_fun(ann_var)
+
     def anns_var_iter(self):
         for val in self.announcements_map.values():
             yield val
@@ -603,7 +618,65 @@ class SMTAction(SMTObject):
         raise NotImplementedError()
 
 
-class SMTSetLocalPref(SMTAction):
+class SMTSetVal(SMTAction):
+    """
+    Set a value in the Announcement
+    """
+
+    def __init__(self, name, value, match, domain_sort, range_sort,
+                 prev_value,
+                 config_class, model_val,
+                 context):
+        assert isinstance(match, SMTObject)
+        self.name = name
+        self._value = value
+        self.match = match
+        self.constraints = []
+        self.ctx = context
+        self.action_val = None
+        self.action_fun = None
+        self.prev_value = prev_value
+        self.domain_sort = domain_sort
+        self.range_sort = range_sort
+        self.config_class = config_class
+        self.model_val = model_val
+        self._load_action()
+
+    def _load_action(self):
+        f_name = "%s_fun" % self.name
+        self.action_fun = z3.Function(f_name, self.domain_sort, self.range_sort)
+        val_name = '%s_val' % self.name
+        self.action_val = z3.Const(val_name, self.range_sort)
+        if self._value == VALUENOTSET:
+            val = self.action_val
+        else:
+            self.constraints.append(self.action_val == self._value)
+            val = self._value
+
+        for ann_var in self.ctx.anns_var_iter():
+            constraint = self.action_fun(ann_var) == z3.If(
+                self.match.match_fun(ann_var) == True,
+                val,
+                self.prev_value(ann_var))
+
+            self.constraints.append(constraint)
+        return self.action_fun
+
+    def is_concrete(self):
+        return self.match.is_concrete() and self._value != VALUENOTSET
+
+    def get_val(self, model):
+        if self._value != VALUENOTSET:
+            return self._value
+        value = model.eval(self.action_val)
+        return self.model_val(value)
+
+    def get_config(self, model):
+        val = self.get_val(model)
+        return self.config_class(val)
+
+
+class SMTSetLocalPref(SMTSetVal):
     """
     Set the Local Pref for a route
     """
@@ -617,48 +690,19 @@ class SMTSetLocalPref(SMTAction):
         """
         assert localpref == VALUENOTSET or isinstance(localpref, int)
         assert isinstance(match, SMTObject)
-        self.name = name
-        self._localpref = localpref
-        self.match = match
-        self.constraints = []
-        self.ctx = context
-        self.action_val = None
-        self.action_fun = None
-        self.prev_action_fun = self.ctx.local_pref_fun
-        self._load_action()
-
-    def _load_action(self):
-        self.action_fun = z3.Function("%s_set_localpref_fun" % self.name,
-                                      self.ctx.announcement_sort,
-                                      z3.IntSort())
-        self.action_val = z3.Const('%s_localpref_val' % self.name, z3.IntSort())
-        if self._localpref != VALUENOTSET:
-            self.constraints.append(self.action_val == self._localpref)
-        else:
+        super(SMTSetLocalPref, self).__init__(
+            name=name,
+            value=localpref,
+            match=match,
+            domain_sort=context.announcement_sort,
+            range_sort=z3.IntSort(),
+            prev_value=context.local_pref_fun,
+            config_class=ActionSetLocalPref,
+            model_val=lambda x: x.as_long(),
+            context=context
+        )
+        if not self.is_concrete():
             self.constraints.append(self.action_val > 0)
-
-        for val in self.ctx.anns_var_iter():
-            c = self.action_fun(val) == z3.If(self.match.match_fun(val) == True,
-                                              self.action_val,
-                                              self.prev_action_fun(val))
-            self.constraints.append(c)
-
-        return self.action_fun
-
-    def is_concrete(self):
-        # TODO: concerte values for Actions
-        return False
-
-    def get_val(self, model):
-        if self._localpref != VALUENOTSET:
-            return self._localpref
-        localpref = model.eval(self.action_val)
-        localpref = localpref.as_long()
-        return localpref
-
-    def get_config(self, model):
-        val = self.get_val(model)
-        return ActionSetLocalPref(val)
 
     def get_new_context(self):
         ctx = SMTContext(
