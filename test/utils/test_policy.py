@@ -1420,3 +1420,95 @@ class SMTRouteMapTest(SMTSetup):
         )
         new_route_map = RouteMap(name=route_map.name, lines=[new_line])
         self.assertEquals(smap.get_config(model), new_route_map)
+
+    def test_double_stress(self):
+        """Test Two route maps back to back"""
+        num_communities = 10
+        num_anns = 100
+        self.all_communities = [Community("100:%d" % i) for i in range(num_communities)]
+        self.anns = {}
+        for i in range(num_anns / 2):
+            prefix = 'Prefix_%d' % i
+            name1= "Ann_%s_1" % prefix
+            name2= "Ann_%s_2" % prefix
+            cs1 = [(self.all_communities[0], 'T')]
+            cs1 += [(c, 'F') for c in self.all_communities[1:]]
+            cs2 = [(c, 'F') for c in self.all_communities]
+            cs1 = dict(cs1)
+            cs2 = dict(cs2)
+
+            ann1 = Announcement(
+                PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs1)
+            self.anns[name1] = ann1
+
+            ann2 = Announcement(
+                PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs2)
+            self.anns[name2] = ann2
+
+        self._define_types()
+
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
+        matches1 = [MatchCommunitiesList(c1_l)]
+        actions1 = [ActionSetLocalPref(VALUENOTSET)]
+        matches2 = [MatchCommunitiesList(c1_l)]
+        actions2 = [ActionSetLocalPref(VALUENOTSET)]
+        line1 = RouteMapLine(matches=matches1, actions=actions1, access=VALUENOTSET, lineno=10)
+        line2 = RouteMapLine(matches=matches2, actions=actions2, access=VALUENOTSET, lineno=10)
+
+        route_map1 = RouteMap(name='rm1', lines=[line1])
+        route_map2 = RouteMap(name='rm2', lines=[line2])
+        smap1 = SMTRouteMap(name=route_map1.name, route_map=route_map1, context=ctx)
+        smap2 = SMTRouteMap(name=route_map2.name, route_map=route_map2, context=smap1.ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_communities_smt(solver)
+            self._load_prefixes_smt(solver)
+            self._load_local_prefs(solver)
+            return solver
+
+        s1 = get_solver()
+        s1.add(smap1.constraints)
+        s1.add(smap2.constraints)
+        ctx1 = smap1.get_new_context()
+        ctx2 = smap2.get_new_context()
+        for name, ann in self.ann_map.iteritems():
+            s1.add(smap1.boxes[0].route_denied_fun(ann) == False)
+            s1.add(smap2.boxes[0].route_denied_fun(ann) == False)
+            if name.endswith('_1'):
+                s1.add(ctx1.local_pref_fun(ann) == 200)
+                s1.add(ctx2.local_pref_fun(ann) == 50)
+
+        self.assertEquals(s1.check(), z3.sat)
+        model = s1.model()
+        for name, ann in self.ann_map.iteritems():
+            if name.endswith('_1'):
+                self.assertEquals(model.eval(ctx1.local_pref_fun(ann)).as_long(), 200)
+                self.assertEquals(model.eval(ctx2.local_pref_fun(ann)).as_long(), 50)
+            else:
+                self.assertEquals(model.eval(ctx1.local_pref_fun(ann)).as_long(), 100)
+                self.assertEquals(model.eval(ctx2.local_pref_fun(ann)).as_long(), 100)
+
+
+        new_line1 = RouteMapLine(
+            matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
+            actions=[ActionSetLocalPref(200)],
+            access=Access.permit,
+            lineno=10
+        )
+        new_route_map1 = RouteMap(name=route_map1.name, lines=[new_line1])
+        new_line2 = RouteMapLine(
+            matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
+            actions=[ActionSetLocalPref(50)],
+            access=Access.permit,
+            lineno=10
+        )
+        new_route_map2 = RouteMap(name=route_map2.name, lines=[new_line2])
+        self.assertEquals(smap1.get_config(model), new_route_map1)
+        self.assertEquals(smap2.get_config(model), new_route_map2)
