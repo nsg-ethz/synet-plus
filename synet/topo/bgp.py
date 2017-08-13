@@ -260,6 +260,28 @@ class MatchPeer(Match):
         return self.__str__()
 
 
+class MatchNextHop(Match):
+    def __init__(self, nexthop):
+        assert nexthop == VALUENOTSET or isinstance(nexthop, basestring)
+        self._match = nexthop
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+    def __str__(self):
+        return "MatchNextHop(%s)" % self.match
+
+    def __repr__(self):
+        return self.__str__()
+
+
 class MatchLocalPref(Match):
     def __init__(self, localpref):
         assert localpref == VALUENOTSET or isinstance(localpref, int)

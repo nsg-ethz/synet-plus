@@ -13,6 +13,7 @@ from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import VALUENOTSET
@@ -26,6 +27,7 @@ from synet.utils.policy import SMTIpPrefix
 from synet.utils.policy import SMTIpPrefixList
 from synet.utils.policy import SMTMatch
 from synet.utils.policy import SMTMatches
+from synet.utils.policy import SMTNextHop
 from synet.utils.policy import SMTRouteMap
 from synet.utils.policy import SMTRouteMapLine
 from synet.utils.policy import SMTSetCommunity
@@ -80,6 +82,13 @@ class SMTSetup(unittest.TestCase):
         self.as_path_map = as_path_map
         self.as_path_fun = z3.Function('AsPathFunc', self.ann_sort, self.as_path_sort)
         self.as_path_len_fun = z3.Function('AsPathLenFunc', self.ann_sort, z3.IntSort())
+
+        nexthope_list = list(set([ann.NEXT_HOP for ann in self.anns.values()]))
+        (self.nexthop_sort, self.nexthops) = z3.EnumSort('NexthopSort', nexthope_list)
+
+        nexthop_map = dict([(str(p), p) for p in self.nexthops])
+        self.nexthop_map = nexthop_map
+        self.nexthop_fun = z3.Function('NexthopFunc', self.ann_sort, self.nexthop_sort)
 
         # Create functions for communities
         self.communities_fun = {}
@@ -159,6 +168,9 @@ class SMTSetup(unittest.TestCase):
             as_path_map=self.as_path_map,
             as_path_fun=self.as_path_fun,
             as_path_len_fun=self.as_path_len_fun,
+            nexthop_sort=self.nexthop_sort,
+            nexthop_fun=self.nexthop_fun,
+            nexthop_map=self.nexthop_map,
             route_denied_fun=self.route_denied_fun
         )
         return ctx
@@ -577,6 +589,78 @@ class SMTIpPrefixListTest(SMTSetup):
         self.assertEquals(l4_match.get_val(m), ['Yahoo'])
         self.assertEquals(l3_match.get_config(m), p1_list)
         self.assertEquals(l4_match.get_config(m), p2_list)
+
+
+class SMTNextHopTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='ATT', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='DT', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_match_concrete(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        p1_match = SMTNextHop(name='p1', nexthop='ATT', context=ctx)
+        p2_match = SMTNextHop(name='p2', nexthop='DT', context=ctx)
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_prefixes_smt(s)
+            return s
+
+        s1 = get_solver()
+
+        s1.add(p1_match.match_fun(ann1) == True)
+        s1.add(p2_match.match_fun(ann1) == False)
+        s1.add(p1_match.match_fun(ann2) == False)
+        s1.add(p2_match.match_fun(ann2) == True)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(p1_match.get_val(m), 'ATT')
+        self.assertEquals(p2_match.get_val(m), 'DT')
+
+    def test_prefix_match_notconcrete(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
+        p1_match = SMTNextHop(name='p1', nexthop=VALUENOTSET, context=ctx)
+        p2_match = SMTNextHop(name='p2', nexthop=VALUENOTSET, context=ctx)
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_prefixes_smt(s)
+            return s
+
+        s1 = get_solver()
+        s1.add(p1_match.match_fun(ann1) == True)
+        s1.add(p1_match.match_fun(ann2) == False)
+        s1.add(p1_match.constraints)
+        s1.add(p2_match.match_fun(ann1) == False)
+        s1.add(p2_match.match_fun(ann2) == True)
+        s1.add(p2_match.constraints)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(p1_match.get_val(m), 'ATT')
+        self.assertEquals(p2_match.get_val(m), 'DT')
 
 
 class SMTMatchTest(SMTSetup):
@@ -1379,7 +1463,7 @@ class SMTRouteMapTest(SMTSetup):
 
     def test_stress(self):
         num_communities = 10
-        num_anns = 1000
+        num_anns = 100
         self.all_communities = [Community("100:%d" % i) for i in range(num_communities)]
         self.anns = {}
         for i in range(num_anns / 2):

@@ -44,6 +44,7 @@ from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import VALUENOTSET
@@ -66,6 +67,7 @@ class SMTContext(object):
                  communities_fun, prefixes_vars, prefix_sort, prefix_fun,
                  local_pref_fun, as_path_sort, as_path_map,
                  as_path_fun, as_path_len_fun,
+                 nexthop_sort, nexthop_fun, nexthop_map,
                  route_denied_fun):
         """
         :param announcements: dict of name -> Announcement
@@ -93,6 +95,9 @@ class SMTContext(object):
         self.as_path_fun = as_path_fun
         self.as_path_map = as_path_map
         self.as_path_len_fun = as_path_len_fun
+        self.nexthop_sort = nexthop_sort
+        self.nexthop_fun = nexthop_fun
+        self.nexthop_map = nexthop_map
         self.route_denied_fun = route_denied_fun
         self.inverse_ann_map = {}
         for name, var in self.announcements_map.iteritems():
@@ -139,6 +144,21 @@ class SMTContext(object):
         else:
             return self.prefix_fun(ann_var)
 
+    def get_nexthop_var(self, ann_var):
+        """
+        Return the nexthop var function for the given announcement var
+        (applies partial eval when possible)
+        :param ann_var:
+        :return: nexthope var of nexthop_sort or fun
+        """
+        ann = self.get_ann_by_var(ann_var)
+        if ann is None:
+            return self.prefix_fun(ann_var)
+        nexthop = ann.NEXT_HOP
+        if nexthop != VALUENOTSET:
+            return self.nexthop_map[nexthop]
+        else:
+            return self.nexthop_fun(ann_var)
     # def get_local_pref(self, ann_var):
     #    """
     #    Return the local pref
@@ -159,7 +179,8 @@ class SMTContext(object):
                         prefixes_vars=None, prefix_sort=None,
                         prefix_fun=None, local_pref_fun=None,
                         as_path_sort=None, as_path_map=None, as_path_fun=None,
-                        as_path_len_fun=None, route_denied_fun=None):
+                        as_path_len_fun=None, nexthop_sort=None, nexthop_map=None,
+                        nexthop_fun=None, route_denied_fun=None):
         """Helper to create new context with ability to override one or more vars """
         announcements = self.announcements if announcements is None else announcements
         announcements_map = self.announcements_map if announcements_map is None else announcements_map
@@ -173,6 +194,9 @@ class SMTContext(object):
         as_path_map = self.as_path_map if as_path_map is None else as_path_map
         as_path_fun = self.as_path_fun if as_path_fun is None else as_path_fun
         as_path_len_fun = self.as_path_len_fun if as_path_len_fun is None else as_path_len_fun
+        nexthop_sort = self.nexthop_sort if nexthop_sort is None else nexthop_sort
+        nexthop_fun = self.nexthop_fun if nexthop_fun is None else nexthop_fun
+        nexthop_map = self.nexthop_map if nexthop_map is None else nexthop_map
         route_denied_fun = self.route_denied_fun if route_denied_fun is None else route_denied_fun
 
         return SMTContext(
@@ -188,6 +212,9 @@ class SMTContext(object):
             as_path_map=as_path_map,
             as_path_fun=as_path_fun,
             as_path_len_fun=as_path_len_fun,
+            nexthop_sort=nexthop_sort,
+            nexthop_fun=nexthop_fun,
+            nexthop_map=nexthop_map,
             route_denied_fun=route_denied_fun)
 
     def anns_var_iter(self):
@@ -234,6 +261,7 @@ class SMTSynMatchVal(SMTObject):
                  domain_sort,
                  range_sort,
                  fun_map,
+                 config_class,
                  context):
         """
         :param value: object of the value to be matched or VALUENOTSET
@@ -252,6 +280,7 @@ class SMTSynMatchVal(SMTObject):
         self.constraints = []
         self.match_synthesized = None
         self.match_syn_map = {}
+        self.config_class = config_class
         self.match_fun = self._gen_match_func()
 
     def get_val(self, model):
@@ -313,7 +342,7 @@ class SMTSynMatchVal(SMTObject):
         :param model: Z3 model
         :return: Community
         """
-        return self.get_val(model)
+        return self.config_class(self.get_val(model))
 
 
 class SMTCommunity(SMTSynMatchVal):
@@ -335,6 +364,7 @@ class SMTCommunity(SMTSynMatchVal):
             domain_sort=context.announcement_sort,
             range_sort=z3.BoolSort(),
             fun_map=context.communities_fun,
+            config_class=lambda x: x,
             context=context,
         )
 
@@ -437,6 +467,7 @@ class SMTIpPrefix(SMTSynMatchVal):
             domain_sort=context.announcement_sort,
             range_sort=context.prefix_sort,
             fun_map=context.prefixes_vars,
+            config_class=lambda x: x,
             context=context,
         )
 
@@ -448,6 +479,43 @@ class SMTIpPrefix(SMTSynMatchVal):
     def _is_range_concerte(self, community):
         for ann in self.ctx.announcements.values():
             if ann.PREFIX == VALUENOTSET:
+                return False
+        return True
+
+
+class SMTNextHop(SMTSynMatchVal):
+    """
+    Synthesis one IPPrefix
+    TODO: Support longest prefix matching
+    """
+
+    def __init__(self, name, nexthop, context):
+        """
+        :param name: unique name to make the SMT variables more readable
+        :param nexthop: NextHop or VALUENOTSET
+        :param context: SMTContext
+        """
+        assert nexthop == VALUENOTSET or isinstance(nexthop, basestring)
+        super(SMTNextHop, self).__init__(
+            name=name,
+            value=nexthop,
+            is_range_concrete=self._is_range_concerte,
+            get_concrete_val=self._get_concerte_val,
+            domain_sort=context.announcement_sort,
+            range_sort=context.nexthop_sort,
+            fun_map=context.nexthop_map,
+            config_class=lambda x: x,
+            context=context,
+        )
+
+    def _get_concerte_val(self, ann, value):
+        if isinstance(value, basestring):
+            value = self.ctx.nexthop_map[value]
+        return self.ctx.get_nexthop_var(ann) == value
+
+    def _is_range_concerte(self, community):
+        for ann in self.ctx.announcements.values():
+            if ann.NEXT_HOP == VALUENOTSET:
                 return False
         return True
 
@@ -554,6 +622,7 @@ class SMTMatch(SMTObject):
         self.match_dispatch = {
             MatchCommunitiesList: self._match_comm,
             MatchIpPrefixListList: self._match_ip,
+            MatchNextHop: self._match_nexthop,
             OrOp: self._match_or,
             type(None): self._none_match,
         }
@@ -575,6 +644,13 @@ class SMTMatch(SMTObject):
     def _match_ip(self, match):
         name = "%s_ip_list" % self.name
         self.smts = [SMTIpPrefixList(name, match.match, self.ctx)]
+        self.constraints.extend(self.smts[0].constraints)
+        self._is_concrete = self.smts[0].is_concrete()
+        return self.smts[0].match_fun
+
+    def _match_nexthop(self, match):
+        name = "%s_nexthop" % self.name
+        self.smts = [SMTNextHop(name, match.match, self.ctx)]
         self.constraints.extend(self.smts[0].constraints)
         self._is_concrete = self.smts[0].is_concrete()
         return self.smts[0].match_fun
