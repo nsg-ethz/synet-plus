@@ -831,15 +831,16 @@ class SMTRouteMapLine(SMTAction):
         self.name = name
         self.ctx = context
         self.line = line
-        self.constraints = []
+        self.match_constraints = []
+        self.action_constraints = []
         self.matches = SMTMatches(name="m_%s" % name,
                                   matches=line.matches, context=context)
-        self.constraints.extend(self.matches.constraints)
+        self.match_constraints.extend(self.matches.constraints)
         # No need to apply the actions if the route is dropped
         if line.access != Access.deny:
             self.actions = SMTActions(name="a_%s" % name, match=self.matches,
                                       actions=line.actions, context=context)
-            self.constraints.extend(self.actions.constraints)
+            self.action_constraints.extend(self.actions.constraints)
         self._load()
 
     def _load(self):
@@ -853,7 +854,7 @@ class SMTRouteMapLine(SMTAction):
         else:
             val = z3.Const('%s_route_denied' % self.name, z3.BoolSort())
         self.access_val = val
-        self.constraints.append(
+        self.match_constraints.append(
             z3.ForAll(
                 [tmp],
                 fun(tmp) == z3.If(self.matches.match_fun(tmp) == True,

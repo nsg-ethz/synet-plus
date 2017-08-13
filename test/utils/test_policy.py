@@ -1038,7 +1038,8 @@ class SMTRouteMapLineTest(SMTSetup):
         l = SMTRouteMapLine(name='l', line=line, context=ctx)
 
         s = self.get_solver()
-        s.add(l.constraints)
+        s.add(l.match_constraints)
+        s.add(l.action_constraints)
         s.add(l.matches.match_fun(ann1) == True)
 
         self.assertEquals(s.check(), z3.sat)
@@ -1073,7 +1074,8 @@ class SMTRouteMapLineTest(SMTSetup):
         l = SMTRouteMapLine(name='l', line=line, context=ctx)
 
         s = self.get_solver()
-        s.add(l.constraints)
+        s.add(l.match_constraints)
+        s.add(l.action_constraints)
         s.add(l.matches.match_fun(ann1) == True)
 
         self.assertEquals(s.check(), z3.sat)
@@ -1135,7 +1137,8 @@ class SMTRouteMapLineTest(SMTSetup):
             return solver
 
         s1 = get_solver()
-        s1.add(rline.constraints)
+        s1.add(rline.match_constraints)
+        s1.add(rline.action_constraints)
         ctx = rline.get_new_context()
         for name, ann in self.ann_map.iteritems():
             s1.add(rline.route_denied_fun(ann) == False)
