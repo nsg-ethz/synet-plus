@@ -102,6 +102,8 @@ class SMTSetup(unittest.TestCase):
                     vars.append(c_fun(var) == True)
                 elif val == 'F':
                     vars.append(c_fun(var) == False)
+                else:
+                    print "SKIPPED", var, community
         solver.append(vars)
 
     def _load_prefixes_smt(self, solver):
@@ -109,14 +111,16 @@ class SMTSetup(unittest.TestCase):
             ann = self.anns[name]
             ann_var = self.ann_map[name]
             prefix = ann.PREFIX
-            prefix_var = self.prefix_map[prefix]
-            solver.add(self.prefix_fun(ann_var) == prefix_var)
+            if prefix != VALUENOTSET:
+                prefix_var = self.prefix_map[prefix]
+                solver.add(self.prefix_fun(ann_var) == prefix_var)
 
     def _load_local_prefs(self, solver):
         for name, ann in self.anns.iteritems():
             ann_var = self.ann_map[name]
             localpref = ann.LOCAL_PREF
-            solver.add(self.local_pref_fun(ann_var) == localpref)
+            if localpref != VALUENOTSET:
+                solver.add(self.local_pref_fun(ann_var) == localpref)
 
     def _load_route_denied(self, solver):
         tmp = z3.Const('deny_tmp', self.ann_sort)
@@ -128,7 +132,7 @@ class SMTSetup(unittest.TestCase):
     def get_context(self):
         ctx = SMTContext(
             announcements=self.anns,
-            announcements_vars=self.announcements,
+            announcements_map=self.ann_map,
             announcement_sort=self.ann_sort,
             communities_fun=self.communities_fun,
             prefixes_vars=self.prefix_map,
@@ -140,13 +144,72 @@ class SMTSetup(unittest.TestCase):
         return ctx
 
 
+class SMTContextTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'T', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX=VALUENOTSET, PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=VALUENOTSET,
+            COMMUNITIES={c1: VALUENOTSET, c2: 'F', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_NotSet': ann2,
+        }
+
+    def get_solver(self):
+        solver = z3.Solver()
+        self._load_communities_smt(solver)
+        self._load_prefixes_smt(solver)
+        self._load_local_prefs(solver)
+        self._load_route_denied(solver)
+        return solver
+
+    def test_context(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+        name1 = 'Ann1_Google'
+        name2 = 'Ann2_NotSet'
+        ann1_var = self.ann_map[name1]
+        ann2_var = self.ann_map[name2]
+        s = self.get_solver()
+
+        s.add(ctx.has_community(ann1_var, c1) == True)
+        s.add(ctx.has_community(ann2_var, c1) == True)
+        s.add(ctx.get_prefix_var(ann2_var) == self.prefix_map['Google'])
+
+        ret = s.check()
+
+        self.assertEquals(ret, z3.sat)
+        self.assertEquals(ctx.get_ann_by_name(name1), ann1_var)
+        self.assertEquals(ctx.get_ann_by_name(name2), ann2_var)
+        self.assertTrue(ctx.has_community(ann1_var, c1))
+        self.assertFalse(ctx.has_community(ann1_var, c2))
+        self.assertTrue(ctx.has_community(ann1_var, c3))
+        self.assertFalse(ctx.has_community(ann2_var, c2))
+        self.assertTrue(ctx.has_community(ann2_var, c3))
+        self.assertEquals(ctx.get_prefix_var(ann1_var), self.prefix_map['Google'])
+
+
 class SMTCommunityTest(SMTSetup):
     def get_solver(self):
         solver = z3.Solver()
         self._load_communities_smt(solver)
         return solver
 
-    def test_community_match(self):
+    def test_community_match_concerte(self):
         ctx = self.get_context()
         c1 = self.all_communities[0]
         c2 = self.all_communities[1]
@@ -155,20 +218,19 @@ class SMTCommunityTest(SMTSetup):
         c1_match = SMTCommunity(name='rm1', community=c1, context=ctx)
         c2_match = SMTCommunity(name='rm2', community=c2, context=ctx)
         c3_match = SMTCommunity(name='rm3', community=c3, context=ctx)
-        w1_match = SMTCommunity(community=VALUENOTSET, name='rm4', context=ctx)
+
 
         s1 = self.get_solver()
         s2 = self.get_solver()
         s3 = self.get_solver()
         s4 = self.get_solver()
         s1.add(c1_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s1.add(w1_match.constraints)
+        s1.add(c1_match.constraints)
         s2.add(c2_match.match_fun(self.ann_map['Ann1_Google']) == False)
-        s2.add(w1_match.constraints)
+        s2.add(c2_match.constraints)
         s3.add(c3_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s3.add(w1_match.constraints)
-        s4.add(w1_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s4.add(w1_match.constraints)
+        s3.add(c3_match.constraints)
+
         self.assertEquals(s1.check(), z3.sat)
         self.assertEquals(s2.check(), z3.sat)
         self.assertEquals(s3.check(), z3.sat)
@@ -176,17 +238,32 @@ class SMTCommunityTest(SMTSetup):
         m1 = s1.model()
         m2 = s2.model()
         m3 = s3.model()
-        m4 = s4.model()
+
         c1_val = c1_match.get_val(m1)
         c2_val = c2_match.get_val(m2)
         c3_val = c3_match.get_val(m3)
-        wild1_val = w1_match.get_val(m4)
+
         self.assertEquals(c1_val, c1)
         self.assertEquals(c2_val, c2)
         self.assertEquals(c3_val, c3)
         self.assertEquals(c1_match.get_config(m1), c1)
         self.assertEquals(c2_match.get_config(m2), c2)
         self.assertEquals(c3_match.get_config(m3), c3)
+
+    def test_community_match_notconcrete(self):
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        w1_match = SMTCommunity(community=VALUENOTSET, name='rm4', context=ctx)
+
+        s4 = self.get_solver()
+        s4.add(w1_match.match_fun(self.ann_map['Ann1_Google']) == True)
+        s4.add(w1_match.constraints)
+        self.assertEquals(s4.check(), z3.sat)
+        m4 = s4.model()
+        wild1_val = w1_match.get_val(m4)
         self.assertIn(wild1_val, [c1, c3])
 
     def test_communities_and_match(self):
@@ -372,11 +449,34 @@ class SMTPrefixTest(SMTSetup):
             'Ann2_Yahoo': ann2,
         }
 
-    def test_prefix_match(self):
+    def test_prefix_match_concrete(self):
         ctx = self.get_context()
-
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
         p1_match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
         p2_match = SMTIpPrefix(name='p2', prefix='Yahoo', context=ctx)
+
+        def get_solver():
+            s = z3.Solver()
+            self._load_prefixes_smt(s)
+            return s
+
+        s1 = get_solver()
+
+        s1.add(p1_match.match_fun(ann1) == True)
+        s1.add(p2_match.match_fun(ann1) == False)
+        s1.add(p1_match.match_fun(ann2) == False)
+        s1.add(p2_match.match_fun(ann2) == True)
+        self.assertEquals(s1.check(), z3.sat)
+        m = s1.model()
+        self.assertEquals(p1_match.get_val(m), 'Google')
+        self.assertEquals(p2_match.get_val(m), 'Yahoo')
+
+    def test_prefix_match_notconcrete(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
         p3_match = SMTIpPrefix(name='p3', prefix=VALUENOTSET, context=ctx)
         p4_match = SMTIpPrefix(name='p4', prefix=VALUENOTSET, context=ctx)
 
@@ -386,15 +486,11 @@ class SMTPrefixTest(SMTSetup):
             return s
 
         s1 = get_solver()
-        s1.add(p1_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s1.add(p2_match.match_fun(self.ann_map['Ann1_Google']) == False)
-        s1.add(p1_match.match_fun(self.ann_map['Ann2_Yahoo']) == False)
-        s1.add(p2_match.match_fun(self.ann_map['Ann2_Yahoo']) == True)
-        s1.add(p3_match.match_fun(self.ann_map['Ann1_Google']) == True)
-        s1.add(p3_match.match_fun(self.ann_map['Ann2_Yahoo']) == False)
+        s1.add(p3_match.match_fun(ann1) == True)
+        s1.add(p3_match.match_fun(ann2) == False)
         s1.add(p3_match.constraints)
-        s1.add(p4_match.match_fun(self.ann_map['Ann1_Google']) == False)
-        s1.add(p4_match.match_fun(self.ann_map['Ann2_Yahoo']) == True)
+        s1.add(p4_match.match_fun(ann1) == False)
+        s1.add(p4_match.match_fun(ann2) == True)
         s1.add(p4_match.constraints)
         self.assertEquals(s1.check(), z3.sat)
         m = s1.model()
@@ -1251,3 +1347,76 @@ class SMTRouteMapTest(SMTSetup):
 
         route_map = RouteMap(name='rm1', lines=[l1, l2])
         self.assertEquals(r.get_config(model), route_map)
+
+
+    def test_stress(self):
+        num_communities = 10
+        num_anns = 1000
+        self.all_communities = [Community("100:%d" % i) for i in range(num_communities)]
+        self.anns = {}
+        for i in range(num_anns / 2):
+            prefix = 'Prefix_%d' % i
+            name1= "Ann_%s_1" % prefix
+            name2= "Ann_%s_2" % prefix
+            cs1 = [(self.all_communities[0], 'T')]
+            cs1 += [(c, 'F') for c in self.all_communities[1:]]
+            cs2 = [(c, 'F') for c in self.all_communities]
+            cs1 = dict(cs1)
+            cs2 = dict(cs2)
+
+            ann1 = Announcement(
+                PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs1)
+            self.anns[name1] = ann1
+
+            ann2 = Announcement(
+                PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                COMMUNITIES=cs2)
+            self.anns[name2] = ann2
+
+        self._define_types()
+
+        ctx = self.get_context()
+        c1 = self.all_communities[0]
+        c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
+        matches = [MatchCommunitiesList(c1_l)]
+        actions = [ActionSetLocalPref(VALUENOTSET)]
+        line = RouteMapLine(matches=matches, actions=actions, access=VALUENOTSET, lineno=10)
+
+        route_map = RouteMap(name='rm1', lines=[line])
+        smap = SMTRouteMap(name=route_map.name, route_map=route_map, context=ctx)
+
+        def get_solver():
+            solver = z3.Solver()
+            self._load_communities_smt(solver)
+            self._load_prefixes_smt(solver)
+            self._load_local_prefs(solver)
+            return solver
+
+        s1 = get_solver()
+        s1.add(smap.constraints)
+        ctx = smap.get_new_context()
+        for name, ann in self.ann_map.iteritems():
+            s1.add(smap.boxes[0].route_denied_fun(ann) == False)
+            if name.endswith('_1'):
+                s1.add(ctx.local_pref_fun(ann) == 200)
+
+        self.assertEquals(s1.check(), z3.sat)
+        model = s1.model()
+        for name, ann in self.ann_map.iteritems():
+            if name.endswith('_1'):
+                self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 200)
+            else:
+                self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 100)
+
+
+        new_line = RouteMapLine(
+            matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
+            actions=[ActionSetLocalPref(200)],
+            access=Access.permit,
+            lineno=10
+        )
+        new_route_map = RouteMap(name=route_map.name, lines=[new_line])
+        self.assertEquals(smap.get_config(model), new_route_map)
