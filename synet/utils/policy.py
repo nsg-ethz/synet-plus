@@ -44,6 +44,7 @@ from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import RouteMapLine
+from synet.topo.bgp import RouteMap
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -170,9 +171,9 @@ class SMTCommunity(SMTObject):
             # Then we enumerate the communities,
             # and the variable _Selected_Community tells us which one that successfully
             # mapped to our dummy match
-            f_name = '%s_Synthesize_Comm_Match' % self.name
+            f_name = '%s_SynComm_Match' % self.name
             dummy_match = z3.Function(f_name, self.ctx.announcement_sort, z3.BoolSort())
-            c_name = '%s_Selected_Comm_Match' % self.name
+            c_name = '%s_SelComm_Match' % self.name
             self.match_synthesized = z3.Const(c_name, z3.IntSort())
             self.match_syn_map = {}
             constrains = []
@@ -197,7 +198,7 @@ class SMTCommunity(SMTObject):
         Get the synthesized Community
         :param model: Z3 model
         :return: Community
-       """
+        """
         return self.get_val(model)
 
 
@@ -678,9 +679,9 @@ class SMTSetCommunity(SMTAction):
 
         def get_new_community(comm):
             """Synthesize new community"""
-            name = "%s_set_comm_%s_fun" % (self.name, comm)
+            name = "%s_set_comm_%s_fun" % (self.name, comm.name)
             fun = z3.Function(name, ann_sort, z3.BoolSort())
-            name = '%s_%s_Tmp' % (self.name, comm)
+            name = '%s_%s_Tmp' % (self.name, comm.name)
             tmp = z3.Const(name, ann_sort)
             prev = get_prev(comm)
             if comm not in self._communities:
@@ -874,7 +875,7 @@ class SMTRouteMapLine(SMTAction):
         return (access, self.matches.get_val(model), self.actions.get_val(model))
 
     def is_concrete(self):
-        return False
+        return self.matches.is_concrete() and self.actions.is_concrete()
 
     def get_config(self, model):
         return RouteMapLine(
@@ -887,3 +888,138 @@ class SMTRouteMapLine(SMTAction):
         ctx = self.actions.get_new_context()
         ctx.route_denied_fun = self.route_denied_fun
         return ctx
+
+
+class SMTRouteMap(SMTAction):
+    """Synthesize RouteMap"""
+
+    def __init__(self, name, route_map, context):
+        self.name = name
+        self.route_map = route_map
+        self.ctx = context
+        self.boxes = []
+        self.constraints = []
+        for i, line in enumerate(self.route_map.lines):
+            name = "%s_line_%s" % (self.name, i)
+            box = SMTRouteMapLine(name, line=line, context=self.ctx)
+            self.boxes.append(box)
+        self._load()
+        self.get_new_context()
+
+    def _get_match_i(self, i, var):
+        """
+        Get the match in order
+        For a match to be checked, all the previous lines should be false
+        """
+        if i == 0:
+            return self.boxes[i].matches.match_fun(var) == True
+        else:
+            matches = []
+            for box in self.boxes[:i]:
+                matches.append(box.matches.match_fun(var) == False)
+            matches.append(self.boxes[i].matches.match_fun(var) == True)
+            return z3.And(*matches)
+
+    def _load(self):
+        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
+        for i, box in enumerate(self.boxes):
+            self.constraints.extend(box.match_constraints)
+            match_fun = self._get_match_i(i, tmp)
+            constraint = z3.ForAll(
+                [tmp],
+                z3.Implies(
+                    match_fun,
+                    z3.And(*box.action_constraints)
+                ))
+            self.constraints.append(constraint)
+
+    def is_concrete(self):
+        return False
+
+    def _get_fun_ctx_i(self, ctx_name, key_name, var, index):
+        if index >= len(self.boxes):
+            match_fun = lambda x: True
+            ctx = self.ctx
+        else:
+            match_fun = self._get_match_i(index, var)
+            ctx = self.boxes[index].get_new_context()
+
+        if key_name is None:
+            prev = getattr(ctx, ctx_name)
+        else:
+            prev = getattr(ctx, ctx_name)[key_name]
+
+        if index < len(self.boxes):
+            else_ctx = self._get_fun_ctx_i(ctx_name, key_name, var, index + 1)
+        else:
+            else_ctx = None
+
+        if else_ctx is None:
+            return prev(var)
+        return z3.If(match_fun == True,
+                     prev(var),
+                     else_ctx)
+
+    def _get_new_fun(self, ctx_name):
+        fun = getattr(self.ctx, ctx_name)
+        # If the function is a dict (like communities)
+        # Then load each key separately
+        if isinstance(fun, dict):
+            new_dict = {}
+            for key in fun.keys():
+                key_name = getattr(key, 'name', key)
+                fun_name = 'new_%s_%s' % (self.name, key_name)
+                tmp_name = '%s_%s_tmp' % (self.name, key_name)
+                new_fun = z3.Function(fun_name, fun[key].domain(0), fun[key].range())
+                tmp = z3.Const(tmp_name, self.ctx.announcement_sort)
+                constraint = z3.ForAll(
+                    [tmp],
+                    new_fun(tmp) == self._get_fun_ctx_i(ctx_name, key, tmp, 0)
+                )
+                self.constraints.append(constraint)
+                new_dict[key] = new_fun
+            return new_dict
+        # Create new function
+        fun_name = 'new_%s_%s' % (self.name, str(fun))
+        tmp_name = '%s_%s_tmp' % (self.name, str(fun))
+        tmp = z3.Const(tmp_name, self.ctx.announcement_sort)
+        new_fun = z3.Function(fun_name, fun.domain(0), fun.range())
+        constraint = z3.ForAll(
+            [tmp],
+            new_fun(tmp) == self._get_fun_ctx_i(ctx_name, None, tmp, 0)
+        )
+        self.constraints.append(constraint)
+        return new_fun
+
+    def get_new_context(self):
+        announcements = self.ctx.announcements
+        announcements_vars = self.ctx.announcements_vars
+        announcement_sort = self.ctx.announcement_sort
+        communities_fun = self._get_new_fun('communities_fun')
+        prefixes_vars = self.ctx.prefixes_vars
+        prefix_sort = self.ctx.prefix_sort
+        prefix_fun = self._get_new_fun('prefix_fun')
+        local_pref_fun = self._get_new_fun('local_pref_fun')
+        route_denied_fun = self._get_new_fun('route_denied_fun')
+
+        ctx = SMTContext(
+            announcements=announcements,
+            announcements_vars=announcements_vars,
+            announcement_sort=announcement_sort,
+            communities_fun=communities_fun,
+            prefixes_vars=prefixes_vars,
+            prefix_sort=prefix_sort,
+            prefix_fun=prefix_fun,
+            local_pref_fun=local_pref_fun,
+            route_denied_fun=route_denied_fun,
+        )
+        return ctx
+
+    def get_config(self, model):
+        lines = [b.get_config(model) for b in self.boxes]
+        new_map = RouteMap(name=self.route_map.name,
+                           lines=lines)
+        return new_map
+
+    def get_val(self, model):
+        return [b.get_val(model) for b in self.boxes]

@@ -34,6 +34,7 @@ from synet.utils.policy import SMTMatches
 from synet.utils.policy import OrOp
 from synet.utils.policy import SMTSetLocalPref
 from synet.utils.policy import SMTSetCommunity
+from synet.utils.policy import SMTRouteMap
 from synet.utils.policy import SMTRouteMapLine
 
 
@@ -78,7 +79,7 @@ class SMTSetup(unittest.TestCase):
         self.communities_fun = {}
         self.reverse_communities = {}
         for c in self.all_communities:
-            name = 'Has_%s' % c
+            name = 'Has_%s' % c.name
             self.communities_fun[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
             self.reverse_communities[name] = c
 
@@ -1161,3 +1162,92 @@ class SMTRouteMapLineTest(SMTSetup):
             lineno=10
         )
         self.assertEquals(rline.get_config(model), new_line)
+
+
+class SMTRouteMapTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        self.all_communities = (c1, c2, c3)
+
+        ann1 = Announcement(
+            PREFIX='Google', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'F', c2: 'F', c3: 'T'})
+
+        ann2 = Announcement(
+            PREFIX='Yahoo', PEER='SwissCom', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
+            AS_PATH=[1, 2, 5, 7, 6], NEXT_HOP='SwissCom', LOCAL_PREF=100,
+            COMMUNITIES={c1: 'F', c2: 'T', c3: 'T'})
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def get_solver(self):
+        s = z3.Solver()
+        self._load_prefixes_smt(s)
+        self._load_communities_smt(s)
+        self._load_route_denied(s)
+        self._load_local_prefs(s)
+        return s
+
+    def test_matches_actions(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+
+        c1 = self.all_communities[0]
+        c2 = self.all_communities[1]
+        c3 = self.all_communities[2]
+
+        p1_list = IpPrefixList(1, access=Access.permit, networks=['Google'])
+        p2_list = IpPrefixList(1, access=Access.permit, networks=['Yahoo'])
+        match_google = MatchIpPrefixListList(prefix_list=p1_list)
+        match_yahoo = MatchIpPrefixListList(prefix_list=p2_list)
+
+        set_c = ActionSetCommunity(communities=[c1, c2], additive=False)
+        set_pref200 = ActionSetLocalPref(200)
+        set_pref400 = ActionSetLocalPref(VALUENOTSET)
+        l1 = RouteMapLine(matches=[match_google], actions=[set_c, set_pref200],
+                            access=Access.permit, lineno=10)
+        l2 = RouteMapLine(matches=[match_yahoo], actions=[set_c, set_pref400],
+                          access=Access.permit, lineno=10)
+
+        route_map = RouteMap(name='rm1', lines=[l1, l2])
+        r = SMTRouteMap(name='l', route_map=route_map, context=ctx)
+
+        s = self.get_solver()
+        s.add(r.constraints)
+        ctx = r.get_new_context()
+        s.add(ctx.local_pref_fun(ann2) == 400)
+
+        self.assertEquals(s.check(), z3.sat)
+
+        model = s.model()
+
+
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann1))))
+
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann2))))
+        self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann2))))
+        self.assertTrue(z3.is_false(model.eval(ctx.communities_fun[c3](ann2))))
+
+        self.assertEquals(model.eval(ctx.local_pref_fun(ann1)), 200)
+        self.assertEquals(model.eval(ctx.local_pref_fun(ann2)), 400)
+        self.assertEquals(r.get_val(model),
+                          [(Access.permit, [['Google']], [[c1, c2], 200]),
+                           (Access.permit, [['Yahoo']], [[c1, c2], 400])
+                           ])
+        l1 = RouteMapLine(matches=[match_google], actions=[set_c, set_pref200],
+                          access=Access.permit, lineno=10)
+        l2 = RouteMapLine(matches=[match_yahoo], actions=[set_c, ActionSetLocalPref(400)],
+                          access=Access.permit, lineno=10)
+
+        route_map = RouteMap(name='rm1', lines=[l1, l2])
+        self.assertEquals(r.get_config(model), route_map)
