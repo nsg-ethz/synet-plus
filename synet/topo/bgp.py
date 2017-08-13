@@ -168,7 +168,7 @@ class IpPrefixList(object):
         return id_eq and access_eq and net_eq
 
     def __str__(self):
-        return "IpPrefixList(id=%s, access=%s, communities=%s)" % \
+        return "IpPrefixList(id=%s, access=%s, networks=%s)" % \
                (self.name, self.access, self.networks)
 
     def __repr__(self):
@@ -422,11 +422,12 @@ class RouteMapLine(object):
                 self.lineno == lineno
 
     def __str__(self):
-        return "<lineno: %d, access: %s, Matches: %s, Actions: %s>" \
+        return "lineno: %d\n\taccess: %s, \n\tMatches: \n\t\t%s, \n\tActions: \n\t\t%s>" \
                % (self.lineno, self.access, self.matches, self.actions)
 
     def __repr__(self):
-        return self.__str__()
+        return "<lineno: %d, access: %s, Matches: %s, Actions: %s>" \
+               % (self.lineno, self.access, self.matches, self.actions)
 
 
 class RouteMap(object):
@@ -453,7 +454,7 @@ class RouteMap(object):
     def __str__(self):
         ret = "RouteMap %s\n" % self.name
         for line in self.lines:
-            ret += "\t %s\n" % line
+            ret += "\t%s\n" % line
         return ret
 
     def __repr__(self):
