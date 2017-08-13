@@ -177,7 +177,19 @@ class IpPrefixList(object):
 
 class Match(object):
     """Represent match action in a route map"""
-    pass
+
+    @property
+    def match(self):
+        raise NotImplementedError()
+
+    def __eq__(self, other):
+        return self.match == getattr(other, 'match', None)
+
+    def __str__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.match)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Action(object):
@@ -201,15 +213,6 @@ class MatchCommunitiesList(Match):
             raise ValueError("Match already set to %s" % self._match)
         self._match = value
 
-    def __eq__(self, other):
-        return self.match == getattr(other, 'match', None)
-
-    def __str__(self):
-        return "MatchCommunitiesList(%s)" % self.match
-
-    def __repr__(self):
-        return self.__str__()
-
 
 class MatchIpPrefixListList(Match):
     def __init__(self, prefix_list):
@@ -228,15 +231,6 @@ class MatchIpPrefixListList(Match):
             raise ValueError("Match already set to %s" % self._match)
         self._match = value
 
-    def __eq__(self, other):
-        return self.match == getattr(other, 'match', None)
-
-    def __str__(self):
-        return "MatchIpPrefixListList(%s)" % self.match
-
-    def __repr__(self):
-        return self.__str__()
-
 
 class MatchPeer(Match):
     def __init__(self, peer):
@@ -252,12 +246,6 @@ class MatchPeer(Match):
         if self._match != VALUENOTSET:
             raise ValueError("Match already set to %s" % self._match)
         self._match = value
-
-    def __str__(self):
-        return "MatchPeer(%s)" % self.match
-
-    def __repr__(self):
-        return self.__str__()
 
 
 class MatchNextHop(Match):
@@ -275,12 +263,6 @@ class MatchNextHop(Match):
             raise ValueError("Match already set to %s" % self._match)
         self._match = value
 
-    def __str__(self):
-        return "MatchNextHop(%s)" % self.match
-
-    def __repr__(self):
-        return self.__str__()
-
 
 class MatchLocalPref(Match):
     def __init__(self, localpref):
@@ -297,12 +279,6 @@ class MatchLocalPref(Match):
             raise ValueError("Match already set to %s" % self._match)
         assert isinstance(value, int)
         self._match = value
-
-    def __str__(self):
-        return "MatchLocalPref(%s)" % self.match
-
-    def __repr__(self):
-        return self.__str__()
 
 
 class ActionSetLocalPref(Action):
