@@ -504,7 +504,7 @@ class SMTNextHop(SMTSynMatchVal):
             domain_sort=context.announcement_sort,
             range_sort=context.nexthop_sort,
             fun_map=context.nexthop_map,
-            config_class=lambda x: x,
+            config_class=MatchNextHop,
             context=context,
         )
 
