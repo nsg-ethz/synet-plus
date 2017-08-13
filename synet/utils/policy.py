@@ -61,7 +61,9 @@ class SMTContext(object):
 
     def __init__(self, announcements, announcements_map, announcement_sort,
                  communities_fun, prefixes_vars, prefix_sort, prefix_fun,
-                 local_pref_fun, route_denied_fun):
+                 local_pref_fun, as_path_sort, as_path_map,
+                 as_path_fun, as_path_len_fun,
+                 route_denied_fun):
         """
         :param announcements: dict of name -> Announcement
         :param announcements_map: dict of name -> Z3 Announcement
@@ -71,6 +73,9 @@ class SMTContext(object):
         :param prefix_sort: Z3 prefix type
         :param prefix_fun: prefix -> (z3.function (Announcement->True or False))
         :param local_pref_fun: Announcement Sort -> Int local pref
+        :param as_path_sort: AS PATH sort
+        :param as_path_fun: Announcement Sort -> As path sort
+        :param as_path_len_fun: Announcement Sort -> In of the AS Path len
         :param route_denied_fun: Announcement Sort -> Boolean (true if route is dropped
         """
         self.announcements = announcements
@@ -81,6 +86,10 @@ class SMTContext(object):
         self.prefix_sort = prefix_sort
         self.prefix_fun = prefix_fun
         self.local_pref_fun = local_pref_fun
+        self.as_path_sort = as_path_sort
+        self.as_path_fun = as_path_fun
+        self.as_path_map = as_path_map
+        self.as_path_len_fun = as_path_len_fun
         self.route_denied_fun = route_denied_fun
         self.inverse_ann_map = {}
         for name, var in self.announcements_map.iteritems():
@@ -141,6 +150,43 @@ class SMTContext(object):
     #    if localpref != VALUENOTSET:
     #        return localpref
     #    return self.prefix_fun(ann_var)
+
+    def get_new_context(self, announcements=None, announcements_map=None,
+                        announcement_sort=None, communities_fun=None,
+                        prefixes_vars=None, prefix_sort=None,
+                        prefix_fun=None, local_pref_fun=None,
+                        as_path_sort=None, as_path_map=None, as_path_fun=None,
+                        as_path_len_fun=None, route_denied_fun=None):
+        """Helper to create new context with ability to override one or more vars """
+        announcements = self.announcements if announcements is None else announcements
+        announcements_map = self.announcements_map if announcements_map is None else announcements_map
+        announcement_sort = self.announcement_sort if announcement_sort is None else announcement_sort
+        communities_fun = self.communities_fun if communities_fun is None else communities_fun
+        prefixes_vars = self.prefixes_vars if prefixes_vars is None else prefixes_vars
+        prefix_sort = self.prefix_sort if prefix_sort is None else prefix_sort
+        prefix_fun = self.prefix_fun if prefix_fun is None else prefix_fun
+        local_pref_fun = self.local_pref_fun if local_pref_fun is None else local_pref_fun
+        as_path_sort = self.as_path_sort if as_path_sort is None else as_path_sort
+        as_path_map = self.as_path_map if as_path_map is None else as_path_map
+        as_path_fun = self.as_path_fun if as_path_fun is None else as_path_fun
+        as_path_len_fun = self.as_path_len_fun if as_path_len_fun is None else as_path_len_fun
+        route_denied_fun = self.route_denied_fun if route_denied_fun is None else route_denied_fun
+
+        return SMTContext(
+            announcements=announcements,
+            announcements_map=announcements_map,
+            announcement_sort=announcement_sort,
+            communities_fun=communities_fun,
+            prefixes_vars=prefixes_vars,
+            prefix_sort=prefix_sort,
+            prefix_fun=prefix_fun,
+            local_pref_fun=local_pref_fun,
+            as_path_sort=as_path_sort,
+            as_path_map=as_path_map,
+            as_path_fun=as_path_fun,
+            as_path_len_fun=as_path_len_fun,
+            route_denied_fun=route_denied_fun)
+
 
     def anns_var_iter(self):
         for val in self.announcements_map.values():
@@ -705,17 +751,7 @@ class SMTSetLocalPref(SMTSetVal):
             self.constraints.append(self.action_val > 0)
 
     def get_new_context(self):
-        ctx = SMTContext(
-            announcements=self.ctx.announcements,
-            announcements_map=self.ctx.announcements_map,
-            announcement_sort=self.ctx.announcement_sort,
-            communities_fun=self.ctx.communities_fun,
-            prefixes_vars=self.ctx.prefixes_vars,
-            prefix_sort=self.ctx.prefix_sort,
-            prefix_fun=self.ctx.prefix_fun,
-            local_pref_fun=self.action_fun,
-            route_denied_fun=self.ctx.route_denied_fun
-        )
+        ctx = self.ctx.get_new_context(local_pref_fun=self.action_fun)
         return ctx
 
 
@@ -845,17 +881,7 @@ class SMTSetCommunity(SMTAction):
         return ActionSetCommunity(val)
 
     def get_new_context(self):
-        ctx = SMTContext(
-            announcements=self.ctx.announcements,
-            announcements_map=self.ctx.announcements_map,
-            announcement_sort=self.ctx.announcement_sort,
-            communities_fun=self.new_comm_fun,
-            prefixes_vars=self.ctx.prefixes_vars,
-            prefix_sort=self.ctx.prefix_sort,
-            prefix_fun=self.ctx.prefix_fun,
-            local_pref_fun=self.ctx.local_pref_fun,
-            route_denied_fun=self.ctx.route_denied_fun
-        )
+        ctx = self.ctx.get_new_context(communities_fun=self.new_comm_fun)
         return ctx
 
 
@@ -1074,27 +1100,11 @@ class SMTRouteMap(SMTAction):
         return new_fun
 
     def get_new_context(self):
-        announcements = self.ctx.announcements
-        announcements_map = self.ctx.announcements_map
-        announcement_sort = self.ctx.announcement_sort
-        communities_fun = self._get_new_fun('communities_fun')
-        prefixes_vars = self.ctx.prefixes_vars
-        prefix_sort = self.ctx.prefix_sort
-        prefix_fun = self._get_new_fun('prefix_fun')
-        local_pref_fun = self._get_new_fun('local_pref_fun')
-        route_denied_fun = self._get_new_fun('route_denied_fun')
-
-        ctx = SMTContext(
-            announcements=announcements,
-            announcements_map=announcements_map,
-            announcement_sort=announcement_sort,
-            communities_fun=communities_fun,
-            prefixes_vars=prefixes_vars,
-            prefix_sort=prefix_sort,
-            prefix_fun=prefix_fun,
-            local_pref_fun=local_pref_fun,
-            route_denied_fun=route_denied_fun,
-        )
+        ctx = self.ctx.get_new_context(
+            communities_fun=self._get_new_fun('communities_fun'),
+            prefix_fun=self._get_new_fun('prefix_fun'),
+            local_pref_fun=self._get_new_fun('local_pref_fun'),
+            route_denied_fun=self._get_new_fun('route_denied_fun'))
         return ctx
 
     def get_config(self, model):

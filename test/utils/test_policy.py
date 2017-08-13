@@ -59,6 +59,9 @@ class SMTSetup(unittest.TestCase):
             'Ann1_Google': ann1,
         }
 
+    def get_as_path_key(self, as_path):
+        return '_'.join([str(n) for n in as_path])
+
     def _define_types(self):
         # Ann Type
         (self.ann_sort, self.announcements) = \
@@ -67,13 +70,23 @@ class SMTSetup(unittest.TestCase):
         ann_map = dict([(str(ann), ann) for ann in self.announcements])
         self.ann_map = ann_map
 
-        anns_list = list(set([ann.PREFIX for ann in self.anns.values()]))
-        (self.prefix_sort, self.prefixes) = z3.EnumSort('PrefixSort', anns_list)
+        self.local_pref_fun = z3.Function('LocalPref', self.ann_sort, z3.IntSort())
+
+        prefix_list = list(set([ann.PREFIX for ann in self.anns.values()]))
+        (self.prefix_sort, self.prefixes) = z3.EnumSort('PrefixSort', prefix_list)
 
         prefix_map = dict([(str(prefix), prefix) for prefix in self.prefixes])
         self.prefix_map = prefix_map
         self.prefix_fun = z3.Function('PrefixFunc', self.ann_sort, self.prefix_sort)
-        self.local_pref_fun = z3.Function('LocalPref', self.ann_sort, z3.IntSort())
+
+
+        as_path_list = list(set([self.get_as_path_key(ann.AS_PATH) for ann in self.anns.values()]))
+        (self.as_path_sort, self.as_paths) = z3.EnumSort('PrefixSort', as_path_list)
+
+        as_path_map = dict([(str(p), p) for p in self.as_paths])
+        self.as_path_map = as_path_map
+        self.as_path_fun = z3.Function('AsPathFunc', self.ann_sort, self.as_path_sort)
+        self.as_path_len_fun = z3.Function('AsPathLenFunc', self.ann_sort, z3.IntSort())
 
         # Create functions for communities
         self.communities_fun = {}
@@ -122,6 +135,16 @@ class SMTSetup(unittest.TestCase):
             if localpref != VALUENOTSET:
                 solver.add(self.local_pref_fun(ann_var) == localpref)
 
+    def _load_as_paths(self, solver):
+        for name, ann in self.anns.iteritems():
+            ann_var = self.ann_map[name]
+            as_path = ann.AS_PATH
+            if as_path != VALUENOTSET:
+                path_key = self.get_as_path_key(as_path)
+                path_var = self.as_path_map[path_key]
+                solver.add(self.as_path_fun(ann_var) == path_var)
+                solver.add(self.as_path_len_fun(ann_var) == len(as_path))
+
     def _load_route_denied(self, solver):
         tmp = z3.Const('deny_tmp', self.ann_sort)
         solver.add(
@@ -139,6 +162,10 @@ class SMTSetup(unittest.TestCase):
             prefix_sort=self.prefix_sort,
             prefix_fun=self.prefix_fun,
             local_pref_fun=self.local_pref_fun,
+            as_path_sort=self.as_path_sort,
+            as_path_map=self.as_path_map,
+            as_path_fun=self.as_path_fun,
+            as_path_len_fun=self.as_path_len_fun,
             route_denied_fun=self.route_denied_fun
         )
         return ctx
@@ -874,7 +901,6 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertEquals(model2.eval(ctx2.local_pref_fun(ann1)).as_long(), 200)
         self.assertEquals(model2.eval(ctx2.local_pref_fun(ann2)).as_long(), 100)
         self.assertEquals(set2.get_config(model2), ActionSetLocalPref(200))
-
 
 
 class SMTSetCommunityTest(SMTSetup):
