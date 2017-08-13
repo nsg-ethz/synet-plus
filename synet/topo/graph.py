@@ -373,6 +373,25 @@ class NetworkGraph(nx.DiGraph):
         assert neighbor in neighbors
         return self.get_bgp_asnum(neighbor)
 
+    def get_bgp_advertise(self, node):
+        """
+        Returns a list of advertisements announced by a peer
+        :param node: router
+        :return: list
+        """
+        assert self.is_peer(node)
+        name = 'advertise'
+        attrs = self.get_bgp_attrs(node)
+        if name not in attrs:
+            attrs['advertise'] = []
+        return attrs['advertise']
+
+    def add_bgp_advertise(self, node, announcement):
+        """
+        Add an advertisement by an external peer
+        """
+        self.get_bgp_advertise(node).append(announcement)
+
     def get_bgp_announces(self, node):
         """
         Returns a dict of announcements to be made by the node
@@ -436,7 +455,7 @@ class NetworkGraph(nx.DiGraph):
         assert route_map_name in self.get_route_maps(node), \
             "Route map is not defiend %s" % route_map_name
         neighbors = self.get_bgp_neighbors(node)
-        assert neighbor in neighbors, "Not not valid BGP neighbor"
+        assert neighbor in neighbors, "Not not valid BGP neighbors (%s, %s)" % (node, neighbor)
         neighbors[neighbor]['import_map'] = route_map_name
 
     def get_bgp_import_route_map(self, node, neighbor):
