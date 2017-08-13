@@ -55,6 +55,15 @@ class Community(object):
         low = int(bin[16:], 2)
         return "%d:%d" % (high, low)
 
+    @property
+    def name(self):
+        if self.is_new_format:
+            val = self.get_new_format()
+            val = val.replace(':', '_')
+        else:
+            val = self.value
+        return "Comm_%s" % val
+
     def __eq__(self, other):
         return self.value == getattr(other, 'value', other)
 
@@ -391,7 +400,7 @@ class RouteMapLine(object):
                 self.lineno == lineno
 
     def __str__(self):
-        return "<lineno: %d, access: %s, Matches: %s, Actrions: %s>" \
+        return "<lineno: %d, access: %s, Matches: %s, Actions: %s>" \
                % (self.lineno, self.access, self.matches, self.actions)
 
     def __repr__(self):
@@ -414,3 +423,16 @@ class RouteMap(object):
     @property
     def lines(self):
         return self._lines
+
+    def __eq__(self, other):
+        return self.name == getattr(other, 'name', None) and \
+               self.lines == getattr(other, 'lines', None)
+
+    def __str__(self):
+        ret = "RouteMap %s\n" % self.name
+        for line in self.lines:
+            ret += "\t %s\n" % line
+        return ret
+
+    def __repr__(self):
+        return self.__str__()
