@@ -33,22 +33,25 @@ https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/26634-
 from collections import Iterable
 from collections import namedtuple
 from functools import partial
+
 import z3
 
 from synet.topo.bgp import Access
-from synet.topo.bgp import VALUENOTSET
+from synet.topo.bgp import ActionSetCommunity
+from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import Community
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import ActionSetCommunity
-from synet.topo.bgp import RouteMapLine
+from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import RouteMap
+from synet.topo.bgp import RouteMapLine
+from synet.topo.bgp import VALUENOTSET
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
+
 
 AndOp = namedtuple('AndOp', ['values'])
 OrOp = namedtuple('OrOp', ['values'])
@@ -136,7 +139,7 @@ class SMTContext(object):
         else:
             return self.prefix_fun(ann_var)
 
-    #def get_local_pref(self, ann_var):
+    # def get_local_pref(self, ann_var):
     #    """
     #    Return the local pref
     #    (applies partial eval when possible)
@@ -186,7 +189,6 @@ class SMTContext(object):
             as_path_fun=as_path_fun,
             as_path_len_fun=as_path_len_fun,
             route_denied_fun=route_denied_fun)
-
 
     def anns_var_iter(self):
         for val in self.announcements_map.values():
@@ -318,6 +320,7 @@ class SMTCommunity(SMTSynMatchVal):
     """
    Synthesis one Community match
    """
+
     def __init__(self, name, community, context):
         """
         :param community: Community object or VALUENOTSET
@@ -522,6 +525,7 @@ class SMTTrueMatch(SMTObject):
     """
     Special Match, that is True for all
     """
+
     def __init__(self):
         self.match_fun = lambda x: True
 
@@ -807,14 +811,14 @@ class SMTSetCommunity(SMTAction):
                 return prev
             for var in self.ctx.anns_var_iter():
                 self.constraints.append(fun(var) == z3.If(match_fun(var) == True, True, prev(var)))
-            #c = z3.ForAll(
+            # c = z3.ForAll(
             #    [tmp],
             #    fun(tmp) == z3.If(match_fun(tmp) == True, True, prev(tmp))
-            #)
-            #self.constraints.append(c)
+            # )
+            # self.constraints.append(c)
             return fun
 
-        #def syn_new_community(n, not_set_vals):
+        # def syn_new_community(n, not_set_vals):
         #    f_name = '%s_%s_Synthesize_Comm_Match' % (self.name, n)
         #    fun = z3.Function(f_name, ann_sort, z3.BoolSort())
         #    c_name = '%s_%s_Selected_Comm_Match' % (self.name, n)
@@ -841,7 +845,7 @@ class SMTSetCommunity(SMTAction):
         #    self.constraints.append(z3.Or(*constrains))
         #    return (fun, syn_index, syn_map)
         #
-        #not_set_vals = [comm for comm in self.prev_action_fun
+        # not_set_vals = [comm for comm in self.prev_action_fun
         #                if comm not in self._communities]
 
         self.synthesized_communities = []
@@ -849,9 +853,9 @@ class SMTSetCommunity(SMTAction):
             if community != VALUENOTSET:
                 self.new_comm_fun[community] = get_new_community(community)
                 self.synthesized_communities.append(community)
-            #else:
-            #new_fun, syn_index, syn_map = syn_new_community(n, not_set_vals)
-            #self.synthesized_communities.append((syn_index, syn_map))
+                # else:
+                # new_fun, syn_index, syn_map = syn_new_community(n, not_set_vals)
+                # self.synthesized_communities.append((syn_index, syn_map))
         # Fill remaining communities
         for community in self.prev_action_fun:
             if community not in self.new_comm_fun:
@@ -919,7 +923,7 @@ class SMTActions(SMTAction):
         return [b.get_config(model) for b in self.boxes]
 
     def get_new_context(self):
-        return  self._new_context
+        return self._new_context
 
     def _set_localpref(self, name, action, context):
         return SMTSetLocalPref(name=name, localpref=action.value,

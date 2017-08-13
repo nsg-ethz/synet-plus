@@ -1,41 +1,35 @@
-
 import unittest
-import networkx as nx
+
 import z3
 
 from synet.synthesis.ebgp import Announcement
 from synet.synthesis.ebgp import BGP_ATTRS_ORIGIN
-from synet.synthesis.ebgp import EBGP
 
 from synet.topo.bgp import Access
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import CommunityList
 from synet.topo.bgp import ActionSetCommunity
+from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import Community
+from synet.topo.bgp import CommunityList
+from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import MatchPeer
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import VALUENOTSET
-from synet.topo.bgp import Access
-from synet.topo.bgp import Community
-from synet.topo.bgp import MatchLocalPref
-from synet.topo.bgp import IpPrefixList
 
-
+from synet.utils.policy import OrOp
 from synet.utils.policy import SMTActions
 from synet.utils.policy import SMTCommunity
 from synet.utils.policy import SMTCommunityList
+from synet.utils.policy import SMTContext
 from synet.utils.policy import SMTIpPrefix
 from synet.utils.policy import SMTIpPrefixList
-from synet.utils.policy import SMTContext
 from synet.utils.policy import SMTMatch
 from synet.utils.policy import SMTMatches
-from synet.utils.policy import OrOp
-from synet.utils.policy import SMTSetLocalPref
-from synet.utils.policy import SMTSetCommunity
 from synet.utils.policy import SMTRouteMap
 from synet.utils.policy import SMTRouteMapLine
+from synet.utils.policy import SMTSetCommunity
+from synet.utils.policy import SMTSetLocalPref
 
 
 __author__ = "Ahmed El-Hassany"
@@ -78,7 +72,6 @@ class SMTSetup(unittest.TestCase):
         prefix_map = dict([(str(prefix), prefix) for prefix in self.prefixes])
         self.prefix_map = prefix_map
         self.prefix_fun = z3.Function('PrefixFunc', self.ann_sort, self.prefix_sort)
-
 
         as_path_list = list(set([self.get_as_path_key(ann.AS_PATH) for ann in self.anns.values()]))
         (self.as_path_sort, self.as_paths) = z3.EnumSort('PrefixSort', as_path_list)
@@ -246,7 +239,6 @@ class SMTCommunityTest(SMTSetup):
         c2_match = SMTCommunity(name='rm2', community=c2, context=ctx)
         c3_match = SMTCommunity(name='rm3', community=c3, context=ctx)
 
-
         s1 = self.get_solver()
         s2 = self.get_solver()
         s3 = self.get_solver()
@@ -320,7 +312,7 @@ class SMTCommunityTest(SMTSetup):
         match2 = wild2_match.match_fun(self.ann_map['Ann1_Google'])
         s2.add(wild1_match.constraints)
         s2.add(wild2_match.constraints)
-        s2.add(z3.And(match1 == True, match2 == True,))
+        s2.add(z3.And(match1 == True, match2 == True, ))
         # To guarantee synthesizing two different values
         s2.add(wild2_match.match_synthesized != wild1_match.match_synthesized)
         self.assertEquals(s2.check(), z3.sat)
@@ -331,7 +323,6 @@ class SMTCommunityTest(SMTSetup):
 
 
 class SMTCommunityListTest(SMTSetup):
-
     def test_communities_list(self):
         ctx = self.get_context()
         c1 = self.all_communities[0]
@@ -340,7 +331,7 @@ class SMTCommunityListTest(SMTSetup):
 
         c1_list = CommunityList(1, Access.permit, [c1, c3])
         l1_match = SMTCommunityList(
-            name='rm1', community_list= c1_list, context=ctx)
+            name='rm1', community_list=c1_list, context=ctx)
         c2_list = CommunityList(1, Access.permit,
                                 [VALUENOTSET, VALUENOTSET])
         l2_match = SMTCommunityList(
@@ -393,11 +384,11 @@ class SMTCommunityListTest(SMTSetup):
         ctx = self.get_context()
         c1 = self.all_communities[0]
         c1_l = CommunityList(1, Access.permit, [c1])
-        l1_m = SMTCommunityList(name='rm1', community_list= c1_l, context=ctx)
+        l1_m = SMTCommunityList(name='rm1', community_list=c1_l, context=ctx)
 
         def get_solver():
             solver = z3.Solver()
-            #self._load_communities_smt(solver)
+            # self._load_communities_smt(solver)
             return solver
 
         s1 = get_solver()
@@ -432,7 +423,7 @@ class SMTCommunityListTest(SMTSetup):
         ctx = self.get_context()
         c1 = self.all_communities[0]
         c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
-        l1_m = SMTCommunityList(name='rm1', community_list= c1_l, context=ctx)
+        l1_m = SMTCommunityList(name='rm1', community_list=c1_l, context=ctx)
 
         def get_solver():
             import time
@@ -716,7 +707,6 @@ class SMTMatchTest(SMTSetup):
         l2_match = SMTMatch(name='m2', match=or2, context=ctx)
         l3_match = SMTMatch(name='m3', match=or3, context=ctx)
 
-
         def get_solver():
             solver = z3.Solver()
             self._load_prefixes_smt(solver)
@@ -870,7 +860,6 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertEquals(model1.eval(ctx1.local_pref_fun(ann1)).as_long(), 200)
         self.assertEquals(model1.eval(ctx1.local_pref_fun(ann2)).as_long(), 100)
         self.assertEquals(set1.get_config(model1), ActionSetLocalPref(200))
-
 
     def test_set_notconcerte(self):
         ctx = self.get_context()
@@ -1104,7 +1093,6 @@ class SMTActionsTest(SMTSetup):
         actions = SMTActions(name='s1', match=match,
                              actions=[set_c, set_pref], context=ctx)
 
-
         # Concrete, Additive = True
         s = self.get_solver()
         s.add(actions.constraints)
@@ -1238,8 +1226,8 @@ class SMTRouteMapLineTest(SMTSetup):
         self.anns = {}
         for i in range(num_anns / 2):
             prefix = 'Prefix_%d' % i
-            name1= "Ann_%s_1" % prefix
-            name2= "Ann_%s_2" % prefix
+            name1 = "Ann_%s_1" % prefix
+            name2 = "Ann_%s_2" % prefix
             cs1 = [(self.all_communities[0], 'T')]
             cs1 += [(c, 'F') for c in self.all_communities[1:]]
             cs2 = [(c, 'F') for c in self.all_communities]
@@ -1268,6 +1256,7 @@ class SMTRouteMapLineTest(SMTSetup):
         line = RouteMapLine(matches=matches, actions=actions, access=VALUENOTSET, lineno=10)
 
         rline = SMTRouteMapLine(name='l', line=line, context=ctx)
+
         def get_solver():
             solver = z3.Solver()
             self._load_communities_smt(solver)
@@ -1291,7 +1280,6 @@ class SMTRouteMapLineTest(SMTSetup):
                 self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 200)
             else:
                 self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 100)
-
 
         new_line = RouteMapLine(
             matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
@@ -1351,7 +1339,7 @@ class SMTRouteMapTest(SMTSetup):
         set_pref200 = ActionSetLocalPref(200)
         set_pref400 = ActionSetLocalPref(VALUENOTSET)
         l1 = RouteMapLine(matches=[match_google], actions=[set_c, set_pref200],
-                            access=Access.permit, lineno=10)
+                          access=Access.permit, lineno=10)
         l2 = RouteMapLine(matches=[match_yahoo], actions=[set_c, set_pref400],
                           access=Access.permit, lineno=10)
 
@@ -1366,7 +1354,6 @@ class SMTRouteMapTest(SMTSetup):
         self.assertEquals(s.check(), z3.sat)
 
         model = s.model()
-
 
         self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c1](ann1))))
         self.assertTrue(z3.is_true(model.eval(ctx.communities_fun[c2](ann1))))
@@ -1390,7 +1377,6 @@ class SMTRouteMapTest(SMTSetup):
         route_map = RouteMap(name='rm1', lines=[l1, l2])
         self.assertEquals(r.get_config(model), route_map)
 
-
     def test_stress(self):
         num_communities = 10
         num_anns = 1000
@@ -1398,8 +1384,8 @@ class SMTRouteMapTest(SMTSetup):
         self.anns = {}
         for i in range(num_anns / 2):
             prefix = 'Prefix_%d' % i
-            name1= "Ann_%s_1" % prefix
-            name2= "Ann_%s_2" % prefix
+            name1 = "Ann_%s_1" % prefix
+            name2 = "Ann_%s_2" % prefix
             cs1 = [(self.all_communities[0], 'T')]
             cs1 += [(c, 'F') for c in self.all_communities[1:]]
             cs2 = [(c, 'F') for c in self.all_communities]
@@ -1453,7 +1439,6 @@ class SMTRouteMapTest(SMTSetup):
             else:
                 self.assertEquals(model.eval(ctx.local_pref_fun(ann)).as_long(), 100)
 
-
         new_line = RouteMapLine(
             matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
             actions=[ActionSetLocalPref(200)],
@@ -1471,8 +1456,8 @@ class SMTRouteMapTest(SMTSetup):
         self.anns = {}
         for i in range(num_anns / 2):
             prefix = 'Prefix_%d' % i
-            name1= "Ann_%s_1" % prefix
-            name2= "Ann_%s_2" % prefix
+            name1 = "Ann_%s_1" % prefix
+            name2 = "Ann_%s_2" % prefix
             cs1 = [(self.all_communities[0], 'T')]
             cs1 += [(c, 'F') for c in self.all_communities[1:]]
             cs2 = [(c, 'F') for c in self.all_communities]
@@ -1536,7 +1521,6 @@ class SMTRouteMapTest(SMTSetup):
             else:
                 self.assertEquals(model.eval(ctx1.local_pref_fun(ann)).as_long(), 100)
                 self.assertEquals(model.eval(ctx2.local_pref_fun(ann)).as_long(), 100)
-
 
         new_line1 = RouteMapLine(
             matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
