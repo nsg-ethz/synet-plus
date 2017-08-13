@@ -147,6 +147,15 @@ class SMTSetup(unittest.TestCase):
                 solver.add(self.as_path_fun(ann_var) == path_var)
                 solver.add(self.as_path_len_fun(ann_var) == len(as_path))
 
+    def _load_nexthops_smt(self, solver):
+        for name, ann in self.anns.iteritems():
+            ann = self.anns[name]
+            ann_var = self.ann_map[name]
+            nexthop = ann.NEXT_HOP
+            if nexthop != VALUENOTSET:
+                nexthop_var = self.nexthop_map[nexthop]
+                solver.add(self.nexthop_fun(ann_var) == nexthop_var)
+
     def _load_route_denied(self, solver):
         tmp = z3.Const('deny_tmp', self.ann_sort)
         solver.add(
@@ -1550,7 +1559,7 @@ class SMTRouteMapTest(SMTSetup):
 
             ann1 = Announcement(
                 PREFIX=name1, PEER='N', ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
-                AS_PATH=[1, 2, 5], NEXT_HOP='N', LOCAL_PREF=100,
+                AS_PATH=[1, 2, 5], NEXT_HOP='M', LOCAL_PREF=100,
                 COMMUNITIES=cs1)
             self.anns[name1] = ann1
 
@@ -1567,7 +1576,7 @@ class SMTRouteMapTest(SMTSetup):
         c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
         matches1 = [MatchCommunitiesList(c1_l)]
         actions1 = [ActionSetLocalPref(VALUENOTSET)]
-        matches2 = [MatchCommunitiesList(c1_l)]
+        matches2 = [MatchNextHop('M')]
         actions2 = [ActionSetLocalPref(VALUENOTSET)]
         line1 = RouteMapLine(matches=matches1, actions=actions1, access=VALUENOTSET, lineno=10)
         line2 = RouteMapLine(matches=matches2, actions=actions2, access=VALUENOTSET, lineno=10)
@@ -1582,6 +1591,7 @@ class SMTRouteMapTest(SMTSetup):
             self._load_communities_smt(solver)
             self._load_prefixes_smt(solver)
             self._load_local_prefs(solver)
+            self._load_nexthops_smt(solver)
             return solver
 
         s1 = get_solver()
@@ -1595,8 +1605,11 @@ class SMTRouteMapTest(SMTSetup):
             if name.endswith('_1'):
                 s1.add(ctx1.local_pref_fun(ann) == 200)
                 s1.add(ctx2.local_pref_fun(ann) == 50)
-
+        import time
+        start = time.time()
         self.assertEquals(s1.check(), z3.sat)
+        end = time.time()
+        print "Syn", (end- start)
         model = s1.model()
         for name, ann in self.ann_map.iteritems():
             if name.endswith('_1'):
@@ -1614,7 +1627,7 @@ class SMTRouteMapTest(SMTSetup):
         )
         new_route_map1 = RouteMap(name=route_map1.name, lines=[new_line1])
         new_line2 = RouteMapLine(
-            matches=[MatchCommunitiesList(CommunityList(1, Access.permit, [c1]))],
+            matches=[MatchNextHop('M')],
             actions=[ActionSetLocalPref(50)],
             access=Access.permit,
             lineno=10
