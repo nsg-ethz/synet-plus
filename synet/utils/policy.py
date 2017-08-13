@@ -153,7 +153,7 @@ class SMTContext(object):
         """
         ann = self.get_ann_by_var(ann_var)
         if ann is None:
-            return self.prefix_fun(ann_var)
+            return self.nexthop_fun(ann_var)
         nexthop = ann.NEXT_HOP
         if nexthop != VALUENOTSET:
             return self.nexthop_map[nexthop]
@@ -485,8 +485,7 @@ class SMTIpPrefix(SMTSynMatchVal):
 
 class SMTNextHop(SMTSynMatchVal):
     """
-    Synthesis one IPPrefix
-    TODO: Support longest prefix matching
+    Synthesis one NextHop match
     """
 
     def __init__(self, name, nexthop, context):
