@@ -422,8 +422,9 @@ class OSPFSyn(SynthesisComponent):
                     key = path_key(req.path[0], req.path[-1])
                     if key not in self.counter_examples:
                         self.counter_examples[key] = []
-                    print "ADDING COUNTER example", computed
-                    self.counter_examples[key].append(computed)
+                    for c_path in computed:
+                        print "ADDING COUNTER example", c_path
+                        self.counter_examples[key].append(c_path)
             if not recompute:
                 break
             print "Recomputing ospf costs"
