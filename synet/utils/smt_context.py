@@ -99,7 +99,7 @@ class SMTValueWrapper(object):
         self._setter(self.announcements_var_map[ann_var], value)
         return value
 
-    def get_val(self, ann_var):
+    def get_var(self, ann_var):
         """
         Get the value for the given ann_var
         (applies partial eval whenever possible
@@ -113,8 +113,7 @@ class SMTValueWrapper(object):
 
         if is_symbolic(value):
             if self._model:
-                evaluted = self._model.eval(value)
-                evaluted = self._eval_fun(evaluted)
+                evaluted = self._eval_fun(self._model, value)
                 if str(evaluted) != str(value):
                     self._setter(self.announcements_var_map[ann_var], evaluted)
                 return evaluted
@@ -125,6 +124,14 @@ class SMTValueWrapper(object):
             return self.range_map[value]
         # value is direct
         return value
+
+    def get_value(self, ann_var):
+        """Try the best to get a concerte val"""
+        val = self.get_var(ann_var)
+        if is_symbolic(val) and self._reverse_rang_map:
+            if val in self._reverse_rang_map:
+                return self._reverse_rang_map[val]
+        return val
 
     def add_constraints(self, solver):
         """
@@ -139,7 +146,7 @@ class SMTValueWrapper(object):
             fun = self.fun
             for ann_var in self.ann_var_iter():
                 name = self._get_track_name(ann_var)
-                val = self.get_val(ann_var)
+                val = self.get_var(ann_var)
                 constraint = fun(ann_var) == val
                 self.constraints[name] = constraint
                 solver.assert_and_track(constraint, name)
@@ -162,7 +169,7 @@ class SMTValueWrapper(object):
         if self._range_is_concerete is None:
             self._range_is_concerete = True
             for ann_var in self.ann_var_iter():
-                val = self.get_val(ann_var)
+                val = self.get_var(ann_var)
                 if self.range_map is None:
                     if is_symbolic(val):
                         self._range_is_concerete = False
@@ -207,7 +214,7 @@ class SMTPrefixWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTPrefixWrapper)
 
-        eval_fun = lambda x: x
+        eval_fun = lambda model, val: model.eval(val)
         getter = lambda ann: ann.prefix
 
         def setter(ann, value):
@@ -250,7 +257,7 @@ class SMTOriginWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTOriginWrapper)
 
-        eval_fun = lambda x: x
+        eval_fun = lambda model, val: model.eval(val)
         getter = lambda ann: ann.origin
 
         def setter(ann, value):
@@ -293,7 +300,7 @@ class SMTPeerWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTPeerWrapper)
 
-        eval_fun = lambda x: x
+        eval_fun = lambda model, val: model.eval(val)
         getter = lambda ann: ann.peer
 
         def setter(ann, value):
@@ -336,7 +343,7 @@ class SMTNexthopWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTNexthopWrapper)
 
-        eval_fun = lambda x: x
+        eval_fun = lambda model, val: model.eval(val)
         getter = lambda ann: ann.next_hop
 
         def setter(ann, value):
@@ -379,7 +386,7 @@ class SMTLocalPrefWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTLocalPrefWrapper)
 
-        eval_fun = lambda x: x.as_long()
+        eval_fun = lambda model, val: model.eval(val).as_long()
         getter = lambda ann: ann.local_pref
 
         def setter(ann, value):
@@ -420,7 +427,7 @@ class SMTCommunityWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTCommunityWrapper)
 
-        eval_fun = z3.is_true
+        eval_fun = lambda model, val: z3.is_true(model.eval(val))
         getter = lambda ann: ann.communities[community]
 
         def setter(ann, value):
@@ -463,7 +470,7 @@ class SMTASPathLenWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTASPathLenWrapper)
 
-        eval_fun = lambda x: x.as_long()
+        eval_fun = lambda model, val: model.eval(val).as_long()
         getter = lambda ann: ann.as_path_len
 
         def setter(ann, value):
@@ -504,7 +511,7 @@ class SMTASPathWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTASPathWrapper)
 
-        eval_fun = lambda x: x
+        eval_fun = lambda model, val: model.eval(val)
 
         def getter(ann):
             """Get the path key"""
@@ -553,7 +560,7 @@ class SMTPermittedWrapper(SMTValueWrapper):
         for ctx in prev_ctxs:
             assert isinstance(ctx, SMTPermittedWrapper)
 
-        eval_fun = z3.is_true
+        eval_fun = lambda model, val: z3.is_true(model.eval(val))
         getter = lambda ann: ann.permitted
 
         def setter(ann, value):

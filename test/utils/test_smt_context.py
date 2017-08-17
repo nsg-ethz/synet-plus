@@ -148,8 +148,10 @@ class TestSMTPrefixWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(len(constraints), 0)
-        self.assertEquals(w.get_val(ann1), google)
-        self.assertTrue(is_symbolic(w.get_val(ann2)))
+        self.assertEquals(w.get_var(ann1), google)
+        self.assertEquals(w.get_value(ann1), 'Google')
+        self.assertTrue(is_symbolic(w.get_var(ann2)))
+        self.assertTrue(is_symbolic(w.get_value(ann2)))
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -164,15 +166,17 @@ class TestSMTPrefixWrapper(SMTSetup):
         # Assumptions
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
-        solver.add(z3.ForAll([tmp], w.get_val(tmp) == google))
+        solver.add(z3.ForAll([tmp], w.get_var(tmp) == google))
         constraints = w.add_constraints(solver)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), google)
-        self.assertEquals(w.get_val(ann2), google)
+        self.assertEquals(w.get_var(ann1), google)
+        self.assertEquals(w.get_value(ann1), 'Google')
+        self.assertEquals(w.get_var(ann2), google)
+        self.assertEquals(w.get_value(ann2), 'Google')
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -194,8 +198,10 @@ class TestSMTPrefixWrapper(SMTSetup):
         w.set_model(model)
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), google)
-        self.assertEquals(w.get_val(ann2), google)
+        self.assertEquals(w.get_var(ann1), google)
+        self.assertEquals(w.get_value(ann1), 'Google')
+        self.assertEquals(w.get_var(ann2), google)
+        self.assertEquals(w.get_value(ann2), 'Google')
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -225,18 +231,18 @@ class TestSMTPrefixWrapper(SMTSetup):
         solver = self.get_solver()
         tmp1 = z3.Const('test_tmp1', self.ann_sort)
         tmp2 = z3.Const('test_tmp2', self.ann_sort)
-        solver.add(z3.ForAll([tmp1], w1.get_val(tmp1) == google))
-        solver.add(z3.ForAll([tmp2], w2.get_val(tmp1) == yahoo))
+        solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == google))
+        solver.add(z3.ForAll([tmp2], w2.get_var(tmp1) == yahoo))
         w2.add_constraints(solver)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
         model = solver.model()
         w2.set_model(model)
-        self.assertEquals(w1.get_val(ann1), google)
-        self.assertEquals(w1.get_val(ann2), google)
-        self.assertEquals(w2.get_val(ann1), yahoo)
-        self.assertEquals(w2.get_val(ann2), yahoo)
+        self.assertEquals(w1.get_var(ann1), google)
+        self.assertEquals(w1.get_var(ann2), google)
+        self.assertEquals(w2.get_var(ann1), yahoo)
+        self.assertEquals(w2.get_var(ann2), yahoo)
 
 
 class TestSMTPeerWrapper(SMTSetup):
@@ -278,8 +284,8 @@ class TestSMTPeerWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(len(constraints), 0)
-        self.assertEquals(w.get_val(ann1), swisscom)
-        self.assertTrue(is_symbolic(w.get_val(ann2)))
+        self.assertEquals(w.get_var(ann1), swisscom)
+        self.assertTrue(is_symbolic(w.get_var(ann2)))
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -296,15 +302,15 @@ class TestSMTPeerWrapper(SMTSetup):
         # Assumptions
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
-        solver.add(z3.ForAll([tmp], w.get_val(tmp) == swisscom))
+        solver.add(z3.ForAll([tmp], w.get_var(tmp) == swisscom))
         constraints = w.add_constraints(solver)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), swisscom)
-        self.assertEquals(w.get_val(ann2), swisscom)
+        self.assertEquals(w.get_var(ann1), swisscom)
+        self.assertEquals(w.get_var(ann2), swisscom)
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -328,8 +334,8 @@ class TestSMTPeerWrapper(SMTSetup):
         w.set_model(model)
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), swisscom)
-        self.assertEquals(w.get_val(ann2), swisscom)
+        self.assertEquals(w.get_var(ann1), swisscom)
+        self.assertEquals(w.get_var(ann2), swisscom)
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -359,17 +365,17 @@ class TestSMTPeerWrapper(SMTSetup):
         tmp1 = z3.Const('test_tmp', self.ann_sort)
         tmp2 = z3.Const('test_tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.fun(tmp1) == swisscom))
-        solver.add(z3.ForAll([tmp1], w2.get_val(tmp2) == dt))
+        solver.add(z3.ForAll([tmp1], w2.get_var(tmp2) == dt))
         w2.add_constraints(solver)
         # Assertions
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
         model = solver.model()
         w2.set_model(model)
-        self.assertEquals(w1.get_val(ann1), swisscom)
-        self.assertEquals(w1.get_val(ann2), swisscom)
-        self.assertEquals(w2.get_val(ann1), dt)
-        self.assertEquals(w2.get_val(ann2), dt)
+        self.assertEquals(w1.get_var(ann1), swisscom)
+        self.assertEquals(w1.get_var(ann2), swisscom)
+        self.assertEquals(w2.get_var(ann1), dt)
+        self.assertEquals(w2.get_var(ann2), dt)
 
 
 class TestSMTOriginWrapper(SMTSetup):
@@ -427,10 +433,10 @@ class TestSMTOriginWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(len(constraints), 0)
-        self.assertEquals(w.get_val(ann1), ebgp)
-        self.assertEquals(w.get_val(ann2), igp)
-        self.assertEquals(w.get_val(ann3), incomplete)
-        self.assertTrue(is_symbolic(w.get_val(ann4)))
+        self.assertEquals(w.get_var(ann1), ebgp)
+        self.assertEquals(w.get_var(ann2), igp)
+        self.assertEquals(w.get_var(ann3), incomplete)
+        self.assertTrue(is_symbolic(w.get_var(ann4)))
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -452,7 +458,7 @@ class TestSMTOriginWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(tmp == ann4)
-        solver.add(w.get_val(tmp) == ebgp)
+        solver.add(w.get_var(tmp) == ebgp)
         constraints = w.add_constraints(solver)
         ret = solver.check()
         model = solver.model()
@@ -460,10 +466,10 @@ class TestSMTOriginWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), ebgp)
-        self.assertEquals(w.get_val(ann2), igp)
-        self.assertEquals(w.get_val(ann3), incomplete)
-        self.assertEquals(w.get_val(ann4), ebgp)
+        self.assertEquals(w.get_var(ann1), ebgp)
+        self.assertEquals(w.get_var(ann2), igp)
+        self.assertEquals(w.get_var(ann3), incomplete)
+        self.assertEquals(w.get_var(ann4), ebgp)
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -493,10 +499,10 @@ class TestSMTOriginWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), ebgp)
-        self.assertEquals(w.get_val(ann2), igp)
-        self.assertEquals(w.get_val(ann3), incomplete)
-        self.assertEquals(w.get_val(ann4), ebgp)
+        self.assertEquals(w.get_var(ann1), ebgp)
+        self.assertEquals(w.get_var(ann2), igp)
+        self.assertEquals(w.get_var(ann3), incomplete)
+        self.assertEquals(w.get_var(ann4), ebgp)
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -528,9 +534,9 @@ class TestSMTOriginWrapper(SMTSetup):
         solver = self.get_solver()
         tmp1 = z3.Const('test_tmp', self.ann_sort)
         solver.add(tmp1 == ann4)
-        solver.add(w1.get_val(tmp1) == ebgp)
-        solver.add(w2.get_val(ann1) == ebgp)
-        solver.add(w2.get_val(ann2) == ebgp)
+        solver.add(w1.get_var(tmp1) == ebgp)
+        solver.add(w2.get_var(ann1) == ebgp)
+        solver.add(w2.get_var(ann2) == ebgp)
         w2.add_constraints(solver)
         ret = solver.check()
         model = solver.model()
@@ -538,11 +544,11 @@ class TestSMTOriginWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w1.get_val(ann1), ebgp)
-        self.assertEquals(w1.get_val(ann2), igp)
-        self.assertEquals(w1.get_val(ann3), incomplete)
-        self.assertEquals(w1.get_val(ann4), ebgp)
-        self.assertEquals(w2.get_val(ann1), ebgp)
+        self.assertEquals(w1.get_var(ann1), ebgp)
+        self.assertEquals(w1.get_var(ann2), igp)
+        self.assertEquals(w1.get_var(ann3), incomplete)
+        self.assertEquals(w1.get_var(ann4), ebgp)
+        self.assertEquals(w2.get_var(ann1), ebgp)
 
 
 class TestSMTNexthopWrapper(SMTSetup):
@@ -580,7 +586,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), swisscom)
+        self.assertEquals(w.get_var(ann1), swisscom)
         self.assertEquals(len(constraints), 0)
 
     def test_symbolic(self):
@@ -598,8 +604,8 @@ class TestSMTNexthopWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), swisscom)
-        self.assertTrue(is_symbolic(w.get_val(ann2)))
+        self.assertEquals(w.get_var(ann1), swisscom)
+        self.assertTrue(is_symbolic(w.get_var(ann2)))
         self.assertEquals(len(constraints), 0)
         w.set_model(solver.model())
         #self.assertEquals(w.get_val(ann2), swisscom)
@@ -622,8 +628,8 @@ class TestSMTNexthopWrapper(SMTSetup):
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(str(w.get_val(ann1)), str(swisscom))
-        self.assertTrue(is_symbolic(w.get_val(ann2)))
+        self.assertEquals(str(w.get_var(ann1)), str(swisscom))
+        self.assertTrue(is_symbolic(w.get_var(ann2)))
         self.assertEquals(len(constraints), 2)
 
     def test_concrete_stress(self):
@@ -656,7 +662,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         self.assertEquals(constraints, {})
         for ann_name, ann_var in self.ann_map.iteritems():
             ann = self.anns[ann_name]
-            self.assertEquals(w.get_val(ann_var), self.nexthop_map[ann.next_hop])
+            self.assertEquals(w.get_var(ann_var), self.nexthop_map[ann.next_hop])
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
 
@@ -693,7 +699,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         for ann_name, ann_var in self.ann_map.iteritems():
             ann = self.anns[ann_name]
             nxthop = self.nexthop_map[nexthop_map[ann.prefix]]
-            solver.add(w.get_val(ann_var) == nxthop)
+            solver.add(w.get_var(ann_var) == nxthop)
         constraints = w.add_constraints(solver)
         ret = solver.check()
         # Assertions
@@ -704,7 +710,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         for ann_name, ann_var in self.ann_map.iteritems():
             ann = self.anns[ann_name]
             nxthop = self.nexthop_map[nexthop_map[ann.prefix]]
-            self.assertEquals(w.get_val(ann_var), nxthop)
+            self.assertEquals(w.get_var(ann_var), nxthop)
             self.assertEquals(self.ann_var_map[ann_var].next_hop, nxthop)
 
     def test_symbolic_fun_stress(self):
@@ -751,7 +757,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = self.anns[ann_name]
             nxthop = self.nexthop_map[nexthop_map[ann.prefix]]
             self.assertEquals(model.eval(w.fun(ann_var)), nxthop)
-            self.assertEquals(w.get_val(ann_var), nxthop)
+            self.assertEquals(w.get_var(ann_var), nxthop)
             self.assertEquals(self.ann_var_map[ann_var].next_hop, nxthop)
 
     def test_new_ctx(self):
@@ -782,17 +788,17 @@ class TestSMTNexthopWrapper(SMTSetup):
         tmp1 = z3.Const('test_tmp', self.ann_sort)
         tmp2 = z3.Const('test_tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.fun(tmp1) == swisscom))
-        solver.add(z3.ForAll([tmp1], w2.get_val(tmp2) == dt))
+        solver.add(z3.ForAll([tmp1], w2.get_var(tmp2) == dt))
         w2.add_constraints(solver)
         # Assertions
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
         model = solver.model()
         w2.set_model(model)
-        self.assertEquals(w1.get_val(ann1), swisscom)
-        self.assertEquals(w1.get_val(ann2), swisscom)
-        self.assertEquals(w2.get_val(ann1), dt)
-        self.assertEquals(w2.get_val(ann2), dt)
+        self.assertEquals(w1.get_var(ann1), swisscom)
+        self.assertEquals(w1.get_var(ann2), swisscom)
+        self.assertEquals(w2.get_var(ann1), dt)
+        self.assertEquals(w2.get_var(ann2), dt)
 
     def test_union_stress(self):
         num_communities = 1
@@ -846,11 +852,11 @@ class TestSMTNexthopWrapper(SMTSetup):
         u.set_model(model)
         for ann_name, ann_var in self.ann_map.iteritems():
             ann = self.anns[ann_name]
-            self.assertEquals(w1.get_val(ann_var), self.nexthop_map[ann.next_hop])
+            self.assertEquals(w1.get_var(ann_var), self.nexthop_map[ann.next_hop])
         for ann_var in w2.announcements_var_map:
-            self.assertEquals(u.get_val(ann_var), nxt1)
+            self.assertEquals(u.get_var(ann_var), nxt1)
         for ann_var in w3.announcements_var_map:
-            self.assertEquals(u.get_val(ann_var), nxt2)
+            self.assertEquals(u.get_var(ann_var), nxt2)
 
 
 class TestSMTLocalPrefWrapper(SMTSetup):
@@ -886,7 +892,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEqual(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), 100)
+        self.assertEquals(w.get_var(ann1), 100)
         self.assertEquals(constraints, {})
 
     def test_symbolic(self):
@@ -900,14 +906,14 @@ class TestSMTLocalPrefWrapper(SMTSetup):
 
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
-        solver.add(z3.ForAll([tmp], w.get_val(tmp) == 100))
+        solver.add(z3.ForAll([tmp], w.get_var(tmp) == 100))
         constraints = w.add_constraints(solver)
         ret = solver.check()
         w.set_model(solver.model())
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), 100)
-        self.assertEquals(w.get_val(ann2), 100)
+        self.assertEquals(w.get_var(ann1), 100)
+        self.assertEquals(w.get_var(ann2), 100)
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -926,8 +932,8 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(w.get_val(ann1), 100)
-        self.assertEquals(w.get_val(ann2), 100)
+        self.assertEquals(w.get_var(ann1), 100)
+        self.assertEquals(w.get_var(ann2), 100)
         self.assertEquals(len(constraints), 2)
 
     def test_new_ctx(self):
@@ -953,17 +959,17 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         solver = self.get_solver()
         tmp1 = z3.Const('tmp1', self.ann_sort)
         tmp2 = z3.Const('tmp2', self.ann_sort)
-        solver.add(z3.ForAll([tmp1], w1.get_val(tmp1) == 100))
-        solver.add(z3.ForAll([tmp2], w2.get_val(tmp2) == 200))
+        solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == 100))
+        solver.add(z3.ForAll([tmp2], w2.get_var(tmp2) == 200))
         w2.add_constraints(solver)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
         w2.set_model(solver.model())
-        self.assertEquals(w1.get_val(ann1), 100)
-        self.assertEquals(w1.get_val(ann2), 100)
-        self.assertEquals(w2.get_val(ann1), 200)
-        self.assertEquals(w2.get_val(ann2), 200)
+        self.assertEquals(w1.get_var(ann1), 100)
+        self.assertEquals(w1.get_var(ann2), 100)
+        self.assertEquals(w2.get_var(ann1), 200)
+        self.assertEquals(w2.get_var(ann2), 200)
 
 
 class TestSMTCommunityWrapper(SMTSetup):
@@ -1017,12 +1023,12 @@ class TestSMTCommunityWrapper(SMTSetup):
         self.assertEquals(len(constraints1), 0)
         self.assertEquals(len(constraints2), 0)
         self.assertEquals(len(constraints3), 0)
-        self.assertTrue(wc1.get_val(ann1))
-        self.assertFalse(wc2.get_val(ann1))
-        self.assertTrue(wc3.get_val(ann1))
-        self.assertTrue(is_symbolic(wc1.get_val(ann2)))
-        self.assertFalse(wc2.get_val(ann2))
-        self.assertFalse(wc3.get_val(ann2))
+        self.assertTrue(wc1.get_var(ann1))
+        self.assertFalse(wc2.get_var(ann1))
+        self.assertTrue(wc3.get_var(ann1))
+        self.assertTrue(is_symbolic(wc1.get_var(ann2)))
+        self.assertFalse(wc2.get_var(ann2))
+        self.assertFalse(wc3.get_var(ann2))
 
     def test_symbolic(self):
         c1 = self.all_communities[0]
@@ -1040,7 +1046,7 @@ class TestSMTCommunityWrapper(SMTSetup):
         # Assumptions
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
-        solver.add(z3.ForAll([tmp], wc1.get_val(tmp) == True))
+        solver.add(z3.ForAll([tmp], wc1.get_var(tmp) == True))
         constraints1 = wc1.add_constraints(solver)
         constraints2 = wc2.add_constraints(solver)
         constraints3 = wc3.add_constraints(solver)
@@ -1051,12 +1057,12 @@ class TestSMTCommunityWrapper(SMTSetup):
         wc3.set_model(model)
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertTrue(wc1.get_val(ann1))
-        self.assertFalse(wc2.get_val(ann1))
-        self.assertTrue(wc3.get_val(ann1))
-        self.assertTrue(wc1.get_val(ann2))
-        self.assertFalse(wc2.get_val(ann2))
-        self.assertFalse(wc3.get_val(ann2))
+        self.assertTrue(wc1.get_var(ann1))
+        self.assertFalse(wc2.get_var(ann1))
+        self.assertTrue(wc3.get_var(ann1))
+        self.assertTrue(wc1.get_var(ann2))
+        self.assertFalse(wc2.get_var(ann2))
+        self.assertFalse(wc3.get_var(ann2))
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1076,8 +1082,8 @@ class TestSMTCommunityWrapper(SMTSetup):
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(w.get_val(ann1), 100)
-        self.assertEquals(w.get_val(ann2), 100)
+        self.assertEquals(w.get_var(ann1), 100)
+        self.assertEquals(w.get_var(ann2), 100)
         self.assertEquals(len(constraints), 2)
 
     def test_new_ctx(self):
@@ -1124,10 +1130,10 @@ class TestSMTCommunityWrapper(SMTSetup):
         tmp2 = z3.Const('tmp2', self.ann_sort)
         tmp3 = z3.Const('tmp3', self.ann_sort)
         tmp4 = z3.Const('tmp4', self.ann_sort)
-        solver.add(z3.ForAll([tmp1], wc1.get_val(tmp1) == True))
-        solver.add(z3.ForAll([tmp2], w11.get_val(tmp2) == True))
-        solver.add(z3.ForAll([tmp3], w12.get_val(tmp3) == False))
-        solver.add(z3.ForAll([tmp4], w13.get_val(tmp4) == False))
+        solver.add(z3.ForAll([tmp1], wc1.get_var(tmp1) == True))
+        solver.add(z3.ForAll([tmp2], w11.get_var(tmp2) == True))
+        solver.add(z3.ForAll([tmp3], w12.get_var(tmp3) == False))
+        solver.add(z3.ForAll([tmp4], w13.get_var(tmp4) == False))
         wc1.add_constraints(solver)
         wc2.add_constraints(solver)
         wc3.add_constraints(solver)
@@ -1145,18 +1151,18 @@ class TestSMTCommunityWrapper(SMTSetup):
         w11.set_model(model)
         w12.set_model(model)
         w13.set_model(model)
-        self.assertTrue(wc1.get_val(ann1))
-        self.assertFalse(wc2.get_val(ann1))
-        self.assertTrue(wc3.get_val(ann1))
-        self.assertTrue(wc1.get_val(ann2))
-        self.assertFalse(wc2.get_val(ann2))
-        self.assertFalse(wc3.get_val(ann2))
-        self.assertTrue(w11.get_val(ann1))
-        self.assertTrue(w11.get_val(ann2))
-        self.assertFalse(w12.get_val(ann1))
-        self.assertFalse(w12.get_val(ann2))
-        self.assertFalse(w13.get_val(ann1))
-        self.assertFalse(w13.get_val(ann2))
+        self.assertTrue(wc1.get_var(ann1))
+        self.assertFalse(wc2.get_var(ann1))
+        self.assertTrue(wc3.get_var(ann1))
+        self.assertTrue(wc1.get_var(ann2))
+        self.assertFalse(wc2.get_var(ann2))
+        self.assertFalse(wc3.get_var(ann2))
+        self.assertTrue(w11.get_var(ann1))
+        self.assertTrue(w11.get_var(ann2))
+        self.assertFalse(w12.get_var(ann1))
+        self.assertFalse(w12.get_var(ann2))
+        self.assertFalse(w13.get_var(ann1))
+        self.assertFalse(w13.get_var(ann2))
 
 
 class TestSMTASPathWrapper(SMTSetup):
@@ -1193,7 +1199,7 @@ class TestSMTASPathWrapper(SMTSetup):
         solver = self.get_solver()
         ret = solver.check()
         self.assertEqual(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), p1)
+        self.assertEquals(w.get_var(ann1), p1)
         self.assertEquals(w.add_constraints(solver), {})
 
     def test_symbolic(self):
@@ -1218,8 +1224,8 @@ class TestSMTASPathWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), p1)
-        self.assertTrue(is_symbolic(w.get_val(ann2)))
+        self.assertEquals(w.get_var(ann1), p1)
+        self.assertTrue(is_symbolic(w.get_var(ann2)))
         self.assertEquals(len(constraints), 0)
 
     def test_symbolic_fun(self):
@@ -1246,12 +1252,12 @@ class TestSMTASPathWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), p1)
-        self.assertTrue(is_symbolic(w.get_val(ann2)))
+        self.assertEquals(w.get_var(ann1), p1)
+        self.assertTrue(is_symbolic(w.get_var(ann2)))
         self.assertEquals(len(constraints), 2)
         model = solver.model()
         w.set_model(model)
-        self.assertEquals(w.get_val(ann2), p1)
+        self.assertEquals(w.get_var(ann2), p1)
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1288,12 +1294,12 @@ class TestSMTASPathWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
-        self.assertEquals(w1.get_val(ann1), p1)
-        self.assertTrue(is_symbolic(w1.get_val(ann2)))
+        self.assertEquals(w1.get_var(ann1), p1)
+        self.assertTrue(is_symbolic(w1.get_var(ann2)))
         self.assertEquals(len(constraints), 4)
         model = solver.model()
         w2.set_model(model)
-        self.assertEquals(w1.get_val(ann2), p1)
+        self.assertEquals(w1.get_var(ann2), p1)
 
 
 class TestSMTASPathLenWrapper(SMTSetup):
@@ -1329,7 +1335,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEqual(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), 5)
+        self.assertEquals(w.get_var(ann1), 5)
         self.assertEquals(constraints, {})
 
     def test_symbolic(self):
@@ -1343,15 +1349,15 @@ class TestSMTASPathLenWrapper(SMTSetup):
         # Assumptions
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
-        solver.add(z3.ForAll([tmp], w.get_val(tmp) == 5))
+        solver.add(z3.ForAll([tmp], w.get_var(tmp) == 5))
         constraints = w.add_constraints(solver)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
         w.set_model(solver.model())
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(w.get_val(ann1), 5)
-        self.assertEquals(w.get_val(ann2), 5)
+        self.assertEquals(w.get_var(ann1), 5)
+        self.assertEquals(w.get_var(ann2), 5)
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1371,8 +1377,8 @@ class TestSMTASPathLenWrapper(SMTSetup):
         model = solver.model()
         w.set_model(model)
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(w.get_val(ann1), 5)
-        self.assertEquals(w.get_val(ann2), 5)
+        self.assertEquals(w.get_var(ann1), 5)
+        self.assertEquals(w.get_var(ann2), 5)
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1397,17 +1403,17 @@ class TestSMTASPathLenWrapper(SMTSetup):
         solver = self.get_solver()
         tmp1 = z3.Const('tmp1', self.ann_sort)
         tmp2 = z3.Const('tmp2', self.ann_sort)
-        solver.add(z3.ForAll([tmp1], w1.get_val(tmp1) == 5))
-        solver.add(z3.ForAll([tmp2], w2.get_val(tmp2) == 10))
+        solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == 5))
+        solver.add(z3.ForAll([tmp2], w2.get_var(tmp2) == 10))
         w2.add_constraints(solver)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
         w2.set_model(solver.model())
-        self.assertEquals(w1.get_val(ann1), 5)
-        self.assertEquals(w1.get_val(ann2), 5)
-        self.assertEquals(w2.get_val(ann1), 10)
-        self.assertEquals(w2.get_val(ann2), 10)
+        self.assertEquals(w1.get_var(ann1), 5)
+        self.assertEquals(w1.get_var(ann2), 5)
+        self.assertEquals(w2.get_var(ann1), 10)
+        self.assertEquals(w2.get_var(ann2), 10)
 
 
 class TestSMTPermittedWrapper(SMTSetup):
@@ -1443,7 +1449,7 @@ class TestSMTPermittedWrapper(SMTSetup):
         ret = solver.check()
         # Assertions
         self.assertEqual(ret, z3.sat)
-        self.assertEquals(w.get_val(ann1), True)
+        self.assertEquals(w.get_var(ann1), True)
         self.assertEquals(constraints, {})
 
     def test_symbolic(self):
@@ -1457,15 +1463,15 @@ class TestSMTPermittedWrapper(SMTSetup):
         # Assumptions
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
-        solver.add(z3.ForAll([tmp], w.get_val(tmp) == True))
+        solver.add(z3.ForAll([tmp], w.get_var(tmp) == True))
         constraints = w.add_constraints(solver)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
         w.set_model(solver.model())
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(w.get_val(ann1), True)
-        self.assertEquals(w.get_val(ann2), True)
+        self.assertEquals(w.get_var(ann1), True)
+        self.assertEquals(w.get_var(ann2), True)
 
     def test_symbolic_fun(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1485,8 +1491,8 @@ class TestSMTPermittedWrapper(SMTSetup):
         model = solver.model()
         w.set_model(model)
         self.assertTrue(len(constraints) > 0)
-        self.assertEquals(w.get_val(ann1), True)
-        self.assertEquals(w.get_val(ann2), True)
+        self.assertEquals(w.get_var(ann1), True)
+        self.assertEquals(w.get_var(ann2), True)
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1511,17 +1517,17 @@ class TestSMTPermittedWrapper(SMTSetup):
         solver = self.get_solver()
         tmp1 = z3.Const('tmp1', self.ann_sort)
         tmp2 = z3.Const('tmp2', self.ann_sort)
-        solver.add(z3.ForAll([tmp1], w1.get_val(tmp1) == True))
-        solver.add(z3.ForAll([tmp2], w2.get_val(tmp2) == False))
+        solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == True))
+        solver.add(z3.ForAll([tmp2], w2.get_var(tmp2) == False))
         w2.add_constraints(solver)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
         w2.set_model(solver.model())
-        self.assertEquals(w1.get_val(ann1), True)
-        self.assertEquals(w1.get_val(ann2), True)
-        self.assertEquals(w2.get_val(ann1), False)
-        self.assertEquals(w2.get_val(ann2), False)
+        self.assertEquals(w1.get_var(ann1), True)
+        self.assertEquals(w1.get_var(ann2), True)
+        self.assertEquals(w2.get_var(ann1), False)
+        self.assertEquals(w2.get_var(ann2), False)
 
 
 class TestSMTContext(SMTSetup):
@@ -1611,12 +1617,12 @@ class TestSMTContext(SMTSetup):
         model = solver.model()
         ctx.set_model(model)
         self.assertFalse(len(constraints1))
-        self.assertTrue(wc1.get_val(ann1))
-        self.assertFalse(wc2.get_val(ann1))
-        self.assertTrue(wc3.get_val(ann1))
-        self.assertTrue(wc1.get_val(ann2))
-        self.assertFalse(wc2.get_val(ann2))
-        self.assertFalse(wc3.get_val(ann2))
+        self.assertTrue(wc1.get_var(ann1))
+        self.assertFalse(wc2.get_var(ann1))
+        self.assertTrue(wc3.get_var(ann1))
+        self.assertTrue(wc1.get_var(ann2))
+        self.assertFalse(wc2.get_var(ann2))
+        self.assertFalse(wc3.get_var(ann2))
 
     def test_get_new_context(self):
         c1 = self.all_communities[0]
@@ -1696,9 +1702,9 @@ class TestSMTContext(SMTSetup):
         model = solver.model()
         ctx.set_model(model)
         self.assertTrue(len(constraints1))
-        self.assertTrue(wc1.get_val(ann1))
-        self.assertFalse(wc2.get_val(ann1))
-        self.assertTrue(wc3.get_val(ann1))
-        self.assertTrue(wc1.get_val(ann2))
-        self.assertFalse(wc2.get_val(ann2))
-        self.assertFalse(wc3.get_val(ann2))
+        self.assertTrue(wc1.get_var(ann1))
+        self.assertFalse(wc2.get_var(ann1))
+        self.assertTrue(wc3.get_var(ann1))
+        self.assertTrue(wc1.get_var(ann2))
+        self.assertFalse(wc2.get_var(ann2))
+        self.assertFalse(wc3.get_var(ann2))
