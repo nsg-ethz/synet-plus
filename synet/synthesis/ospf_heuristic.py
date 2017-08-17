@@ -330,14 +330,13 @@ class OSPFSyn(SynthesisComponent):
 
     def get_output_configs(self):
         m = self.solver.model()
-        outputs = []
         check = lambda x: z3.is_true(m.eval(x))
+        outputs = []
         for src, src_v in self.name_to_vertex.iteritems():
             for dst, dst_v in self.name_to_vertex.iteritems():
-                if not check(self.edge(src_v, dst_v)):
-                    continue
-                cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
-                outputs.append(SetOSPFEdgeCost(src, dst, cost))
+                if check(self.edge(src_v, dst_v)):
+                    cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
+                    outputs.append(SetOSPFEdgeCost(src, dst, cost))
         return outputs
 
     def _get_edge_cost(self, src, dst):
@@ -413,8 +412,8 @@ class OSPFSyn(SynthesisComponent):
             # Using dijkstra algorithm
             for req in self.reqs:
                 g_ospf = self.get_output_network_graph()
-                computed = nx.shortest_path(g_ospf, req.path[0], req.path[-1], 'cost')
-                if computed != req.path:
+                computed = list(nx.all_shortest_paths(g_ospf, req.path[0], req.path[-1], 'cost'))
+                if len(computed) > 1 or computed[0] != req.path:
                     print "#" * 20
                     print "Required shortest path", req.path
                     print "Computed shortest path", computed
