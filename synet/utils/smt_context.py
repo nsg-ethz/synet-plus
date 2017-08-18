@@ -125,13 +125,16 @@ class SMTValueWrapper(object):
         # value is direct
         return value
 
+    def get_value_of_var(self, var):
+        if is_symbolic(var) and self._reverse_rang_map:
+            if var in self._reverse_rang_map:
+                return self._reverse_rang_map[var]
+        return var
+
     def get_value(self, ann_var):
         """Try the best to get a concerte val"""
-        val = self.get_var(ann_var)
-        if is_symbolic(val) and self._reverse_rang_map:
-            if val in self._reverse_rang_map:
-                return self._reverse_rang_map[val]
-        return val
+        var = self.get_var(ann_var)
+        return self.get_value_of_var(var)
 
     def add_constraints(self, solver):
         """
@@ -337,7 +340,7 @@ class SMTNexthopWrapper(SMTValueWrapper):
     """Nexthop value in Announcement"""
 
     def __init__(self, name, announcement_sort, announcements_var_map,
-                 nexthop_fun, nexthop_sort, nexthop_map, prev_ctxs=None):
+                 next_hop_fun, next_hop_sort, next_hop_map, prev_ctxs=None):
         if prev_ctxs is None:
             prev_ctxs = []
         for ctx in prev_ctxs:
@@ -352,7 +355,7 @@ class SMTNexthopWrapper(SMTValueWrapper):
 
         super(SMTNexthopWrapper, self).__init__(
             name, 'next_hop', announcement_sort, announcements_var_map,
-            nexthop_fun, nexthop_sort, nexthop_map, eval_fun=eval_fun,
+            next_hop_fun, next_hop_sort, next_hop_map, eval_fun=eval_fun,
             getter=getter, setter=setter, prev_ctxs=prev_ctxs)
 
     def get_new_context(self, name, ann_vars, new_fun, transformer):
@@ -362,8 +365,8 @@ class SMTNexthopWrapper(SMTValueWrapper):
         obj = SMTNexthopWrapper(
             name=name, announcement_sort=self.announcement_sort,
             announcements_var_map=new_map,
-            nexthop_fun=new_fun, nexthop_sort=self.fun_range_sort,
-            nexthop_map=self.range_map, prev_ctxs=[self])
+            next_hop_fun=new_fun, next_hop_sort=self.fun_range_sort,
+            next_hop_map=self.range_map, prev_ctxs=[self])
         return obj
 
     @staticmethod
@@ -597,7 +600,7 @@ class SMTContext(object):
     """
     def __init__(self, name, announcements, announcements_map, announcement_sort,
                  prefix_ctx, peer_ctx, origin_ctx, as_path_ctx, as_path_len_ctx,
-                 nexthop_ctx, local_pref_ctx, communities_ctx, permitted_ctx,
+                 next_hop_ctx, local_pref_ctx, communities_ctx, permitted_ctx,
                  prev_ctxs=None):
         if prev_ctxs is None:
             prev_ctxs = []
@@ -610,13 +613,13 @@ class SMTContext(object):
         self.origin_ctx = origin_ctx
         self.as_path_ctx = as_path_ctx
         self.as_path_len_ctx = as_path_len_ctx
-        self.nexthop_ctx = nexthop_ctx
+        self.next_hop_ctx = next_hop_ctx
         self.local_pref_ctx = local_pref_ctx
         self.communities_ctx = communities_ctx
         self.permitted_ctx = permitted_ctx
         self.prev_ctxs = []
         self.ctx_names = ['prefix_ctx', 'peer_ctx', 'origin_ctx',
-                          'as_path_ctx', 'as_path_len_ctx', 'nexthop_ctx',
+                          'as_path_ctx', 'as_path_len_ctx', 'next_hop_ctx',
                           'local_pref_ctx', 'communities_ctx', 'permitted_ctx']
         self.constraints = {}
 
@@ -661,7 +664,7 @@ class SMTContext(object):
     def get_new_context(self, name, announcements=None, announcements_map=None,
                         announcement_sort=None, prefix_ctx=None, peer_ctx=None,
                         origin_ctx=None, as_path_ctx=None, as_path_len_ctx=None,
-                        nexthop_ctx=None, local_pref_ctx=None,
+                        next_hop_ctx=None, local_pref_ctx=None,
                         communities_ctx=None, permitted_ctx=None,
                         prev_ctxs=None):
         """Helper to create new context with ability to override one or more vars """
@@ -673,7 +676,7 @@ class SMTContext(object):
         origin_ctx = origin_ctx or self.origin_ctx
         as_path_ctx = as_path_ctx or self.as_path_len_ctx
         as_path_len_ctx = as_path_len_ctx or self.as_path_len_ctx
-        nexthop_ctx = nexthop_ctx or self.nexthop_ctx
+        next_hop_ctx = next_hop_ctx or self.next_hop_ctx
         local_pref_ctx = local_pref_ctx or self.local_pref_ctx
         communities_ctx = communities_ctx or self.communities_ctx
         permitted_ctx = permitted_ctx or self.permitted_ctx
@@ -691,7 +694,7 @@ class SMTContext(object):
             origin_ctx=origin_ctx,
             as_path_ctx=as_path_ctx,
             as_path_len_ctx=as_path_len_ctx,
-            nexthop_ctx=nexthop_ctx,
+            next_hop_ctx=next_hop_ctx,
             local_pref_ctx=local_pref_ctx,
             communities_ctx=communities_ctx,
             permitted_ctx=permitted_ctx,
