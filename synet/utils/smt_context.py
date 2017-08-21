@@ -620,7 +620,7 @@ class SMTContext(object):
         self.local_pref_ctx = local_pref_ctx
         self.communities_ctx = communities_ctx
         self.permitted_ctx = permitted_ctx
-        self.prev_ctxs = []
+        self.prev_ctxs = prev_ctxs
         self.ctx_names = ['prefix_ctx', 'peer_ctx', 'origin_ctx',
                           'as_path_ctx', 'as_path_len_ctx', 'next_hop_ctx',
                           'local_pref_ctx', 'communities_ctx', 'permitted_ctx']
