@@ -161,7 +161,10 @@ class SMTValueWrapper(object):
         assert set(ann_vars).issubset(set(self.announcements_var_map.keys()))
         for ann_var in ann_vars:
             ann = self.announcements_var_map[ann_var]
-            new_ann_var_map[ann_var] = transformer(ann)
+            if transformer is not None:
+                new_ann_var_map[ann_var] = transformer(ann)
+            else:
+                new_ann_var_map[ann_var] = ann
         return new_ann_var_map
 
     def get_new_context(self, name, ann_vars, new_fun, transformer):
