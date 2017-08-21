@@ -162,7 +162,7 @@ class SMTValueWrapper(object):
         for ann_var in ann_vars:
             ann = self.announcements_var_map[ann_var]
             if transformer is not None:
-                new_ann_var_map[ann_var] = transformer(ann)
+                new_ann_var_map[ann_var] = transformer(ann_var, ann)
             else:
                 new_ann_var_map[ann_var] = ann
         return new_ann_var_map

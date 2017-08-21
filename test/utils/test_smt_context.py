@@ -212,7 +212,7 @@ class TestSMTPrefixWrapper(SMTSetup):
 
         new_fun = z3.Function('NewFunc', self.ann_sort, self.prefix_sort)
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.prefix = yahoo
             return new_ann
@@ -346,7 +346,7 @@ class TestSMTPeerWrapper(SMTSetup):
 
         new_fun = z3.Function('NewFunc', self.ann_sort, self.peer_sort)
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.peer = dt
             return new_ann
@@ -515,7 +515,7 @@ class TestSMTOriginWrapper(SMTSetup):
 
         new_fun = z3.Function('NewFun', self.ann_sort, self.origin_sort)
 
-        def transorm(ann):
+        def transorm(ann_var, ann):
             new_ann = ann.copy()
             new_ann.origin = BGP_ATTRS_ORIGIN.EBGP
             return new_ann
@@ -768,7 +768,7 @@ class TestSMTNexthopWrapper(SMTSetup):
 
         new_fun = z3.Function('NewFunc', self.ann_sort, self.nexthop_sort)
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.next_hop = dt
             return new_ann
@@ -822,7 +822,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         f2 = z3.Function('F2', self.ann_sort, self.nexthop_sort)
         unionf = z3.Function('unionF', self.ann_sort, self.nexthop_sort)
 
-        def transform(ann):
+        def transform(ann_var, ann):
             n = ann.copy()
             n.next_hop = VALUENOTSET
             return n
@@ -942,7 +942,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
 
         new_fun = z3.Function('NewF', self.ann_sort, z3.IntSort())
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.local_pref = VALUENOTSET
             return new_ann
@@ -1097,17 +1097,17 @@ class TestSMTCommunityWrapper(SMTSetup):
         new_c2 = z3.Function('NewC2', self.ann_sort, z3.BoolSort())
         new_c3 = z3.Function('NewC3', self.ann_sort, z3.BoolSort())
 
-        def t1(ann):
+        def t1(ann_var, ann):
             new_ann = ann.copy()
             new_ann.communities[c1] = True
             return new_ann
 
-        def t2(ann):
+        def t2(ann_var, ann):
             new_ann = ann.copy()
             new_ann.communities[c2] = VALUENOTSET
             return new_ann
 
-        def t3(ann):
+        def t3(ann_var, ann):
             new_ann = ann.copy()
             new_ann.communities[c3] = VALUENOTSET
             return new_ann
@@ -1272,7 +1272,7 @@ class TestSMTASPathWrapper(SMTSetup):
 
         newf = z3.Function('NewF', self.ann_sort, self.as_path_sort)
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.as_path = p2
             return new_ann
@@ -1386,7 +1386,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
 
         new_fun = z3.Function('NewF', self.ann_sort, z3.IntSort())
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.as_path_len = VALUENOTSET
             return new_ann
@@ -1500,7 +1500,7 @@ class TestSMTPermittedWrapper(SMTSetup):
 
         new_fun = z3.Function('NewF', self.ann_sort, z3.BoolSort())
 
-        def transformer(ann):
+        def transformer(ann_var, ann):
             new_ann = ann.copy()
             new_ann.permitted = VALUENOTSET
             return new_ann
@@ -1660,7 +1660,7 @@ class TestSMTContext(SMTSetup):
             self.local_pref_fun)
 
         new_pref = z3.Function('NewLocalPref', self.ann_sort, z3.IntSort())
-        def pref_trans(ann):
+        def pref_trans(ann_var, ann):
             new_ann = ann.copy()
             new_ann.local_pref = VALUENOTSET
             return new_ann
