@@ -70,6 +70,12 @@ class SMTValueWrapper(object):
         else:
             rev = dict([(v, k) for k, v in self.range_map.iteritems()])
             self._reverse_rang_map =  rev
+        for ann_var, ann in self.announcements_var_map.iteritems():
+            val = self._getter(ann)
+            if is_empty(val):
+                self.set_new_var(ann_var)
+            elif not is_symbolic(val) and self.range_map is not None:
+                self._setter(ann, self.range_map[val])
 
     def ann_var_iter(self):
         """Iterate over the announcement variables defined for this context"""
@@ -108,9 +114,6 @@ class SMTValueWrapper(object):
             fun = self.fun
             return fun(ann_var)
         value = self._getter(self.announcements_var_map[ann_var])
-        if is_empty(value):
-            return self.set_new_var(ann_var)
-
         if is_symbolic(value):
             if self._model:
                 evaluted = self._eval_fun(self._model, value)
@@ -119,10 +122,7 @@ class SMTValueWrapper(object):
                 return evaluted
             else:
                 return value
-        # Not symbolic
-        if self.range_map:
-            return self.range_map[value]
-        # value is direct
+
         return value
 
     def get_value_of_var(self, var):

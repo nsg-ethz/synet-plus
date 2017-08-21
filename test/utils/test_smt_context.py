@@ -662,9 +662,8 @@ class TestSMTNexthopWrapper(SMTSetup):
         self.assertEquals(constraints, {})
         for ann_name, ann_var in self.ann_map.iteritems():
             ann = self.anns[ann_name]
-            self.assertEquals(w.get_var(ann_var), self.nexthop_map[ann.next_hop])
-        ret = solver.check()
-        self.assertEquals(ret, z3.sat)
+            self.assertEquals(w.get_var(ann_var), ann.next_hop)
+            self.assertEquals(w.get_value(ann_var), str(ann.next_hop))
 
     def test_symbolic_stress(self):
         # Generate announcements
@@ -852,7 +851,8 @@ class TestSMTNexthopWrapper(SMTSetup):
         u.set_model(model)
         for ann_name, ann_var in self.ann_map.iteritems():
             ann = self.anns[ann_name]
-            self.assertEquals(w1.get_var(ann_var), self.nexthop_map[ann.next_hop])
+            self.assertEquals(w1.get_var(ann_var), ann.next_hop)
+            self.assertEquals(w1.get_value(ann_var), str(ann.next_hop))
         for ann_var in w2.announcements_var_map:
             self.assertEquals(u.get_var(ann_var), nxt1)
         for ann_var in w3.announcements_var_map:
