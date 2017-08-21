@@ -662,7 +662,6 @@ class SMTContext(object):
             prev.set_model(model)
         for ctx in self.iter_ctxs():
             ctx.set_model(model)
-        return self.constraints
 
     def get_new_context(self, name, announcements=None, announcements_map=None,
                         announcement_sort=None, prefix_ctx=None, peer_ctx=None,
