@@ -28,6 +28,7 @@ def get_as_path_key(as_path):
 
 
 class SMTSymbolicObject(object):
+    """Parent for symbolic objects"""
 
     def set_model(self, model):
         """Set z3 model to be used in value eval"""
@@ -84,7 +85,7 @@ class SMTValueWrapper(SMTSymbolicObject):
             self._reverse_rang_map = None
         else:
             rev = dict([(v, k) for k, v in self.range_map.iteritems()])
-            self._reverse_rang_map =  rev
+            self._reverse_rang_map = rev
         for ann_var, ann in self.announcements_var_map.iteritems():
             val = self._getter(ann)
             if is_empty(val):
@@ -141,9 +142,12 @@ class SMTValueWrapper(SMTSymbolicObject):
         return value
 
     def get_value_of_var(self, var):
+        """Given a variable try to get a concrete value"""
         if is_symbolic(var) and self._reverse_rang_map:
             if var in self._reverse_rang_map:
                 return self._reverse_rang_map[var]
+        if is_symbolic(var) and self._model:
+            return self._eval_fun(self._model, var)
         return var
 
     def get_value(self, ann_var):
@@ -187,6 +191,7 @@ class SMTValueWrapper(SMTSymbolicObject):
         raise NotImplementedError()
 
     def is_range_concrete(self):
+        """Return true if the values are defined for every announcement"""
         if self._range_is_concerete is None:
             self._range_is_concerete = True
             for ann_var in self.ann_var_iter():
@@ -616,6 +621,7 @@ class SMTContext(SMTSymbolicObject):
     """
     Hold SMT Context needed for the policy synthesis
     """
+
     def __init__(self, name, announcements, announcements_map, announcement_sort,
                  prefix_ctx, peer_ctx, origin_ctx, as_path_ctx, as_path_len_ctx,
                  next_hop_ctx, local_pref_ctx, communities_ctx, permitted_ctx,
