@@ -1568,7 +1568,7 @@ class TestSMTContext(SMTSetup):
             'wpeer', self.ann_sort, self.ann_var_map,
             self.peer_fun, self.peer_sort, self.peer_map)
 
-        worigin = SMTPeerWrapper(
+        worigin = SMTOriginWrapper(
             'worigin', self.ann_sort, self.ann_var_map,
             self.origin_fun, self.origin_sort, self.origin_map)
 
@@ -1604,9 +1604,20 @@ class TestSMTContext(SMTSetup):
         wcommunities[c2] = wc2
         wcommunities[c3] = wc3
 
-        ctx = SMTContext('ctx1', self.anns, self.ann_map, self.ann_sort,
-                         wprefix, wpeer, worigin, waspath, waspathlen,
-                         wnexthop, wlocalpref, wcommunities, wpermitted)
+        ctx = SMTContext(
+            name='ctx1',
+            announcements=self.anns,
+            announcements_map=self.ann_map,
+            announcement_sort=self.ann_sort,
+            prefix_ctx=wprefix,
+            peer_ctx=wpeer,
+            origin_ctx=worigin,
+            as_path_ctx=waspath,
+            as_path_len_ctx=waspathlen,
+            next_hop_ctx=wnexthop,
+            local_pref_ctx=wlocalpref,
+            communities_ctx=wcommunities,
+            permitted_ctx=wpermitted)
 
         # Assumptions
         solver = self.get_solver()
@@ -1639,7 +1650,7 @@ class TestSMTContext(SMTSetup):
             'wpeer', self.ann_sort, self.ann_var_map,
             self.peer_fun, self.peer_sort, self.peer_map)
 
-        worigin = SMTPeerWrapper(
+        worigin = SMTOriginWrapper(
             'worigin', self.ann_sort, self.ann_var_map,
             self.origin_fun, self.origin_sort, self.origin_map)
 
@@ -1660,6 +1671,7 @@ class TestSMTContext(SMTSetup):
             self.local_pref_fun)
 
         new_pref = z3.Function('NewLocalPref', self.ann_sort, z3.IntSort())
+
         def pref_trans(ann_var, ann):
             new_ann = ann.copy()
             new_ann.local_pref = VALUENOTSET
@@ -1685,9 +1697,20 @@ class TestSMTContext(SMTSetup):
         wcommunities[c2] = wc2
         wcommunities[c3] = wc3
 
-        ctx = SMTContext('ctx1', self.anns, self.ann_map, self.ann_sort,
-                         wprefix, wpeer, worigin, waspath, waspathlen,
-                         wnexthop, wlocalpref, wcommunities, wpermitted)
+        ctx = SMTContext(
+            name='ctx1',
+            announcements=self.anns,
+            announcements_map=self.ann_map,
+            announcement_sort=self.ann_sort,
+            prefix_ctx=wprefix,
+            peer_ctx=wpeer,
+            origin_ctx=worigin,
+            as_path_ctx=waspath,
+            as_path_len_ctx=waspathlen,
+            next_hop_ctx=wnexthop,
+            local_pref_ctx=wlocalpref,
+            communities_ctx=wcommunities,
+            permitted_ctx=wpermitted)
 
         ctx2 = ctx.get_new_context('ctx2', local_pref_ctx=wlocalpref2)
         # Assumptions

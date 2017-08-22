@@ -607,6 +607,20 @@ class SMTContext(object):
                  prev_ctxs=None):
         if prev_ctxs is None:
             prev_ctxs = []
+        assert isinstance(prefix_ctx, SMTPrefixWrapper)
+        assert isinstance(peer_ctx, SMTPeerWrapper)
+        assert isinstance(origin_ctx, SMTOriginWrapper)
+        assert isinstance(as_path_ctx, SMTASPathWrapper)
+        assert isinstance(as_path_len_ctx, SMTASPathLenWrapper)
+        assert isinstance(next_hop_ctx, SMTNexthopWrapper)
+        assert isinstance(local_pref_ctx, SMTLocalPrefWrapper)
+        assert isinstance(communities_ctx, dict)
+        assert isinstance(permitted_ctx, SMTPermittedWrapper)
+        for comm_ctx in communities_ctx.itervalues():
+            assert isinstance(comm_ctx, SMTCommunityWrapper)
+        for prev_ctx in prev_ctxs:
+            assert isinstance(prev_ctx, SMTContext)
+
         self.name = name
         self.announcements = announcements
         self.announcements_map = announcements_map
@@ -676,7 +690,7 @@ class SMTContext(object):
         prefix_ctx = prefix_ctx or self.prefix_ctx
         peer_ctx = peer_ctx or self.peer_ctx
         origin_ctx = origin_ctx or self.origin_ctx
-        as_path_ctx = as_path_ctx or self.as_path_len_ctx
+        as_path_ctx = as_path_ctx or self.as_path_ctx
         as_path_len_ctx = as_path_len_ctx or self.as_path_len_ctx
         next_hop_ctx = next_hop_ctx or self.next_hop_ctx
         local_pref_ctx = local_pref_ctx or self.local_pref_ctx
