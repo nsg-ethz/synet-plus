@@ -27,7 +27,22 @@ def get_as_path_key(as_path):
     return 'as_path_' + '_'.join([str(n) for n in as_path])
 
 
-class SMTValueWrapper(object):
+class SMTSymbolicObject(object):
+
+    def set_model(self, model):
+        """Set z3 model to be used in value eval"""
+        raise NotImplementedError()
+
+    def add_constraints(self, solver):
+        """
+        Add constraints to the z3 solver that relates to this var
+        :param solver:
+        :return: dict name->constraints (for unsat core)
+        """
+        raise NotImplementedError()
+
+
+class SMTValueWrapper(SMTSymbolicObject):
     """
     Help synthesizing a specific value in Announcment
     """
@@ -597,7 +612,7 @@ class SMTPermittedWrapper(SMTValueWrapper):
             prev_ctxs=contexts)
 
 
-class SMTContext(object):
+class SMTContext(SMTSymbolicObject):
     """
     Hold SMT Context needed for the policy synthesis
     """
