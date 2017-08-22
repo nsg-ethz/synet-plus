@@ -314,7 +314,7 @@ class SMTPeerWrapper(SMTValueWrapper):
             ann.peer = value
 
         super(SMTPeerWrapper, self).__init__(
-            name, 'prefix', announcement_sort, announcements_var_map,
+            name, 'peer', announcement_sort, announcements_var_map,
             peer_fun, peer_sort, peer_map, eval_fun=eval_fun,
             getter=getter, setter=setter, prev_ctxs=prev_ctxs)
 
@@ -531,7 +531,7 @@ class SMTASPathWrapper(SMTValueWrapper):
             ann.as_path = value
 
         super(SMTASPathWrapper, self).__init__(
-            name, 'next_hop', announcement_sort, announcements_var_map,
+            name, 'as_path', announcement_sort, announcements_var_map,
             as_path_fun, as_path_sort, as_path_map, eval_fun=eval_fun,
             getter=getter, setter=setter, prev_ctxs=prev_ctxs)
 
