@@ -42,6 +42,12 @@ class SMTSymbolicObject(object):
         """
         raise NotImplementedError()
 
+    def is_concrete(self):
+        """
+        Return True if this object represents currently all concrete variable
+        """
+        raise NotImplementedError()
+
 
 class SMTValueWrapper(SMTSymbolicObject):
     """
@@ -84,7 +90,7 @@ class SMTValueWrapper(SMTSymbolicObject):
         if self.range_map is None:
             self._reverse_rang_map = None
         else:
-            rev = dict([(v, k) for k, v in self.range_map.iteritems()])
+            rev = dict([(value, key) for key, value in self.range_map.iteritems()])
             self._reverse_rang_map = rev
         for ann_var, ann in self.announcements_var_map.iteritems():
             val = self._getter(ann)
@@ -205,6 +211,9 @@ class SMTValueWrapper(SMTSymbolicObject):
                         self._range_is_concerete = False
                         break
         return self._range_is_concerete
+
+    def is_concrete(self):
+        return self.is_range_concrete()
 
     @staticmethod
     def _union_vars(*contexts):
@@ -697,6 +706,15 @@ class SMTContext(SMTSymbolicObject):
             prev.set_model(model)
         for ctx in self.iter_ctxs():
             ctx.set_model(model)
+
+    def is_concrete(self):
+        for ctx in self.iter_ctxs():
+            if not ctx.is_concrete():
+                return False
+        for prev in self.prev_ctxs:
+            if not prev.is_concrete():
+                return False
+        return True
 
     def get_new_context(self, name, announcements=None, announcements_map=None,
                         announcement_sort=None, prefix_ctx=None, peer_ctx=None,
