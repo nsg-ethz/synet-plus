@@ -118,12 +118,12 @@ class TestSMTPrefixWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix=VALUENOTSET, peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -254,12 +254,12 @@ class TestSMTPeerWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer=VALUENOTSET, origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -357,7 +357,7 @@ class TestSMTPeerWrapper(SMTSetup):
             self.peer_fun, self.peer_sort,
             self.peer_map)
 
-        w2 = w1.get_new_context(name='wp1', ann_vars=self.ann_var_map.keys(),
+        w2 = w1.get_new_context(name='wp2', ann_vars=self.ann_var_map.keys(),
                                 new_fun=new_fun,
                                 transformer=transformer)
         # Assumptions
@@ -387,22 +387,22 @@ class TestSMTOriginWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Google', peer='DT', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann3 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.INCOMPLETE,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann4 = Announcement(
             prefix='Yahoo', peer='DT', origin=VALUENOTSET,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -541,6 +541,8 @@ class TestSMTOriginWrapper(SMTSetup):
         ret = solver.check()
         model = solver.model()
         w2.set_model(model)
+        print solver.to_smt2()
+        print model
         # Assertions
         self.assertEquals(ret, z3.sat)
         self.assertEquals(ret, z3.sat)
@@ -560,12 +562,12 @@ class TestSMTNexthopWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop=VALUENOTSET,
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -645,7 +647,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = Announcement(
                 prefix=name, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
                 as_path=[1, 2, 5], as_path_len=3, next_hop=nexthop,
-                local_pref=100, communties=cs)
+                local_pref=100, communties=cs, permitted=True)
             self.anns[name] = ann
         self._define_types()
 
@@ -683,7 +685,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = Announcement(
                 prefix=name, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
                 as_path=[1, 2, 5], as_path_len=3, next_hop=VALUENOTSET,
-                local_pref=100, communties=cs)
+                local_pref=100, communties=cs, permitted=True)
             self.anns[name] = ann
         self._define_types(nexthope_list=nexthoplist)
 
@@ -730,7 +732,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = Announcement(
                 prefix=name, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
                 as_path=[1, 2, 5], as_path_len=3, next_hop=VALUENOTSET,
-                local_pref=100, communties=cs)
+                local_pref=100, communties=cs, permitted=True)
             self.anns[name] = ann
         self._define_types(nexthope_list=nexthoplist)
 
@@ -812,7 +814,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = Announcement(
                 prefix=name, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
                 as_path=[1, 2, 5], as_path_len=3, next_hop=nexthop,
-                local_pref=100, communties=cs)
+                local_pref=100, communties=cs, permitted=True)
             self.anns[name] = ann
         self._define_types()
 
@@ -868,12 +870,12 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=VALUENOTSET, communties={c1: True})
+            local_pref=VALUENOTSET, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -983,12 +985,14 @@ class TestSMTCommunityWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True, c2: False, c3: True})
+            local_pref=100, communties={c1: True, c2: False, c3: True},
+            permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=100, communties={c1: VALUENOTSET, c2: False, c3: False})
+            local_pref=100, communties={c1: VALUENOTSET, c2: False, c3: False},
+            permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -1174,12 +1178,12 @@ class TestSMTASPathWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 3], as_path_len=3, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=VALUENOTSET, as_path_len=2, next_hop='DT',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -1311,12 +1315,12 @@ class TestSMTASPathLenWrapper(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=VALUENOTSET, next_hop='DT',
-            local_pref=100, communties={c1: True})
+            local_pref=100, communties={c1: True}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,
@@ -1541,12 +1545,12 @@ class TestSMTContext(SMTSetup):
         ann1 = Announcement(
             prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
-            local_pref=100, communties={c1: True, c2: False, c3: True})
+            local_pref=100, communties={c1: True, c2: False, c3: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
-            local_pref=100, communties={c1: True, c2: False, c3: False})
+            local_pref=100, communties={c1: True, c2: False, c3: False}, permitted=True)
 
         self.anns = {
             'Ann1_Google': ann1,

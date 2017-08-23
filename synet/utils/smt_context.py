@@ -34,6 +34,21 @@ class SMTSymbolicObject(object):
         """Set z3 model to be used in value eval"""
         raise NotImplementedError()
 
+    def get_general_constraints(self, get_prev):
+        """
+        Add constraints to the z3 solver that relates to this var
+        :param solver:
+        :return: dict name->constraints (for unsat core)
+        """
+        raise NotImplementedError()
+
+    def get_var_constraints(self, ann_var, get_prev):
+        """
+        Return constraints specific to a var
+        :return tuple name, constraint
+        """
+        raise NotImplementedError()
+
     def add_constraints(self, solver):
         """
         Add constraints to the z3 solver that relates to this var
@@ -84,7 +99,8 @@ class SMTValueWrapper(SMTSymbolicObject):
         self._setter = setter
         self._prev_ctxs = prev_ctxs
         self._fun_used = False
-        self.constraints = {}
+        self.general_constraints = {}
+        self.var_constraints = {}
         self._model = None
         self._range_is_concerete = None
         if self.range_map is None:
@@ -161,24 +177,51 @@ class SMTValueWrapper(SMTSymbolicObject):
         var = self.get_var(ann_var)
         return self.get_value_of_var(var)
 
+    def get_var_constraints(self, ann_var, get_prev):
+        var_const = []
+        if get_prev:
+            for prev_ctx in self._prev_ctxs:
+                ret = prev_ctx.get_var_constraints(ann_var, get_prev=True)
+                var_const.extend(ret)
+        ret = []
+        if self._fun_used:
+            val = self.get_var(ann_var)
+            fun = self._fun
+            name = self._get_track_name(ann_var)
+            constraint = fun(ann_var) == val
+            ret = [(name, constraint)]
+        return var_const + ret
+
+    def get_general_constraints(self, get_prev):
+        constraints = {}
+        if get_prev:
+            for ctx in self._prev_ctxs:
+                prev_constraints = ctx.get_general_constraints(get_prev=True)
+                constraints.update(prev_constraints)
+        return constraints
+
     def add_constraints(self, solver):
         """
         Add constraints to the z3 solver that relates to this var
         :param solver:
         :return: dict name->constraints (for unsat core)
         """
+        constraints = {}
+        current_constraints = {}
         for ctx in self._prev_ctxs:
             prev_constraints = ctx.add_constraints(solver)
-            self.constraints.update(prev_constraints)
-        if self._fun_used:
-            fun = self.fun
-            for ann_var in self.ann_var_iter():
-                name = self._get_track_name(ann_var)
-                val = self.get_var(ann_var)
-                constraint = fun(ann_var) == val
-                self.constraints[name] = constraint
-                solver.assert_and_track(constraint, name)
-        return self.constraints
+            for name, const in prev_constraints.iteritems():
+                assert name not in constraints
+                constraints[name] = const
+        for ann_var in self.ann_var_iter():
+            var_consts = self.get_var_constraints(ann_var, get_prev=False)
+            for name, const in var_consts:
+                assert name not in constraints, "Double name %s" % name
+                constraints[name] = const
+                current_constraints[name] = const
+        for name, const in current_constraints.iteritems():
+            solver.assert_and_track(const, name)
+        return constraints
 
     def _transform_anns(self, ann_vars, transformer):
         """Transform subset of announcements and return new map"""
@@ -215,13 +258,14 @@ class SMTValueWrapper(SMTSymbolicObject):
     def is_concrete(self):
         return self.is_range_concrete()
 
+    def __str__(self):
+        return "<%s(%s)>" % (self.__class__.__name__, self.name)
+
     @staticmethod
     def _union_vars(*contexts):
         assert contexts
         all_vars = {}
         for ctx in contexts:
-            print contexts
-            print ctx
             # Context must not intersect
             curr = set(all_vars.keys())
             new_set = set(ctx.announcements_var_map.keys())
@@ -668,7 +712,6 @@ class SMTContext(SMTSymbolicObject):
         self.ctx_names = ['prefix_ctx', 'peer_ctx', 'origin_ctx',
                           'as_path_ctx', 'as_path_len_ctx', 'next_hop_ctx',
                           'local_pref_ctx', 'communities_ctx', 'permitted_ctx']
-        self.constraints = {}
 
         for ctx in self.iter_ctxs():
             attr_vars = set(ctx.announcements_var_map.keys())
@@ -688,17 +731,44 @@ class SMTContext(SMTSymbolicObject):
             else:
                 yield var
 
+    def get_general_constraints(self, get_prev):
+        constraints = {}
+        if get_prev:
+            for prev_ctx in self.prev_ctxs:
+                prev_consts = prev_ctx.get_general_constraints(get_prev=True)
+                for name, const in prev_consts:
+                    assert name not in constraints
+                    constraints[name] = const
+        for val_ctx in self.iter_ctxs():
+            prev_consts = val_ctx.get_general_constraints(get_prev)
+            for name, const in prev_consts:
+                assert name not in constraints
+                constraints[name] = const
+        return constraints
+
+    def get_var_constraints(self, ann_var, get_prev):
+        var_consts = []
+        for val_ctx in self.iter_ctxs():
+            ret = val_ctx.get_var_constraints(ann_var, get_prev)
+            var_consts.extend(ret)
+        return var_consts
+
     def add_constraints(self, solver):
         """
         Add the constraints to the solver
         :param solver:
         :return: dict of constraints
         """
-        for prev in self.prev_ctxs:
-            self.constraints.update(prev.add_constraints(solver))
-        for ctx in self.iter_ctxs():
-            self.constraints.update(ctx.add_constraints(solver))
-        return self.constraints
+        constraints = self.get_general_constraints(get_prev=True)
+        val_ctx = self.permitted_ctx
+        for ann_var in val_ctx.ann_var_iter():
+            var_consts = self.get_var_constraints(ann_var, get_prev=True)
+            for name, const in var_consts:
+                assert name not in constraints, "Double name %s" % name
+                constraints[name] = const
+        for name, const in constraints.iteritems():
+            solver.assert_and_track(const, name)
+        return constraints
 
     def set_model(self, model):
         """Set z3 model to be used in value eval"""
