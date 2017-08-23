@@ -351,6 +351,10 @@ class ActionSetCommunity(Action):
 
 class RouteMapLine(object):
     def __init__(self, matches, actions, access, lineno=None):
+        if matches is None:
+            matches = []
+        if actions is None:
+            actions = []
         assert isinstance(matches, Iterable)
         assert isinstance(actions, Iterable)
         for match in matches:
