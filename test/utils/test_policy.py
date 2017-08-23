@@ -1769,3 +1769,130 @@ class SMTRouteMapTest(SMTSetup):
         new_route_map2 = RouteMap(name=route_map2.name, lines=[new_line2, default_line])
         self.assertEquals(smap1.get_config(), new_route_map1)
         self.assertEquals(smap2.get_config(), new_route_map2)
+
+    def test_union_stress(self):
+        """Test Two route maps UNION"""
+        num_communities = 2
+        num_anns = 2
+        self.all_communities = [Community("100:%d" % i)
+                                for i in range(num_communities)]
+        self.anns = {}
+        for i in range(num_anns / 2):
+            prefix = 'Prefix_%d' % i
+            name1 = "Ann_%s_1" % prefix
+            name2 = "Ann_%s_2" % prefix
+            cs1 = [(self.all_communities[0], True)]
+            cs1 += [(c, False) for c in self.all_communities[1:]]
+            cs2 = [(c, False) for c in self.all_communities]
+            cs1 = dict(cs1)
+            cs2 = dict(cs2)
+
+            ann1 = Announcement(
+                prefix=name1, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
+                as_path=[1, 2, 5], as_path_len=3, next_hop='M', local_pref=100,
+                communities=cs1, permitted=True)
+            self.anns[name1] = ann1
+
+            ann2 = Announcement(
+                prefix=name1, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
+                as_path=[1, 2, 5], as_path_len=3, next_hop='N', local_pref=100,
+                communities=cs2, permitted=True)
+            self.anns[name2] = ann2
+
+        self._define_types()
+
+        ctx = self.get_context()
+        # Split context into two
+        first_anns = {}
+        second_anns = {}
+        first_map = {}
+        second_map = {}
+        all_names = self.anns.keys()
+        for ann_nam in all_names[:len(all_names) / 2]:
+            first_anns[ann_nam] = self.anns[ann_nam]
+            first_map[ann_nam] = self.ann_map[ann_nam]
+        for ann_nam in all_names[len(all_names) / 2:]:
+            second_anns[ann_nam] = self.anns[ann_nam]
+            second_map[ann_nam] = self.ann_map[ann_nam]
+
+        ctx_first = ctx.get_new_context(name='first_ctx',
+                                        announcements=first_anns,
+                                        announcements_map=first_map)
+
+        ctx_second = ctx.get_new_context(name='second_ctx',
+                                        announcements=second_anns,
+                                        announcements_map=second_map)
+
+        line1 = RouteMapLine(
+            matches=None, actions=[ActionSetLocalPref(VALUENOTSET)],
+             access=Access.permit, lineno=10)
+
+        line2 = RouteMapLine(
+            matches=None, actions=[ActionSetLocalPref(VALUENOTSET)],
+            access=Access.permit, lineno=10)
+
+        default_line = RouteMapLine(
+            matches=None, actions=None, access=Access.permit, lineno=20)
+
+        route_map1 = RouteMap(name='rm1', lines=[line1, default_line])
+        route_map2 = RouteMap(name='rm2', lines=[line2, default_line])
+        smap1 = SMTRouteMap(name=route_map1.name,
+                            route_map=route_map1,
+                            context=ctx_first)
+
+        smap2 = SMTRouteMap(name=route_map2.name,
+                            route_map=route_map2,
+                            context=ctx_second)
+
+        ctx1 = smap1.get_new_context()
+        ctx2 = smap2.get_new_context()
+
+        union_ctx =
+
+        s1 = self.get_solver()
+
+        for name, ann in self.ann_map.iteritems():
+            if name in first_anns:
+                s1.add(ctx1.local_pref_ctx.get_var(ann) == 200)
+            else:
+                s1.add(ctx2.local_pref_ctx.get_var(ann) == 50)
+
+        smap1.add_constraints(s1)
+        smap2.add_constraints(s1)
+        ctx1.add_constraints(s1)
+        ctx2.add_constraints(s1)
+        import time
+        start = time.time()
+        ret = s1.check()
+        self.assertEquals(ret, z3.sat)
+        end = time.time()
+        print "Syn", (end- start)
+        model = s1.model()
+        smap1.set_model(model)
+        smap2.set_model(model)
+        ctx1.set_model(model)
+        ctx2.set_model(model)
+        for name, ann in self.ann_map.iteritems():
+            if name in first_anns:
+                self.assertEquals(ctx1.local_pref_ctx.get_value(ann), 200)
+            else:
+                self.assertEquals(ctx2.local_pref_ctx.get_value(ann), 50)
+
+        new_line1 = RouteMapLine(
+            matches=[],
+            actions=[ActionSetLocalPref(200)],
+            access=Access.permit,
+            lineno=10
+        )
+        new_route_map1 = RouteMap(
+            name=route_map1.name, lines=[new_line1, default_line])
+        new_line2 = RouteMapLine(
+            matches=[],
+            actions=[ActionSetLocalPref(50)],
+            access=Access.permit,
+            lineno=10
+        )
+        new_route_map2 = RouteMap(
+            name=route_map2.name, lines=[new_line2, default_line])
+        self.assertEquals(smap1.get_config(), new_route_map1)
+        self.assertEquals(smap2.get_config(), new_route_map2)
