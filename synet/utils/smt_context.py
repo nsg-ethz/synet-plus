@@ -861,3 +861,49 @@ class SMTContext(SMTSymbolicObject):
             prev_ctxs=prev_ctxs
         )
         return ctx
+
+    @staticmethod
+    def union(name, *contexts):
+        assert contexts
+        anns = {}
+        anns_map = {}
+        ann_sort = contexts[0].announcement_sort
+        ctx_names = contexts[0].ctx_names
+        val_ctx = {}
+        for val_name in ctx_names:
+            if val_name == 'communities_ctx':
+                val_ctx[val_name] = {}
+                for comm in contexts[0].communities_ctx:
+                    all_vals = [getattr(c, val_name)[comm] for c in contexts]
+                    new_fun = z3.Function(
+                        "%s_union_%s_%s_fun" % (name, val_name, comm.name),
+                        ann_sort,
+                        all_vals[0].fun_range_sort
+                    )
+                    val_ctx[val_name][comm] = all_vals[0].union(
+                        "%s_union_%s_%s_ctx" % (name, val_name, comm.name),
+                        new_fun,
+                        *all_vals)
+            else:
+                all_vals = [getattr(c, val_name) for c in contexts]
+                new_fun = z3.Function(
+                    "%s_union_%s_fun" % (name, val_name),
+                    ann_sort,
+                    all_vals[0].fun_range_sort
+                )
+                val_ctx[val_name] = all_vals[0].union(
+                    "%s_union_%s_ctx" % (name, val_name),
+                    new_fun,
+                    *all_vals)
+
+        for ctx in contexts:
+            for name, ann in ctx.announcements.iteritems():
+                assert name not in anns, "Context must be disjoint"
+            anns[name] = ann
+            anns_map[name] = ctx.announcements_map[name]
+        val_ctx['prev_ctxs'] = contexts
+
+        return SMTContext(name=name, announcements=anns,
+                          announcements_map=anns_map,
+                          announcement_sort=ann_sort,
+                          **val_ctx)
