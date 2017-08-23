@@ -19,7 +19,7 @@ def is_empty(var):
 
 def is_symbolic(var):
     """Return True if a given variable is symbolic (z3 var)"""
-    return z3.is_const(var)
+    return z3.is_const(var) or z3.is_expr(var)
 
 
 def get_as_path_key(as_path):
