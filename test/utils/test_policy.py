@@ -1847,15 +1847,15 @@ class SMTRouteMapTest(SMTSetup):
         ctx1 = smap1.get_new_context()
         ctx2 = smap2.get_new_context()
 
-        union_ctx =
+        union_ctx = SMTContext.union('union_ctx', ctx1, ctx2)
 
         s1 = self.get_solver()
 
         for name, ann in self.ann_map.iteritems():
             if name in first_anns:
-                s1.add(ctx1.local_pref_ctx.get_var(ann) == 200)
+                s1.add(union_ctx.local_pref_ctx.get_var(ann) == 200)
             else:
-                s1.add(ctx2.local_pref_ctx.get_var(ann) == 50)
+                s1.add(union_ctx.local_pref_ctx.get_var(ann) == 50)
 
         smap1.add_constraints(s1)
         smap2.add_constraints(s1)
@@ -1870,13 +1870,12 @@ class SMTRouteMapTest(SMTSetup):
         model = s1.model()
         smap1.set_model(model)
         smap2.set_model(model)
-        ctx1.set_model(model)
-        ctx2.set_model(model)
+        union_ctx.set_model(model)
         for name, ann in self.ann_map.iteritems():
             if name in first_anns:
-                self.assertEquals(ctx1.local_pref_ctx.get_value(ann), 200)
+                self.assertEquals(union_ctx.local_pref_ctx.get_value(ann), 200)
             else:
-                self.assertEquals(ctx2.local_pref_ctx.get_value(ann), 50)
+                self.assertEquals(union_ctx.local_pref_ctx.get_value(ann), 50)
 
         new_line1 = RouteMapLine(
             matches=[],
