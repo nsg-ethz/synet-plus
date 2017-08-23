@@ -32,10 +32,10 @@ https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/26634-
 
 from collections import Iterable
 from collections import namedtuple
-from functools import partial
 
 import z3
 
+from synet.synthesis.ebgp import Announcement
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
@@ -48,337 +48,350 @@ from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import VALUENOTSET
-
+from synet.utils.smt_context import SMTASPathLenWrapper
+from synet.utils.smt_context import SMTASPathWrapper
+from synet.utils.smt_context import SMTCommunityWrapper
+from synet.utils.smt_context import SMTContext
+from synet.utils.smt_context import SMTLocalPrefWrapper
+from synet.utils.smt_context import SMTNexthopWrapper
+from synet.utils.smt_context import SMTOriginWrapper
+from synet.utils.smt_context import SMTPeerWrapper
+from synet.utils.smt_context import SMTPermittedWrapper
+from synet.utils.smt_context import SMTPrefixWrapper
+from synet.utils.smt_context import SMTSymbolicObject
+from synet.utils.smt_context import is_empty
+from synet.utils.smt_context import is_symbolic
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
-
 
 AndOp = namedtuple('AndOp', ['values'])
 OrOp = namedtuple('OrOp', ['values'])
 
 
-class SMTContext(object):
-    """
-    Hold SMT Context needed for the policy synthesis
-    """
+class SMTObject(SMTSymbolicObject):
+    """SMT Object Abstraction"""
 
-    def __init__(self, announcements, announcements_map, announcement_sort,
-                 communities_fun, prefixes_vars, prefix_sort, prefix_fun,
-                 local_pref_fun, as_path_sort, as_path_map,
-                 as_path_fun, as_path_len_fun,
-                 nexthop_sort, nexthop_fun, nexthop_map,
-                 route_denied_fun):
+    def get_var(self):
         """
-        :param announcements: dict of name -> Announcement
-        :param announcements_map: dict of name -> Z3 Announcement
-        :param announcement_sort: Z3 announcement type
-        :param communities_fun: Community -> (z3.function (Announcement->True or False))
-        :param prefixes_vars: dict of name -> Z3 Prefix var
-        :param prefix_sort: Z3 prefix type
-        :param prefix_fun: prefix -> (z3.function (Announcement->True or False))
-        :param local_pref_fun: Announcement Sort -> Int local pref
-        :param as_path_sort: AS PATH sort
-        :param as_path_fun: Announcement Sort -> As path sort
-        :param as_path_len_fun: Announcement Sort -> In of the AS Path len
-        :param route_denied_fun: Announcement Sort -> Boolean (true if route is dropped
-        """
-        self.announcements = announcements
-        self.announcements_map = announcements_map
-        self.announcement_sort = announcement_sort
-        self.communities_fun = communities_fun
-        self.prefixes_vars = prefixes_vars
-        self.prefix_sort = prefix_sort
-        self.prefix_fun = prefix_fun
-        self.local_pref_fun = local_pref_fun
-        self.as_path_sort = as_path_sort
-        self.as_path_fun = as_path_fun
-        self.as_path_map = as_path_map
-        self.as_path_len_fun = as_path_len_fun
-        self.nexthop_sort = nexthop_sort
-        self.nexthop_fun = nexthop_fun
-        self.nexthop_map = nexthop_map
-        self.route_denied_fun = route_denied_fun
-        self.inverse_ann_map = {}
-        for name, var in self.announcements_map.iteritems():
-            self.inverse_ann_map[var] = self.announcements[name]
-
-    def get_ann_by_name(self, name):
-        return self.announcements_map[name]
-
-    def get_ann_by_var(self, var):
-        if var in self.inverse_ann_map:
-            return self.inverse_ann_map[var]
-        return None
-
-    def has_community(self, ann_var, community):
-        """
-        Return true if the community is set for the announcement
-        (applies partial eval when possible)
-        :param ann_var:
-        :param community: Community val
-        :return: Boolean or fun
-        """
-        ann = self.get_ann_by_var(ann_var)
-        if ann is None:
-            return self.communities_fun[community](ann_var)
-        comm = ann.COMMUNITIES[community]
-        if comm in ['T', 'F']:
-            return comm == 'T'
-        else:
-            return self.communities_fun[community](ann_var)
-
-    def get_prefix_var(self, ann_var):
-        """
-        Return the prefix var function for the given announcement var
-        (applies partial eval when possible)
-        :param ann_var:
-        :return: perfix_var of perfix_sort or fun
-        """
-        ann = self.get_ann_by_var(ann_var)
-        if ann is None:
-            return self.prefix_fun(ann_var)
-        prefix = ann.PREFIX
-        if prefix != VALUENOTSET:
-            return self.prefixes_vars[prefix]
-        else:
-            return self.prefix_fun(ann_var)
-
-    def get_nexthop_var(self, ann_var):
-        """
-        Return the nexthop var function for the given announcement var
-        (applies partial eval when possible)
-        :param ann_var:
-        :return: nexthope var of nexthop_sort or fun
-        """
-        ann = self.get_ann_by_var(ann_var)
-        if ann is None:
-            return self.nexthop_fun(ann_var)
-        nexthop = ann.NEXT_HOP
-        if nexthop != VALUENOTSET:
-            return self.nexthop_map[nexthop]
-        else:
-            return self.nexthop_fun(ann_var)
-    # def get_local_pref(self, ann_var):
-    #    """
-    #    Return the local pref
-    #    (applies partial eval when possible)
-    #    :param ann_var:
-    #    :return: int or fun
-    #    """
-    #    ann = self.get_ann_by_var(ann_var)
-    #    if ann is None:
-    #        return self.local_pref_fun(ann_var)
-    #    localpref = ann.LOCAL_PREF
-    #    if localpref != VALUENOTSET:
-    #        return localpref
-    #    return self.prefix_fun(ann_var)
-
-    def get_new_context(self, announcements=None, announcements_map=None,
-                        announcement_sort=None, communities_fun=None,
-                        prefixes_vars=None, prefix_sort=None,
-                        prefix_fun=None, local_pref_fun=None,
-                        as_path_sort=None, as_path_map=None, as_path_fun=None,
-                        as_path_len_fun=None, nexthop_sort=None, nexthop_map=None,
-                        nexthop_fun=None, route_denied_fun=None):
-        """Helper to create new context with ability to override one or more vars """
-        announcements = self.announcements if announcements is None else announcements
-        announcements_map = self.announcements_map if announcements_map is None else announcements_map
-        announcement_sort = self.announcement_sort if announcement_sort is None else announcement_sort
-        communities_fun = self.communities_fun if communities_fun is None else communities_fun
-        prefixes_vars = self.prefixes_vars if prefixes_vars is None else prefixes_vars
-        prefix_sort = self.prefix_sort if prefix_sort is None else prefix_sort
-        prefix_fun = self.prefix_fun if prefix_fun is None else prefix_fun
-        local_pref_fun = self.local_pref_fun if local_pref_fun is None else local_pref_fun
-        as_path_sort = self.as_path_sort if as_path_sort is None else as_path_sort
-        as_path_map = self.as_path_map if as_path_map is None else as_path_map
-        as_path_fun = self.as_path_fun if as_path_fun is None else as_path_fun
-        as_path_len_fun = self.as_path_len_fun if as_path_len_fun is None else as_path_len_fun
-        nexthop_sort = self.nexthop_sort if nexthop_sort is None else nexthop_sort
-        nexthop_fun = self.nexthop_fun if nexthop_fun is None else nexthop_fun
-        nexthop_map = self.nexthop_map if nexthop_map is None else nexthop_map
-        route_denied_fun = self.route_denied_fun if route_denied_fun is None else route_denied_fun
-
-        return SMTContext(
-            announcements=announcements,
-            announcements_map=announcements_map,
-            announcement_sort=announcement_sort,
-            communities_fun=communities_fun,
-            prefixes_vars=prefixes_vars,
-            prefix_sort=prefix_sort,
-            prefix_fun=prefix_fun,
-            local_pref_fun=local_pref_fun,
-            as_path_sort=as_path_sort,
-            as_path_map=as_path_map,
-            as_path_fun=as_path_fun,
-            as_path_len_fun=as_path_len_fun,
-            nexthop_sort=nexthop_sort,
-            nexthop_fun=nexthop_fun,
-            nexthop_map=nexthop_map,
-            route_denied_fun=route_denied_fun)
-
-    def anns_var_iter(self):
-        for val in self.announcements_map.values():
-            yield val
-
-
-class SMTObject(object):
-    """
-    Parent object for SMT helper classes
-    """
-
-    def get_val(self, model):
-        """
-        Return the concrete or synthesized value
-        :param model: Z3 model
-        :return: dependent on the subclass
+        Get the value for the given ann_var
+        (applies partial eval whenever possible
         """
         raise NotImplementedError()
 
-    def get_config(self, model):
-        """
-        Return the concrete or synthesized configuration instance
-        :param model: Z3 model
-        :return: dependent on the subclass
-        """
+    def get_value(self):
+        """Return a concrete variable"""
         raise NotImplementedError()
 
-    def is_concrete(self):
-        """
-        Return true if this can be solved with out Z3
-        """
+    def get_config(self):
+        """Return the synthesized configurations"""
         raise NotImplementedError()
 
 
 class SMTSynMatchVal(SMTObject):
     """
-    Synthesis one Community match
+    Synthesis Match on one value in the Announcement
     """
 
-    def __init__(self, name, value,
-                 is_range_concrete,
-                 get_concrete_val,
-                 domain_sort,
-                 range_sort,
-                 fun_map,
-                 config_class,
-                 context):
+    def __init__(self, name, match_value, value_ctx, model_eval_fun,
+                 config_class, custom_match_gen=None):
         """
-        :param value: object of the value to be matched or VALUENOTSET
-        :param name: unique name to make the SMT variables more readable
-        :param is_range_concrete: fun(value) -> True if the range is all concerte
-        :param context: SMTContext
+        :param name: name to be used with z3 variables
+        :param match_value: the value to match on (Concrete or VALUENOTSET)
+        :param value_ctx: SMTValueWrapper
+        :param model_eval_fun: (model, value) -> value
+        :param config_class: value-> config
+        :param custom_match_gen: generate custom match function (often not needed)
         """
         self.name = name
-        self._value = value
-        self.ctx = context
-        self.is_range_concrete = is_range_concrete
-        self.get_concrete_val = get_concrete_val
-        self.domain_sort = domain_sort
-        self.range_sort = range_sort
-        self.fun_map = fun_map
-        self.constraints = []
+        self._match_value = match_value
+        self.value_ctx = value_ctx
+        self.constraints = {}
         self.match_synthesized = None
         self.match_syn_map = {}
+        self.model_eval_fun = model_eval_fun
         self.config_class = config_class
-        self.match_fun = self._gen_match_func()
+        self._model = None
+        self.var_constraints = {}
+        if is_empty(self._match_value):
+            self._match_value = None
+        elif not is_symbolic(self._match_value) and self.value_ctx.range_map:
+            self._match_value = self.value_ctx.range_map[self._match_value]
+        if custom_match_gen:
+            self.match_fun = custom_match_gen()
+        else:
+            self.match_fun = self._gen_match_func()
 
-    def get_val(self, model):
+    def _gen_match_func(self):
+        """Generate a match_fun(ann_var) -> true or false"""
+        if self.is_concrete_match():
+            match_fun = lambda x: self.value_ctx.get_var(x) == self._match_value
+        else:
+            f_name = '%s_syn_match' % self.name
+            match_fun = z3.Function(f_name,
+                                    self.value_ctx.announcement_sort,
+                                    z3.BoolSort())
+            syn_constraints = None
+            if self.value_ctx.range_map is None:
+                var_name = '%s_syn_value' % self.name
+                var = z3.Const(var_name, self.value_ctx.fun_range_sort)
+                constrain = [match_fun(tmp) == (self.value_ctx.get_var(tmp) == var)
+                             for tmp in self.value_ctx.ann_var_iter()]
+                self._match_value = var
+                syn_constraints = z3.And(*constrain)
+            else:
+                # This is a bit tricky to handle
+                # In case the self._match_value match is EMPTY,
+                # the the synthesizer is free to choose any value
+                # in range such that it's true for all Anns in the context
+                c_name = '%s_sel_match' % self.name
+                self.match_synthesized = z3.Const(c_name, z3.IntSort())
+                self.match_syn_map = {}
+                constrains = []
+                for index, key in enumerate(sorted(self.value_ctx.range_map.values())):
+                    # TODO: there are some room for partial eval
+                    self.match_syn_map[index] = key
+                    constrain = [match_fun(tmp) == (self.value_ctx.get_var(tmp) == key)
+                                 for tmp in self.value_ctx.ann_var_iter()]
+                    first = [self.match_synthesized == index]
+                    constrain = first + constrain
+                    constrains.append(z3.And(*[constrain]))
+                syn_constraints = z3.Or(*constrains)
+            const_name = "%s_match_constraints" % self.name
+            self.constraints[const_name] = syn_constraints
+        return match_fun
+
+    def is_match(self, ann_var):
         """
-        Return the synthesized value for this match
-        :param model: Z3 model
-        :return: Matched
+        Evaluate ann_var and return True if it matches match_value
+        This works only with concrete matches or when model is provided
         """
-        if self._value != VALUENOTSET:
-            return self._value
-        index = model.eval(self.match_synthesized).as_long()
-        ret = self.match_syn_map[index]
+        if self.is_concrete():
+            return self.value_ctx.get_var(ann_var) == self._match_value
+        elif self._model:
+            return z3.is_true(
+                self.value_ctx.get_var(ann_var) == self._match_value)
+        else:
+            raise RuntimeError("Cannot used is_match without a Z3 model")
+
+    def get_var(self):
+        if self.match_synthesized is None:
+            ret = self._match_value
+        else:
+            assert self._model is not None
+            index = self._model.eval(self.match_synthesized).as_long()
+            ret = self.match_syn_map[index]
+        if is_symbolic(ret) and self._model is not None:
+            return self.model_eval_fun(self._model, ret)
         return ret
+
+    def get_value(self):
+        var = self.get_var()
+        return self.value_ctx.get_value_of_var(var)
+
+    def is_concrete_match(self):
+        """Return true if the value matched on is concrete"""
+        if self._match_value is None:
+            return False
+        if self.value_ctx.range_map:
+            return self._match_value in self.value_ctx.range_map.values()
+        return not is_symbolic(self._match_value)
 
     def is_concrete(self):
         """
-        Return true if concrete Community object defined for all
-        known announcements in self.announcements
+        Return if both the match value and the values in the Ann
+        are both concrete
         """
-        if self._value == VALUENOTSET:
+        if not self.is_concrete_match():
             return False
-        return self.is_range_concrete(self._value)
+        return self.value_ctx.is_range_concrete()
 
-    def _gen_match_func(self):
-        if self._value != VALUENOTSET:
-            return partial(self.get_concrete_val, value=self._value)
-        else:
-            # This is a bit tricky to handle
-            # In case the community match is EMPTY,
-            #     the the synthesizer is free to choose any community
-            # We create a dummy function such that it ranges and values maps exactly to
-            # one or more assigned communities.
-            # Then we enumerate the communities,
-            # and the variable _Selected_Community tells us which one that successfully
-            # mapped to our dummy match
-            f_name = '%s_SynComm_Match' % self.name
-            match_fun = z3.Function(f_name, self.domain_sort, z3.BoolSort())
-            c_name = '%s_SelComm_Match' % self.name
-            self.match_synthesized = z3.Const(c_name, z3.IntSort())
-            self.match_syn_map = {}
-            constrains = []
-            for index, key in enumerate(sorted(self.fun_map)):
-                # TODO: there are some room for partial eval
-                tmp = z3.Const('%s_Tmp%d' % (self.name, index), self.domain_sort)
-                self.match_syn_map[index] = key
+    def get_config(self):
+        """Return the synthesized configurations"""
+        if not self.is_concrete():
+            assert self._model is not None
+        return self.config_class(self.get_value())
 
-                c = [match_fun(tmp) == self.get_concrete_val(tmp, key)
-                     for tmp in self.ctx.anns_var_iter()]
-                first = [self.match_synthesized == index]
-                c = first + c
-                constrains.append(z3.And(*[c]))
+    def get_var_constraints(self, ann_var, get_prev):
+        return []
 
-            self.constraints = [z3.Or(*constrains)]
-        return match_fun
+    def get_general_constraints(self, get_prev):
+        return self.constraints
 
-    def get_config(self, model):
-        """
-        Get the synthesized Community
-        :param model: Z3 model
-        :return: Community
-        """
-        return self.config_class(self.get_val(model))
+    def add_constraints(self, solver):
+        for name, const in self.constraints.iteritems():
+            solver.assert_and_track(const, name)
+        return self.constraints
+
+    def set_model(self, model):
+        self._model = model
+
+    def __str__(self):
+        return "<%s(%s)>" % (self.__class__.__name__, self.name)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class SMTCommunity(SMTSynMatchVal):
     """
-   Synthesis one Community match
-   """
+    Match on a community value in the Announcement.
+    """
 
     def __init__(self, name, community, context):
         """
-        :param community: Community object or VALUENOTSET
-        :param name: unique name to make the SMT variables more readable
+        :param name: name to be used with z3 var names
+        :param community: Community or VALUENOTSET
         :param context: SMTContext
         """
-        super(SMTCommunity, self).__init__(
+        # This is a tricky one!!!
+        # If community value is concrete then it's easy normal value
+        # If community value is not known then we're trying to find a community
+        #  s.t it's true for all announcements in the context
+        if community in context.communities_ctx:
+            val_ctx = context.communities_ctx[community]
+            self.community = community
+            self._custom = False
+
+            def model_eval(model, val):
+                """Evaluate community"""
+                return community if z3.is_true(model.eval(val)) else None
+
+            super(SMTCommunity, self).__init__(
+                name=name,
+                match_value=True,
+                value_ctx=val_ctx,
+                model_eval_fun=model_eval,
+                config_class=lambda x: community)
+        else:
+            model_eval = lambda model, val: z3.is_true(model.eval(val))
+            self.context = context
+            val_ctx = context.communities_ctx.values()[0]
+            self.community = community
+            self._custom = False
+            super(SMTCommunity, self).__init__(
+                name=name,
+                match_value=True,
+                value_ctx=val_ctx,
+                model_eval_fun=model_eval,
+                config_class=lambda x: community,
+                custom_match_gen=self._gen_match_func_com
+            )
+            self._custom = True
+
+    def is_concrete_match(self):
+        return False if self._custom else \
+            super(SMTCommunity, self).is_concrete_match()
+
+    def _gen_match_func_com(self):
+        # This is a bit tricky to handle
+        # In case the community match is EMPTY,
+        #     the the synthesizer is free to choose any community
+        # We create a dummy function such that it ranges and values maps exactly to
+        # one or more assigned communities.
+        # Then we enumerate the communities,
+        # and the variable self.match_synthesized tells us which one that successfully
+        # mapped to our dummy match
+        f_name = '%s_syn_match' % self.name
+        match_fun = z3.Function(f_name, self.context.announcement_sort, z3.BoolSort())
+        c_name = '%s_sel_match' % self.name
+        self.match_synthesized = z3.Const(c_name, z3.IntSort())
+        self.match_syn_map = {}
+        constrains = []
+        for index, community in enumerate(sorted(self.context.communities_ctx)):
+            ctx = self.context.communities_ctx[community]
+            self.match_syn_map[index] = community
+            constrain = [match_fun(tmp) == (ctx.get_var(tmp) == True)
+                         for tmp in ctx.ann_var_iter()]
+            first = [self.match_synthesized == index]
+            constrain = first + constrain
+            constrains.append(z3.And(*[constrain]))
+        syn_constraints = z3.Or(*constrains)
+
+        const_name = "%s_match_constraints" % self.name
+        self.constraints[const_name] = syn_constraints
+        return match_fun
+
+    def get_var(self):
+        val = super(SMTCommunity, self).get_var()
+        if self._custom is True:
+            return val
+        return val
+
+    def get_value(self):
+        val = super(SMTCommunity, self).get_var()
+        if self._custom is True:
+            return val
+        return self.community if val else None
+
+    def get_config(self):
+        return self.get_value()
+
+
+class SMTIpPrefix(SMTSynMatchVal):
+    """
+    Synthesis one IPPrefix
+    TODO: Support longest prefix matching
+    """
+
+    def __init__(self, name, prefix, context):
+        """
+        :param name: name for z3 variables
+        :param prefix: IPPrefix or VALUENOTSET
+        :param context: SMTContext
+        """
+        self.ctx = context
+        super(SMTIpPrefix, self).__init__(
             name=name,
-            value=community,
-            is_range_concrete=self._is_range_concerte,
-            get_concrete_val=self._get_concerte_val,
-            domain_sort=context.announcement_sort,
-            range_sort=z3.BoolSort(),
-            fun_map=context.communities_fun,
-            config_class=lambda x: x,
-            context=context,
+            match_value=prefix,
+            value_ctx=context.prefix_ctx,
+            model_eval_fun=lambda model, val: model.eval(val),
+            config_class=lambda x: x)
+
+
+class SMTNextHop(SMTSynMatchVal):
+    """
+    Synthesis one NextHop match
+    """
+
+    def __init__(self, name, next_hop, context):
+        """
+        :param name: unique name to make the SMT variables more readable
+        :param next_hop: NextHop or VALUENOTSET
+        :param context: SMTContext
+        """
+        self.ctx = context
+        super(SMTNextHop, self).__init__(
+            name=name,
+            match_value=next_hop,
+            value_ctx=context.next_hop_ctx,
+            model_eval_fun=lambda model, val: model.eval(val),
+            config_class=lambda x: MatchNextHop(x)
         )
 
-    def _get_concerte_val(self, ann, value):
-        return self.ctx.has_community(ann, value)
 
-    def _is_range_concerte(self, community):
-        for ann in self.ctx.announcements.values():
-            if ann.COMMUNITIES[community] not in ['T', 'F']:
-                return False
-        return True
+class SMTLocalPref(SMTSynMatchVal):
+    """
+    Synthesis one Local Pref
+    """
+
+    def __init__(self, name, local_pref, context):
+        """
+        :param name: unique name to make the SMT variables more readable
+        :param local_pref: Int or VALUENOTSET
+        :param context: SMTContext
+        """
+        self.ctx = context
+        super(SMTLocalPref, self).__init__(
+            name=name,
+            match_value=local_pref,
+            value_ctx=context.local_pref_ctx,
+            model_eval_fun=lambda model, val: model.eval(val).as_long(),
+            config_class=lambda x: x
+        )
 
 
-class SMTCommunityList(SMTObject):
+class SMTCommunityList(SMTSynMatchVal):
     """
     Synthesis list of Communities (AND)
     """
@@ -393,133 +406,82 @@ class SMTCommunityList(SMTObject):
         self.name = name
         self._community_list = community_list
         self.ctx = context
-        self.constraints = []
+        self.constraints = {}
         self.match_synthesized = None
         self.match_syn_map = {}
         self._smt_matches = []
+        self._model = None
         for i, comm in enumerate(self._community_list.communities):
             name = '%s_%d' % (self.name, i)
             smt = SMTCommunity(name=name, community=comm, context=self.ctx)
             self._smt_matches.append(smt)
         self.match_fun = self._gen_match_func()
 
-    def get_val(self, model):
+    def _gen_match_func(self):
+        # Add constraints
+        dist = [smt.match_synthesized for smt in
+                self._smt_matches if smt.match_synthesized is not None]
+        if len(dist) > 1:
+            unique_c = z3.Distinct(dist)
+            name = "%s_unique" % self.name
+            self.constraints[name] = unique_c
+        fun = lambda x: z3.And(*[smt.match_fun(x) for smt in self._smt_matches])
+        return fun
+
+    def is_match(self, ann_var):
+        if self.is_concrete():
+            return [] == [s for s in self._smt_matches if s.is_match(ann_var) == False]
+        else:
+            raise RuntimeError("Cannot used is_match without a Z3 model")
+
+    def get_var(self):
         """
         Return the synthesized list of Communities for this match
         :param model: Z3 model
         :return: list of Community
         """
-        return [smt.get_val(model) for smt in self._smt_matches]
+        return [smt.get_var() for smt in self._smt_matches]
+
+    def get_value(self):
+        """
+        Return the synthesized list of Communities for this match
+        :param model: Z3 model
+        :return: list of Community
+        """
+        return [smt.get_value() for smt in self._smt_matches]
 
     def is_concrete(self):
-        """
-        Return true if concrete Community object defined for all
-        known announcements in self.announcements
-        :return:
-        """
         for smt in self._smt_matches:
             if not smt.is_concrete():
                 return False
         return True
 
-    def _gen_match_func(self):
-        # Add constraints
-        for smt in self._smt_matches:
-            self.constraints.extend(smt.constraints)
-        dist = [smt.match_synthesized for smt in
-                self._smt_matches if smt.match_synthesized is not None]
-        if len(dist) > 1:
-            unique_c = z3.Distinct(dist)
-            self.constraints.append(unique_c)
-        fun = lambda x: z3.And(*[smt.match_fun(x) for smt in self._smt_matches])
-        return fun
-
-    def get_config(self, model):
+    def get_config(self):
         """
         Get the synthesized CommunityList
         :param model: Z3 model
         :return: CommunityList
         """
-        communities = self.get_val(model)
+        communities = self.get_value()
         return CommunityList(list_id=self._community_list.list_id,
                              access=self._community_list.access,
                              communities=communities)
 
+    def set_model(self, model):
+        for smt in self._smt_matches:
+            smt.set_model(model)
+        self._model = model
 
-class SMTIpPrefix(SMTSynMatchVal):
-    """
-    Synthesis one IPPrefix
-    TODO: Support longest prefix matching
-    """
-
-    def __init__(self, name, prefix, context):
-        """
-        :param name: unique name to make the SMT variables more readable
-        :param prefix: Prefix or VALUENOTSET
-        :param context: SMTContext
-        """
-        assert prefix == VALUENOTSET or isinstance(prefix, basestring)
-        super(SMTIpPrefix, self).__init__(
-            name=name,
-            value=prefix,
-            is_range_concrete=self._is_range_concerte,
-            get_concrete_val=self._get_concerte_val,
-            domain_sort=context.announcement_sort,
-            range_sort=context.prefix_sort,
-            fun_map=context.prefixes_vars,
-            config_class=lambda x: x,
-            context=context,
-        )
-
-    def _get_concerte_val(self, ann, value):
-        if isinstance(value, basestring):
-            value = self.ctx.prefixes_vars[value]
-        return self.ctx.get_prefix_var(ann) == value
-
-    def _is_range_concerte(self, community):
-        for ann in self.ctx.announcements.values():
-            if ann.PREFIX == VALUENOTSET:
-                return False
-        return True
+    def add_constraints(self, solver):
+        constraints = {}
+        for smt in self._smt_matches:
+            constraints.update(smt.add_constraints(solver))
+        for name, constraint in self.constraints.iteritems():
+            solver.assert_and_track(constraint, name)
+        return constraints
 
 
-class SMTNextHop(SMTSynMatchVal):
-    """
-    Synthesis one NextHop match
-    """
-
-    def __init__(self, name, nexthop, context):
-        """
-        :param name: unique name to make the SMT variables more readable
-        :param nexthop: NextHop or VALUENOTSET
-        :param context: SMTContext
-        """
-        assert nexthop == VALUENOTSET or isinstance(nexthop, basestring)
-        super(SMTNextHop, self).__init__(
-            name=name,
-            value=nexthop,
-            is_range_concrete=self._is_range_concerte,
-            get_concrete_val=self._get_concerte_val,
-            domain_sort=context.announcement_sort,
-            range_sort=context.nexthop_sort,
-            fun_map=context.nexthop_map,
-            config_class=MatchNextHop,
-            context=context,
-        )
-
-    def _get_concerte_val(self, ann, value):
-        if isinstance(value, basestring):
-            value = self.ctx.nexthop_map[value]
-        return self.ctx.get_nexthop_var(ann) == value
-
-    def _is_range_concerte(self, community):
-        for ann in self.ctx.announcements.values():
-            if ann.NEXT_HOP == VALUENOTSET:
-                return False
-        return True
-
-
-class SMTIpPrefixList(SMTObject):
+class SMTIpPrefixList(SMTSynMatchVal):
     """
     Synthesis list of IP Prefixes (AND)
     """
@@ -535,10 +497,10 @@ class SMTIpPrefixList(SMTObject):
         self.prefix_list = prefix_list
         self.ctx = context
 
-        self.constraints = []
+        self.constraints = {}
         self.match_synthesized = None
         self.match_syn_map = {}
-
+        self._model = None
         self._smt_matches = []
         for i, prefix in enumerate(self.prefix_list.networks):
             name = '%s_%d' % (self.name, i)
@@ -546,67 +508,95 @@ class SMTIpPrefixList(SMTObject):
             self._smt_matches.append(smt)
         self.match_fun = self._gen_match_func()
 
-    def get_val(self, model):
-        """
-        Return the synthesized list of Prefixes for this match
-        :param model: Z3 model
-        :return: list of Community
-        """
-        return [smt.get_val(model) for smt in self._smt_matches]
+    def is_match(self, ann_var):
+        for s in self._smt_matches:
+            if s.is_match(ann_var):
+                return True
+        return False
+
+    def set_model(self, model):
+        self._model = model
+        for smt in self._smt_matches:
+            smt.set_model(model)
+
+    def get_var(self):
+        return [smt.get_var() for smt in self._smt_matches]
+
+    def get_value(self):
+        return [smt.get_value() for smt in self._smt_matches]
 
     def is_concrete(self):
-        """
-        Return true if concrete Prefix object defined
-        :return:
-        """
         for smt in self._smt_matches:
             if not smt.is_concrete():
                 return False
         return True
 
     def _gen_match_func(self):
-        # Add constraints
-        for smt in self._smt_matches:
-            self.constraints.extend(smt.constraints)
+
         dist = [smt.match_synthesized for smt in
                 self._smt_matches if smt.match_synthesized is not None]
         if len(dist) > 1:
             unique_c = z3.Distinct(dist)
-            self.constraints.append(unique_c)
+            name = '%s_unique' % self.name
+            self.constraints[name] = unique_c
         fun = lambda x: z3.And(*[smt.match_fun(x) for smt in self._smt_matches])
         return fun
 
-    def get_config(self, model):
-        """
-        Get the synthesized CommunityList
-        :param model: Z3 model
-        :return: CommunityList
-        """
-        prefixes = self.get_val(model)
+    def get_config(self):
+        prefixes = self.get_value()
         return IpPrefixList(name=self.prefix_list.name,
                             access=self.prefix_list.access,
                             networks=prefixes)
 
+    def add_constraints(self, solver):
+        constraints = {}
+        for smt in self._smt_matches:
+            constraints.update(smt.add_constraints(solver))
+        for name, constraint in self.constraints.iteritems():
+            solver.assert_and_track(constraint, name)
+            constraints[name] = constraint
+        return constraints
 
-class SMTTrueMatch(SMTObject):
+
+class SMTTrueMatch(SMTSynMatchVal):
     """
     Special Match, that is True for all
     """
 
     def __init__(self):
         self.match_fun = lambda x: True
+        self._model = None
+        self.name = 'TrueMatch'
+
+    def is_match(self, ann_var):
+        return True
 
     def is_concrete(self):
         return True
 
-    def get_val(self, model):
+    def get_value(self):
         return True
 
-    def get_config(self, model):
+    def get_var(self):
+        return True
+
+    def get_config(self):
         return None
 
+    def add_constraints(self, solver):
+        return {}
 
-class SMTMatch(SMTObject):
+    def set_model(self, model):
+        self._model = model
+
+    def get_general_constraints(self, get_prev):
+        return {}
+
+    def get_var_constraints(self, ann_var, get_prev):
+        return []
+
+
+class SMTMatch(SMTSynMatchVal):
     """
     A single match is OR between a list of the same object type
     """
@@ -615,20 +605,32 @@ class SMTMatch(SMTObject):
         self.name = name
         self.match = match
         self.ctx = context
-        self.constraints = []
+        self.constraints = {}
         self.smts = []
         self._is_concrete = False
         self.match_dispatch = {
             MatchCommunitiesList: self._match_comm,
             MatchIpPrefixListList: self._match_ip,
-            MatchNextHop: self._match_nexthop,
+            MatchNextHop: self._match_next_hop,
             OrOp: self._match_or,
             type(None): self._none_match,
         }
+        self._model = None
         self.match_fun = self.match_dispatch[type(match)](match)
 
     def is_concrete(self):
-        return self._is_concrete
+        for smt in self.smts:
+            if not smt.is_concrete():
+                return False
+        return True
+
+    def is_match(self, ann_var):
+        if self.is_concrete():
+            return [] == [s for s in self.smts if s.is_match(ann_var) == False]
+        elif self._model:
+            return z3.is_true(z3.And(*[s.match_fun(ann_var) == True for s in self.smts]))
+        else:
+            raise RuntimeError("Cannot used is_match without a Z3 model")
 
     def _none_match(self, match):
         self.match_fun = lambda x: True
@@ -636,21 +638,18 @@ class SMTMatch(SMTObject):
     def _match_comm(self, match):
         name = "%s_comm_list" % self.name
         self.smts = [SMTCommunityList(name, match.match, self.ctx)]
-        self.constraints.extend(self.smts[0].constraints)
         self._is_concrete = self.smts[0].is_concrete()
         return self.smts[0].match_fun
 
     def _match_ip(self, match):
         name = "%s_ip_list" % self.name
         self.smts = [SMTIpPrefixList(name, match.match, self.ctx)]
-        self.constraints.extend(self.smts[0].constraints)
         self._is_concrete = self.smts[0].is_concrete()
         return self.smts[0].match_fun
 
-    def _match_nexthop(self, match):
-        name = "%s_nexthop" % self.name
+    def _match_next_hop(self, match):
+        name = "%s_next_hop" % self.name
         self.smts = [SMTNextHop(name, match.match, self.ctx)]
-        self.constraints.extend(self.smts[0].constraints)
         self._is_concrete = self.smts[0].is_concrete()
         return self.smts[0].match_fun
 
@@ -661,9 +660,7 @@ class SMTMatch(SMTObject):
             name = "%s_or_%d_" % (self.name, i)
             new_match = SMTMatch(name, value, self.ctx)
             match_func = new_match.match_fun
-            constraints = new_match.constraints
             matches.append(match_func)
-            self.constraints.extend(constraints)
             self.smts.append(new_match)
             if not new_match.is_concrete():
                 is_concrete = False
@@ -671,26 +668,45 @@ class SMTMatch(SMTObject):
         match_func = lambda x: z3.Or(*[m(x) for m in matches])
         return match_func
 
-    def get_val(self, model):
+    def get_value(self):
+        ret = [smt.get_value() for smt in self.smts]
         if len(self.smts) == 1:
-            return self.smts[0].get_val(model)
-        return [smt.get_val(model) for smt in self.smts]
+            return ret[0]
+        return ret
 
-    def _get_single_config(self, smt, model):
-        config = smt.get_config(model)
+    def get_var(self):
+        if len(self.smts) == 1:
+            return self.smts[0].get_var()
+        return [smt.get_var() for smt in self.smts]
+
+    def _get_single_config(self, smt):
+        config = smt.get_config()
         if isinstance(self.match, MatchCommunitiesList):
             return MatchCommunitiesList(config)
         elif isinstance(self.match, MatchIpPrefixListList):
             return MatchIpPrefixListList(config)
         return config
 
-    def get_config(self, model):
+    def get_config(self):
         if isinstance(self.match, OrOp):
-            return [smt.get_config(model) for smt in self.smts]
-        return self._get_single_config(self.smts[0], model)
+            return [smt.get_config() for smt in self.smts]
+        return self._get_single_config(self.smts[0])
+
+    def set_model(self, model):
+        for smt in self.smts:
+            smt.set_model(model)
+
+    def add_constraints(self, solver):
+        constraints = {}
+        for smt in self.smts:
+            constraints.update(smt.add_constraints(solver))
+        for name, constraint in self.constraints.iteritems():
+            solver.assert_and_track(constraint, name)
+            constraints[name] = constraint
+        return constraints
 
 
-class SMTMatches(SMTObject):
+class SMTMatches(SMTSynMatchVal):
     """
     A multiple matches with AND operator
     """
@@ -704,32 +720,55 @@ class SMTMatches(SMTObject):
         self.name = name
         self.matches = matches
         self.ctx = context
-        self.constraints = []
         self.boxes = []
+        self._model = None
         self.match_fun = self._load_matches()
 
     def _load_matches(self):
-        if len(self.matches) == 0:
+        if not self.matches:
             box = SMTTrueMatch()
             self.boxes.append(box)
         for i, match in enumerate(self.matches):
             name = "%s_and_%d_" % (self.name, i)
             box = SMTMatch(name=name, match=match, context=self.ctx)
-            self.constraints.extend(box.constraints)
             self.boxes.append(box)
         return lambda x: z3.And([box.match_fun(x) for box in self.boxes])
 
     def is_concrete(self):
-        return [] == [box.is_concrete() for box in self.boxes if not box.is_concrete()]
+        for box in self.boxes:
+            if not box.is_concrete():
+                return False
+        return True
 
-    def get_val(self, model):
-        return [m.get_val(model) for m in self.boxes]
+    def is_match(self, ann_var):
+        if self.is_concrete():
+            return [] == [s for s in self.boxes if not s.is_match(ann_var)]
+        elif self._model:
+            return z3.is_true(z3.And(*[s.match_fun(ann_var) == True for s in self.boxes]))
+        else:
+            raise RuntimeError("Cannot used is_match without a Z3 model")
 
-    def get_config(self, model):
-        ret = [m.get_config(model) for m in self.boxes]
+    def get_var(self):
+        return [m.get_var() for m in self.boxes]
+
+    def get_value(self):
+        return [m.get_value() for m in self.boxes]
+
+    def get_config(self):
+        ret = [m.get_config() for m in self.boxes if not isinstance(m, SMTTrueMatch)]
         if ret == [None]:
             return []
         return ret
+
+    def set_model(self, model):
+        for box in self.boxes:
+            box.set_model(model)
+
+    def add_constraints(self, solver):
+        constraints = {}
+        for box in self.boxes:
+            constraints.update(box.add_constraints(solver))
+        return constraints
 
 
 class SMTAction(SMTObject):
@@ -748,57 +787,107 @@ class SMTSetVal(SMTAction):
     Set a value in the Announcement
     """
 
-    def __init__(self, name, value, match, domain_sort, range_sort,
-                 prev_value,
-                 config_class, model_val,
-                 context):
+    def __init__(self, name, value, match, value_ctx, config_class,
+                 model_val, context):
         assert isinstance(match, SMTObject)
         self.name = name
         self._value = value
         self.match = match
-        self.constraints = []
-        self.ctx = context
-        self.action_val = None
-        self.action_fun = None
-        self.prev_value = prev_value
-        self.domain_sort = domain_sort
-        self.range_sort = range_sort
+        self.value_ctx = value_ctx
         self.config_class = config_class
         self.model_val = model_val
+        self.ctx = context
+
+        self.constraints = {}
+        self._action_val = None
+        self._action_fun = None
+        self._action_fun_used = False
+        self._model = None
         self._load_action()
 
+    @property
+    def action_fun(self):
+        """
+        Return the actions z3 function
+        This will trigger adding more constraints
+        """
+        self._action_fun_used = True
+        return self._action_fun
+
     def _load_action(self):
-        f_name = "%s_fun" % self.name
-        self.action_fun = z3.Function(f_name, self.domain_sort, self.range_sort)
+        domain = self.value_ctx.announcement_sort
+        f_range = self.value_ctx.fun_range_sort
         val_name = '%s_val' % self.name
-        self.action_val = z3.Const(val_name, self.range_sort)
-        if self._value == VALUENOTSET:
-            val = self.action_val
+        new_var = z3.Const(val_name, f_range)
+        f_name = "%s_fun" % self.name
+        self._action_fun = z3.Function(f_name, domain, f_range)
+
+        # If value is empty, convert it to z3 variable
+        if is_empty(self._value):
+            self._action_val = new_var
         else:
-            self.constraints.append(self.action_val == self._value)
-            val = self._value
-
-        for ann_var in self.ctx.anns_var_iter():
-            constraint = self.action_fun(ann_var) == z3.If(
-                self.match.match_fun(ann_var) == True,
-                val,
-                self.prev_value(ann_var))
-
-            self.constraints.append(constraint)
-        return self.action_fun
+            if is_symbolic(self._value):
+                self._action_val = self._value
+            else:
+                # The variable is a string and there is a z3 object for it
+                if self.value_ctx.range_map is not None:
+                    self._action_val = self.value_ctx.range_map[self._value]
+                else:
+                    # The variable is not mapped to z3 objects
+                    # (for example local prefs)
+                    self._action_val = self._value
 
     def is_concrete(self):
-        return self.match.is_concrete() and self._value != VALUENOTSET
+        return self.match.is_concrete() and not is_empty(self._value)
 
-    def get_val(self, model):
-        if self._value != VALUENOTSET:
-            return self._value
-        value = model.eval(self.action_val)
-        return self.model_val(value)
+    def get_var(self):
+        return self._action_val
 
-    def get_config(self, model):
-        val = self.get_val(model)
+    def get_value(self):
+        var = self.get_var()
+        if self._model and is_symbolic(var):
+            return self.model_val(self._model, var)
+        return self.value_ctx.get_value_of_var(var)
+
+    def set_model(self, model):
+        self._model = model
+
+    def add_constraints(self, solver):
+        if not self._action_fun_used:
+            return {}
+        if self.match.is_concrete():
+            for ann_var in self.value_ctx.ann_var_iter():
+                name = "%s_set_action_val_%s" % (self.name, str(ann_var))
+                if self.match.is_match(ann_var):
+                    val = self.get_var()
+                else:
+                    val = self.value_ctx.get_var(ann_var)
+                constraint = self._action_fun(ann_var) == val
+                self.constraints[name] = constraint
+        else:
+            tmp = z3.Const("%s_tmp" % self.name, self.value_ctx.announcement_sort)
+            constraint = z3.ForAll(
+                [tmp],
+                self._action_fun(tmp) == z3.If(
+                    self.match.match_fun(tmp) == True,
+                    self._action_val,
+                    self.value_ctx.get_var(tmp)
+                ))
+            name = "%s_set_action_val_all"
+            self.constraints[name] = constraint
+        for name, constraint in self.constraints.iteritems():
+            solver.assert_and_track(constraint, name)
+        return self.constraints
+
+    def get_config(self):
+        val = self.get_value()
         return self.config_class(val)
+
+    def __str__(self):
+        return "<%s(%s)>" % (self.__class__.__name__, self.name)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class SMTSetLocalPref(SMTSetVal):
@@ -813,24 +902,115 @@ class SMTSetLocalPref(SMTSetVal):
         :param match: and SMTObject with a match_fun
         :param context: SMTContext
         """
-        assert localpref == VALUENOTSET or isinstance(localpref, int)
-        assert isinstance(match, SMTObject)
+        assert is_empty(localpref) or isinstance(localpref, int)
         super(SMTSetLocalPref, self).__init__(
             name=name,
             value=localpref,
             match=match,
-            domain_sort=context.announcement_sort,
-            range_sort=z3.IntSort(),
-            prev_value=context.local_pref_fun,
+            value_ctx=context.local_pref_ctx,
             config_class=ActionSetLocalPref,
-            model_val=lambda x: x.as_long(),
+            model_val=lambda model, var: model.eval(var).as_long(),
             context=context
         )
-        if not self.is_concrete():
-            self.constraints.append(self.action_val > 0)
 
     def get_new_context(self):
-        ctx = self.ctx.get_new_context(local_pref_fun=self.action_fun)
+        name = '%s_ctx' % self.name
+        announcements = {}
+        announcements_map = {}
+        ann_var_map = {}
+        if self.match.is_concrete():
+            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+                ann = self.ctx.announcements[ann_name]
+                if self.match.is_match(ann_var):
+                    new_ann = ann.copy()
+                    new_ann.local_pref = self.get_var()
+                else:
+                    new_ann = ann
+                announcements[ann_name] = new_ann
+                announcements_map[ann_name] = ann_var
+                ann_var_map[ann_var] = new_ann
+        else:
+            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+                ann = self.ctx.announcements[ann_name]
+                new_ann = ann.copy()
+                new_ann.local_pref = z3.If(
+                    self.match.match_fun(ann_var) == True,
+                    self.get_value(),
+                    self.value_ctx.get_value(ann_var)
+                )
+                announcements[ann_name] = new_ann
+                announcements_map[ann_name] = ann_var
+                ann_var_map[ann_var] = new_ann
+
+        def transformer(ann_var, ann):
+            """Transformer for the new context"""
+            return ann_var_map[ann_var]
+
+        new_local_pref_fun = z3.Function(
+            "%s_local_pref" % name, self.ctx.announcement_sort, z3.IntSort())
+
+        prefix_ctx = self.ctx.prefix_ctx.get_new_context(
+            name='%s_subset_prefix' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.prefix_ctx._fun,
+            transformer=transformer)
+        peer_ctx = self.ctx.peer_ctx.get_new_context(
+            '%s_subset_peer' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.peer_ctx._fun,
+            transformer=transformer)
+        origin_ctx = self.ctx.origin_ctx.get_new_context(
+            '%s_subset_origin' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.origin_ctx._fun,
+            transformer=transformer)
+        as_path_ctx = self.ctx.as_path_ctx.get_new_context(
+            '%s_subset_as_path' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        as_path_len_ctx = self.ctx.as_path_len_ctx.get_new_context(
+            '%s_subset_as_path_len' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        next_hop_ctx = self.ctx.next_hop_ctx.get_new_context(
+            '%s_subset_next_hop' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.next_hop_ctx._fun,
+            transformer=transformer)
+        local_pref_ctx = self.ctx.local_pref_ctx.get_new_context(
+            '%s_subset_local_pref' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=new_local_pref_fun,
+            transformer=transformer)
+        permitted_ctx = self.ctx.permitted_ctx.get_new_context(
+            '%s_subset_permitted' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.permitted_ctx._fun,
+            transformer=transformer)
+        communities_ctx = {}
+        for community, community_ctx in self.ctx.communities_ctx.iteritems():
+            communities_ctx[community] = community_ctx.get_new_context(
+                '%s_subset_community_%s' % (name, community.name),
+                ann_vars=ann_var_map.keys(),
+                new_fun=community_ctx._fun,
+                transformer=transformer)
+
+        ctx = self.ctx.get_new_context(
+            name=name,
+            announcements=announcements,
+            announcements_map=announcements_map,
+            prefix_ctx=prefix_ctx,
+            peer_ctx=peer_ctx,
+            origin_ctx=origin_ctx,
+            as_path_ctx=as_path_ctx,
+            as_path_len_ctx=as_path_len_ctx,
+            next_hop_ctx=next_hop_ctx,
+            local_pref_ctx=local_pref_ctx,
+            communities_ctx=communities_ctx,
+            permitted_ctx=permitted_ctx,
+            prev_ctxs=[self.ctx] + self.ctx.prev_ctxs)
         return ctx
 
 
@@ -850,117 +1030,194 @@ class SMTSetCommunity(SMTAction):
         assert isinstance(communities, Iterable)
         for comm in communities:
             assert isinstance(comm, Community)
+        if is_empty(additive):
+            additive = z3.Const("%s_additive" % name, z3.BoolSort())
         assert isinstance(match, SMTObject)
         self.name = name
         self._communities = communities
         self.match = match
         self.additive = additive
-        self.constraints = []
+        self.constraints = {}
         self.ctx = context
-        self.prev_action_fun = self.ctx.communities_fun
-        self.new_comm_fun = {}
+        self.prev_comm_ctx = self.ctx.communities_ctx
+
+        self._new_comm_vars = dict([(comm, {}) for comm in self.prev_comm_ctx.keys()])
+
         self._load_action()
 
-    def _load_action(self):
-        ann_sort = self.ctx.announcement_sort
-        match_fun = self.match.match_fun
-
-        def get_prev(comm):
-            """Get the community function from the previous context"""
-            if self.additive:
-                return self.prev_action_fun[comm]
-            else:
-                # Only override communities that matches
-                return lambda x: z3.If(match_fun(x) == True,
-                                       False,
-                                       self.prev_action_fun[comm](x))
-
-        def get_new_community(comm):
-            """Synthesize new community"""
-            name = "%s_set_comm_%s_fun" % (self.name, comm.name)
-            fun = z3.Function(name, ann_sort, z3.BoolSort())
-            name = '%s_%s_Tmp' % (self.name, comm.name)
-            tmp = z3.Const(name, ann_sort)
-            prev = get_prev(comm)
-            if comm not in self._communities:
-                return prev
-            for var in self.ctx.anns_var_iter():
-                self.constraints.append(fun(var) == z3.If(match_fun(var) == True, True, prev(var)))
-            # c = z3.ForAll(
-            #    [tmp],
-            #    fun(tmp) == z3.If(match_fun(tmp) == True, True, prev(tmp))
-            # )
-            # self.constraints.append(c)
-            return fun
-
-        # def syn_new_community(n, not_set_vals):
-        #    f_name = '%s_%s_Synthesize_Comm_Match' % (self.name, n)
-        #    fun = z3.Function(f_name, ann_sort, z3.BoolSort())
-        #    c_name = '%s_%s_Selected_Comm_Match' % (self.name, n)
-        #    syn_index = z3.Const(c_name, z3.IntSort())
-        #    syn_map = {}
-        #    constrains = []
-        #    for i, community in enumerate(sorted(not_set_vals)):
-        #        # TODO: there are some room for partial eval
-        #        tmp = z3.Const('%s_%s_Tmp%d' % (self.name, n, i), ann_sort)
-        #        syn_map[i] = community
-        #        prev = get_prev(community)
-        #        constrains.append(
-        #            z3.And(
-        #                z3.If(
-        #                    syn_index == i,
-        #                    z3.ForAll(
-        #                        [tmp],
-        #                        fun(tmp) == z3.If(match_fun(tmp), True, prev(tmp))),
-        #                    z3.ForAll(
-        #                        [tmp],
-        #                        fun(tmp) == prev(tmp)
-        #                    ))))
-        #        self.new_comm_fun[community] = lambda x: z3.If(syn_index == i, fun(x), prev(x))
-        #    self.constraints.append(z3.Or(*constrains))
-        #    return (fun, syn_index, syn_map)
-        #
-        # not_set_vals = [comm for comm in self.prev_action_fun
-        #                if comm not in self._communities]
-
-        self.synthesized_communities = []
-        for n, community in enumerate(self._communities):
-            if community != VALUENOTSET:
-                self.new_comm_fun[community] = get_new_community(community)
-                self.synthesized_communities.append(community)
-                # else:
-                # new_fun, syn_index, syn_map = syn_new_community(n, not_set_vals)
-                # self.synthesized_communities.append((syn_index, syn_map))
-        # Fill remaining communities
-        for community in self.prev_action_fun:
-            if community not in self.new_comm_fun:
-                self.new_comm_fun[community] = get_prev(community)
+    def is_concrete_value(self):
+        if is_empty(self.additive):
+            return False
+        for comm in self._communities:
+            if is_empty(comm):
+                return False
+        return True
 
     def is_concrete(self):
-        return False
+        return self.match.is_concrete() and self.is_concrete_value()
 
-    def get_val(self, model):
+    def _load_action(self):
+        def new_var(comm, ann_var):
+            return z3.Const('%s_new_var_%s_%s' % (self.name, comm.name, str(ann_var)), z3.BoolSort())
 
+        def get_prev(comm, ann_var):
+            ret_val = None
+
+            if self.match.is_concrete() is True:
+                if self.match.is_match(ann_var):
+                    if comm in self._communities:
+                        ret_val = True
+                    else:
+                        if is_symbolic(self.additive):
+                            ret_val = new_var(comm, ann_var)
+                            const = z3.If(
+                                self.additive == True,
+                                self.prev_comm_ctx[comm].get_var(ann_var),
+                                False)
+                            name = '%s_new_var_%s_%s_S' % (self.name, comm.name, str(ann_var))
+                            self.constraints[name] = const
+                        else:
+                            ret_val = self.prev_comm_ctx[comm].get_var(ann_var) if self.additive else False
+                elif not self.match.is_match(ann_var):
+                    ret_val = self.prev_comm_ctx[comm].get_var(ann_var)
+            else:
+                if comm in self._communities:
+                    ret_val = new_var(comm, ann_var)
+                    const = z3.If(
+                        self.match.match(ann_var) == True,
+                        True,
+                        self.prev_comm_ctx[comm].get_var(ann_var))
+                    name = '%s_new_var_%s_%s_S' % (self.name, comm.name, str(ann_var))
+                    self.constraints[name] = const
+                else:
+                    ret_val = new_var(comm, ann_var)
+                    const = z3.If(
+                        self.match.match(ann_var) == True,
+                        z3.If(
+                            self.additive == True,
+                            self.prev_comm_ctx[comm].get_var(ann_var),
+                            False),
+                        self.prev_comm_ctx[comm].get_var(ann_var))
+                    name = '%s_new_var_%s_%s_S' % (self.name, comm.name, str(ann_var))
+                    self.constraints[name] = const
+            return ret_val
+
+        if self.is_concrete() and self.match.is_concrete():
+            for comm in self.prev_comm_ctx.keys():
+                for ann_var in self.prev_comm_ctx[comm].announcements_var_map.keys():
+                    self._new_comm_vars[comm][ann_var] = get_prev(comm, ann_var)
+
+    def get_value(self):
         if VALUENOTSET not in self._communities:
             return self._communities
         vals = []
         for val in self.synthesized_communities:
             if isinstance(val, tuple):
                 syn_index, syn_map = val
-                index = model.eval(syn_index).as_long()
-                print syn_map
+                index = self._model.eval(syn_index).as_long()
                 val = syn_map[index]
                 vals.append(val)
             else:
                 vals.append(val)
         return vals
 
-    def get_config(self, model):
-        val = self.get_val(model)
+    def get_config(self):
+        val = self.get_value()
         return ActionSetCommunity(val)
 
+    def add_constraints(self, solver):
+        for name, c in self.constraints.iteritems():
+            solver.assert_and_track(c, name)
+        return self.constraints
+
+    def set_model(self, model):
+        self._model = model
+
     def get_new_context(self):
-        ctx = self.ctx.get_new_context(communities_fun=self.new_comm_fun)
+        name = '%s_ctx' % self.name
+        announcements = {}
+        announcements_map = {}
+        ann_var_map = {}
+
+        for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+            ann = self.ctx.announcements[ann_name]
+            new_ann = ann.copy()
+            for comm in self._new_comm_vars:
+                new_ann.communities[comm] = self._new_comm_vars[comm][ann_var]
+
+            announcements[ann_name] = new_ann
+            announcements_map[ann_name] = ann_var
+            ann_var_map[ann_var] = new_ann
+
+        def transformer(ann_var, ann):
+            """Transformer for the new context"""
+            return ann_var_map[ann_var]
+
+        prefix_ctx = self.ctx.prefix_ctx.get_new_context(
+            name='%s_subset_prefix' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.prefix_ctx._fun,
+            transformer=transformer)
+        peer_ctx = self.ctx.peer_ctx.get_new_context(
+            '%s_subset_peer' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.peer_ctx._fun,
+            transformer=transformer)
+        origin_ctx = self.ctx.origin_ctx.get_new_context(
+            '%s_subset_origin' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.origin_ctx._fun,
+            transformer=transformer)
+        as_path_ctx = self.ctx.as_path_ctx.get_new_context(
+            '%s_subset_as_path' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        as_path_len_ctx = self.ctx.as_path_len_ctx.get_new_context(
+            '%s_subset_as_path_len' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        next_hop_ctx = self.ctx.next_hop_ctx.get_new_context(
+            '%s_subset_next_hop' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.next_hop_ctx._fun,
+            transformer=transformer)
+        local_pref_ctx = self.ctx.local_pref_ctx.get_new_context(
+            '%s_subset_local_pref' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.local_pref_ctx._fun,
+            transformer=transformer)
+        permitted_ctx = self.ctx.permitted_ctx.get_new_context(
+            '%s_subset_permitted' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.permitted_ctx._fun,
+            transformer=transformer)
+        communities_ctx = {}
+        for community, community_ctx in self.ctx.communities_ctx.iteritems():
+            new_comm_fun = z3.Function(
+                "%s_comm_%s_fun" % (name, community.name),
+                self.ctx.announcement_sort, z3.IntSort())
+            communities_ctx[community] = community_ctx.get_new_context(
+                '%s_subset_community_%s' % (name, community.name),
+                ann_vars=ann_var_map.keys(),
+                new_fun=new_comm_fun,
+                transformer=transformer)
+
+        ctx = self.ctx.get_new_context(
+            name=name,
+            announcements=announcements,
+            announcements_map=announcements_map,
+            prefix_ctx=prefix_ctx,
+            peer_ctx=peer_ctx,
+            origin_ctx=origin_ctx,
+            as_path_ctx=as_path_ctx,
+            as_path_len_ctx=as_path_len_ctx,
+            next_hop_ctx=next_hop_ctx,
+            local_pref_ctx=local_pref_ctx,
+            communities_ctx=communities_ctx,
+            permitted_ctx=permitted_ctx,
+            prev_ctxs=[self.ctx] + self.ctx.prev_ctxs)
         return ctx
 
 
@@ -975,9 +1232,10 @@ class SMTActions(SMTAction):
         self.action_dispatch = {
             ActionSetLocalPref: self._set_localpref,
             ActionSetCommunity: self._set_community,
+            SMTSetPermitted: self._set_access,
         }
         self.boxes = []
-        self.constraints = []
+        self.constraints = {}
         prev_ctx = self.ctx
         for i, action in enumerate(self.actions):
             new_name = "%s_%d" % (self.name, i)
@@ -985,17 +1243,56 @@ class SMTActions(SMTAction):
             box = fun(name=new_name, action=action, context=prev_ctx)
             prev_ctx = box.get_new_context()
             self.boxes.append(box)
-            self.constraints.extend(box.constraints)
         self._new_context = prev_ctx
 
     def is_concrete(self):
         return [] == [b for b in self.boxes if b.is_concrete() is False]
 
-    def get_val(self, model):
-        return [b.get_val(model) for b in self.boxes]
+    def get_value(self):
+        ret_values = []
+        for box in self.boxes:
+            val = box.get_value()
+            if not isinstance(box, SMTSetPermitted):
+                ret_values.append(val)
+        return ret_values
 
-    def get_config(self, model):
-        return [b.get_config(model) for b in self.boxes]
+    def get_var(self):
+        ret_vars = []
+        for box in self.boxes:
+            var = box.get_var()
+            if not isinstance(box, SMTSetPermitted):
+                ret_vars.append(var)
+        return ret_vars
+
+    def get_config(self):
+        return [b.get_config() for b in self.boxes
+                if not isinstance(b, SMTSetPermitted)]
+
+    def get_general_constraints(self, get_prev):
+        constraints = {}
+        constraints.update(self.constraints)
+        if get_prev:
+            for box in self.boxes:
+                consts = box.get_general_constraints(get_prev=True)
+                for name, const in consts:
+                    assert name not in constraints
+                constraints.update(consts)
+        return constraints
+
+    def get_var_constraints(self, ann_var, get_prev):
+        return []
+
+    def add_constraints(self, solver):
+        constraints = {}
+        constraints.update(self.constraints)
+        for box in self.boxes:
+            const = box.add_constraints(solver)
+            constraints.update(const)
+        return constraints
+
+    def set_model(self, model):
+        for box in self.boxes:
+            box.set_model(model)
 
     def get_new_context(self):
         return self._new_context
@@ -1004,10 +1301,155 @@ class SMTActions(SMTAction):
         return SMTSetLocalPref(name=name, localpref=action.value,
                                match=self.match, context=context)
 
+    def _set_access(self, name, action, context):
+        return action
+
     def _set_community(self, name, action, context):
         return SMTSetCommunity(name=name, communities=action.communities,
                                match=self.match, additive=action.additive,
                                context=context)
+
+
+class SMTSetPermitted(SMTSetVal):
+    """
+    Set the Local Pref for a route
+    """
+
+    def __init__(self, name, access, match, context):
+        """
+        :param name: a unique name to generate the SMT vars and fun
+        :param localpref: int or VALUENOTSET
+        :param match: and SMTObject with a match_fun
+        :param context: SMTContext
+        """
+        self.ctx = context
+        if is_symbolic(access) or is_empty(access):
+            value = access
+        else:
+            value = True if access == Access.permit else False
+
+        def model_eval(model, val):
+            return z3.is_true(model.eval(val))
+
+        def config_class(val):
+            if isinstance(val, bool):
+                comp = val
+            else:
+                comp = z3.is_true(val)
+            if comp:
+                return Access.permit
+            else:
+                return Access.deny
+
+        super(SMTSetPermitted, self).__init__(
+            name=name,
+            value=value,
+            match=match,
+            value_ctx=context.permitted_ctx,
+            config_class=config_class,
+            model_val=model_eval,
+            context=context
+        )
+
+    def get_new_context(self):
+        name = '%s_ctx' % self.name
+        announcements = {}
+        announcements_map = {}
+        ann_var_map = {}
+        if self.match.is_concrete():
+            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+                ann = self.ctx.announcements[ann_name]
+                if self.match.is_match(ann_var):
+                    new_ann = ann.copy()
+                    new_ann.permitted = self.get_var()
+                else:
+                    new_ann = ann
+                announcements[ann_name] = new_ann
+                announcements_map[ann_name] = ann_var
+                ann_var_map[ann_var] = new_ann
+        else:
+            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+                ann = self.ctx.announcements[ann_name]
+                new_ann = ann.copy()
+                new_ann.permitted = z3.If(
+                    self.match.match_fun(ann_var) == True,
+                    self.get_value(),
+                    self.value_ctx.get_value(ann_var)
+                )
+                announcements[ann_name] = new_ann
+                announcements_map[ann_name] = ann_var
+                ann_var_map[ann_var] = new_ann
+
+        def transformer(ann_var, ann):
+            """Transformer for the new context"""
+            return ann_var_map[ann_var]
+
+        new_permitted = z3.Function(
+            "%s_permitted" % name, self.ctx.announcement_sort, z3.BoolSort())
+
+        prefix_ctx = self.ctx.prefix_ctx.get_new_context(
+            name='%s_subset_prefix' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.prefix_ctx._fun,
+            transformer=transformer)
+        peer_ctx = self.ctx.peer_ctx.get_new_context(
+            '%s_subset_peer' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.peer_ctx._fun,
+            transformer=transformer)
+        origin_ctx = self.ctx.origin_ctx.get_new_context(
+            '%s_subset_origin' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.origin_ctx._fun,
+            transformer=transformer)
+        as_path_ctx = self.ctx.as_path_ctx.get_new_context(
+            '%s_subset_as_path' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        as_path_len_ctx = self.ctx.as_path_len_ctx.get_new_context(
+            '%s_subset_as_path_len' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        next_hop_ctx = self.ctx.next_hop_ctx.get_new_context(
+            '%s_subset_next_hop' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.next_hop_ctx._fun,
+            transformer=transformer)
+        local_pref_ctx = self.ctx.local_pref_ctx.get_new_context(
+            '%s_subset_local_pref' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.local_pref_ctx._fun,
+            transformer=transformer)
+        permitted_ctx = self.ctx.permitted_ctx.get_new_context(
+            '%s_subset_permitted' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=new_permitted,
+            transformer=transformer)
+        communities_ctx = {}
+        for community, community_ctx in self.ctx.communities_ctx.iteritems():
+            communities_ctx[community] = community_ctx.get_new_context(
+                '%s_subset_community_%s' % (name, community.name),
+                ann_vars=ann_var_map.keys(),
+                new_fun=community_ctx._fun,
+                transformer=transformer)
+
+        ctx = self.ctx.get_new_context(
+            name=name,
+            announcements=announcements,
+            announcements_map=announcements_map,
+            prefix_ctx=prefix_ctx,
+            peer_ctx=peer_ctx,
+            origin_ctx=origin_ctx,
+            as_path_ctx=as_path_ctx,
+            as_path_len_ctx=as_path_len_ctx,
+            next_hop_ctx=next_hop_ctx,
+            local_pref_ctx=local_pref_ctx,
+            communities_ctx=communities_ctx,
+            permitted_ctx=permitted_ctx,
+            prev_ctxs=[self.ctx] + self.ctx.prev_ctxs)
+        return ctx
 
 
 class SMTRouteMapLine(SMTAction):
@@ -1022,60 +1464,64 @@ class SMTRouteMapLine(SMTAction):
         self.name = name
         self.ctx = context
         self.line = line
-        self.match_constraints = []
-        self.action_constraints = []
+        self.constraints = {}
+
         self.matches = SMTMatches(name="m_%s" % name,
                                   matches=line.matches, context=context)
-        self.match_constraints.extend(self.matches.constraints)
+
+        self.permitted_action = SMTSetPermitted(name='%s_access' % self.name,
+                                                match=self.matches,
+                                                access=line.access, context=self.ctx)
+
         # No need to apply the actions if the route is dropped
-        if line.access != Access.deny:
+        if line.access == Access.deny:
             self.actions = SMTActions(name="a_%s" % name, match=self.matches,
-                                      actions=line.actions, context=context)
-            self.action_constraints.extend(self.actions.constraints)
-        self._load()
-
-    def _load(self):
-        access = self.line.access
-        prev = self.ctx.route_denied_fun
-        fun = z3.Function('%s_deny' % self.name, self.ctx.announcement_sort, z3.BoolSort())
-        self.route_denied_fun = fun
-        if access in [Access.permit, Access.deny]:
-            val = True if access == Access.deny else False
+                                      actions=[self.permitted_action],
+                                      context=self.ctx)
         else:
-            val = z3.Const('%s_route_denied' % self.name, z3.BoolSort())
-        self.access_val = val
-        for var in self.ctx.anns_var_iter():
-            self.match_constraints.append(
-                fun(var) == z3.If(self.matches.match_fun(var) == True,
-                                  val, prev(var)))
+            self.actions = SMTActions(name="a_%s" % name, match=self.matches,
+                                      actions=[self.permitted_action] + line.actions,
+                                      context=self.ctx)
+        self.new_ctx = self.actions.get_new_context()
 
-    def get_access(self, model):
-        """Get the synthesized Access (permit or deny"""
-        if isinstance(self.access_val, bool):
-            denied = self.access_val
-        else:
-            denied = z3.is_true(model.eval(self.access_val))
-        access = Access.deny if denied else Access.permit
-        return access
+    def get_value(self):
+        return (self.permitted_action.get_value(),
+                self.matches.get_value(),
+                self.actions.get_value())
 
-    def get_val(self, model):
-        access = self.get_access(model)
-        return (access, self.matches.get_val(model), self.actions.get_val(model))
+    def get_var(self):
+        return (self.permitted_action.get_var(),
+                self.matches.get_var(),
+                self.actions.get_var())
+
+    def set_model(self, model):
+        self.permitted_action.set_model(model)
+        self.matches.set_model(model)
+        self.actions.set_model(model)
 
     def is_concrete(self):
         return self.matches.is_concrete() and self.actions.is_concrete()
 
-    def get_config(self, model):
+    def get_config(self):
         return RouteMapLine(
-            matches=self.matches.get_config(model),
-            actions=self.actions.get_config(model),
-            access=self.get_access(model),
+            matches=self.matches.get_config(),
+            actions=self.actions.get_config(),
+            access=self.permitted_action.get_config(),
             lineno=self.line.lineno)
 
     def get_new_context(self):
-        ctx = self.actions.get_new_context()
-        ctx.route_denied_fun = self.route_denied_fun
-        return ctx
+        return self.new_ctx
+
+    def add_constraints(self, solver):
+        constraints = {}
+        constraints.update(self.constraints)
+        constraints.update(self.permitted_action.add_constraints(solver))
+        constraints.update(self.actions.add_constraints(solver))
+        constraints.update(self.matches.add_constraints(solver))
+        return constraints
+
+    def __str__(self):
+        return "<Line(%s, %s)>" % (self.name, self.line.lineno)
 
 
 class SMTRouteMap(SMTAction):
@@ -1087,110 +1533,165 @@ class SMTRouteMap(SMTAction):
         self.ctx = context
         self.boxes = []
         self.constraints = []
+        self.var_constraints = []
         for i, line in enumerate(self.route_map.lines):
             name = "%s_line_%s" % (self.name, i)
             box = SMTRouteMapLine(name, line=line, context=self.ctx)
             self.boxes.append(box)
-        self._load()
-        self.get_new_context()
 
-    def _get_match_i(self, i, var):
-        """
-        Get the match in order
-        For a match to be checked, all the previous lines should be false
-        """
-        if i == 0:
-            return self.boxes[i].matches.match_fun(var) == True
-        matches = []
-        for box in self.boxes[:i]:
-            matches.append(box.matches.match_fun(var) == False)
-        matches.append(self.boxes[i].matches.match_fun(var) == True)
-        return z3.And(*matches)
-
-    def _load(self):
-        tmp = z3.Const('%s_tmp' % self.name, self.ctx.announcement_sort)
-        for i, box in enumerate(self.boxes):
-            self.constraints.extend(box.match_constraints)
-            match_fun = self._get_match_i(i, tmp)
-            constraint = z3.ForAll(
-                [tmp],
-                z3.Implies(
-                    match_fun,
-                    z3.And(*box.action_constraints)
-                ))
-            self.constraints.append(constraint)
+    def add_constraints(self, solver):
+        for box in self.boxes:
+            box.add_constraints(solver)
 
     def is_concrete(self):
         return False
 
-    def _get_fun_ctx_i(self, ctx_name, key_name, var, index):
-        if index >= len(self.boxes):
-            match_fun = lambda x: True
-            ctx = self.ctx
+    def _recursive_if(self, ann_var, box_ctxs, value_ctx_name, dict_key=None):
+        box, ctx = box_ctxs[0]
+        value_ctx = getattr(ctx, value_ctx_name)
+        if isinstance(value_ctx, dict):
+            value_ctx = value_ctx[dict_key]
+        if len(box_ctxs) == 1:
+            var_name = "%s_%s_%s_unbonded" % (self.name, str(ann_var), value_ctx.name)
+            var = z3.Const(var_name, value_ctx.fun_range_sort)
+            else_var = var
         else:
-            match_fun = self._get_match_i(index, var)
-            ctx = self.boxes[index].get_new_context()
-
-        if key_name is None:
-            prev = getattr(ctx, ctx_name)
+            else_var = self._recursive_if(ann_var, box_ctxs[1:], value_ctx_name, dict_key)
+        if ann_var not in value_ctx.announcements_var_map:
+            ret_val = else_var
+        elif box.matches.is_concrete():
+            ret_val = value_ctx.get_var(ann_var) if box.matches.is_match(ann_var) else else_var
         else:
-            prev = getattr(ctx, ctx_name)[key_name]
-
-        if index < len(self.boxes):
-            else_ctx = self._get_fun_ctx_i(ctx_name, key_name, var, index + 1)
-        else:
-            else_ctx = None
-
-        if else_ctx is None:
-            return prev(var)
-        return z3.If(match_fun == True,
-                     prev(var),
-                     else_ctx)
-
-    def _get_new_fun(self, ctx_name):
-        fun = getattr(self.ctx, ctx_name)
-        # If the function is a dict (like communities)
-        # Then load each key separately
-        if isinstance(fun, dict):
-            new_dict = {}
-            for key in fun.keys():
-                key_name = getattr(key, 'name', key)
-                fun_name = 'new_%s_%s' % (self.name, key_name)
-                tmp_name = '%s_%s_tmp' % (self.name, key_name)
-                new_fun = z3.Function(fun_name, fun[key].domain(0), fun[key].range())
-                tmp = z3.Const(tmp_name, self.ctx.announcement_sort)
-                constraint = z3.ForAll(
-                    [tmp],
-                    new_fun(tmp) == self._get_fun_ctx_i(ctx_name, key, tmp, 0)
-                )
-                self.constraints.append(constraint)
-                new_dict[key] = new_fun
-            return new_dict
-        # Create new function
-        fun_name = 'new_%s_%s' % (self.name, str(fun))
-        tmp_name = '%s_%s_tmp' % (self.name, str(fun))
-        tmp = z3.Const(tmp_name, self.ctx.announcement_sort)
-        new_fun = z3.Function(fun_name, fun.domain(0), fun.range())
-        constraint = z3.ForAll(
-            [tmp],
-            new_fun(tmp) == self._get_fun_ctx_i(ctx_name, None, tmp, 0)
-        )
-        self.constraints.append(constraint)
-        return new_fun
+            ret_val = z3.If(box.matches.match_fun(ann_var), value_ctx.get_var(ann_var), else_var)
+        return ret_val
 
     def get_new_context(self):
-        ctx = self.ctx.get_new_context(
-            communities_fun=self._get_new_fun('communities_fun'),
-            prefix_fun=self._get_new_fun('prefix_fun'),
-            local_pref_fun=self._get_new_fun('local_pref_fun'),
-            route_denied_fun=self._get_new_fun('route_denied_fun'))
+        ann_var_map = {}
+        announcements = {}
+        announcements_vars = {}
+
+        vals = []
+        all_communities = self.ctx.communities_ctx.keys()
+        for box in self.boxes:
+            vals.append((box, box.get_new_context()))
+        for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+            prefix = self._recursive_if(ann_var, vals, 'prefix_ctx')
+            peer = self._recursive_if(ann_var, vals, 'peer_ctx')
+            origin = self._recursive_if(ann_var, vals, 'origin_ctx')
+            as_path = self._recursive_if(ann_var, vals, 'as_path_ctx')
+            as_path_len = self._recursive_if(ann_var, vals, 'as_path_len_ctx')
+            next_hop = self._recursive_if(ann_var, vals, 'next_hop_ctx')
+            local_pref = self._recursive_if(ann_var, vals, 'local_pref_ctx')
+            communities = {}
+            for community in all_communities:
+                communities[community] = self._recursive_if(ann_var, vals, 'communities_ctx', community)
+            permitted = self._recursive_if(ann_var, vals, 'permitted_ctx')
+            new_ann = Announcement(
+                prefix=prefix,
+                peer=peer,
+                origin=origin,
+                as_path=as_path,
+                as_path_len=as_path_len,
+                next_hop=next_hop,
+                local_pref=local_pref,
+                communities=communities,
+                permitted=permitted,
+            )
+            ann_var_map[ann_var] = new_ann
+            announcements[ann_name] = new_ann
+            announcements_vars[ann_name] = ann_var
+
+        ann_sort = self.ctx.announcement_sort
+
+        prefix_sort = self.ctx.prefix_ctx.fun_range_sort
+        prefix_map = self.ctx.prefix_ctx.range_map
+        prefix_fun = z3.Function('%s_prefix_fun' % self.name, ann_sort, prefix_sort)
+
+        peer_sort = self.ctx.peer_ctx.fun_range_sort
+        peer_map = self.ctx.peer_ctx.range_map
+        peer_fun = z3.Function('%s_peer_fun' % self.name, ann_sort, peer_sort)
+
+        origin_sort = self.ctx.origin_ctx.fun_range_sort
+        origin_map = self.ctx.origin_ctx.range_map
+        origin_fun = z3.Function('%s_origin_fun' % self.name, ann_sort, origin_sort)
+
+        as_path_sort = self.ctx.as_path_ctx.fun_range_sort
+        as_path_map = self.ctx.as_path_ctx.range_map
+        as_path_fun = z3.Function('%s_as_path_fun' % self.name, ann_sort, as_path_sort)
+
+        as_path_len_sort = self.ctx.as_path_len_ctx.fun_range_sort
+        as_path_len_fun = z3.Function('%s_as_path_len_fun' % self.name, ann_sort, as_path_len_sort)
+
+        next_hop_sort = self.ctx.next_hop_ctx.fun_range_sort
+        next_hop_map = self.ctx.next_hop_ctx.range_map
+        next_hop_fun = z3.Function('%s_next_hop_fun' % self.name, ann_sort, next_hop_sort)
+
+        local_pref_sort = self.ctx.as_path_len_ctx.fun_range_sort
+        local_pref_fun = z3.Function('%s_local_pref_fun' % self.name, ann_sort, local_pref_sort)
+
+        permitted_sort = self.ctx.as_path_len_ctx.fun_range_sort
+        permitted_fun = z3.Function('%s_permitted_fun' % self.name, ann_sort, permitted_sort)
+
+        wprefix = SMTPrefixWrapper(
+            '%s_prefix_ctx' % self.name, ann_sort, ann_var_map,
+            prefix_fun, prefix_sort, prefix_map)
+
+        wpeer = SMTPeerWrapper(
+            '%s_peer_ctx' % self.name, ann_sort, ann_var_map,
+            peer_fun, peer_sort, peer_map)
+
+        worigin = SMTOriginWrapper(
+            '%s_origin_ctx' % self.name, ann_sort, ann_var_map,
+            origin_fun, origin_sort, origin_map)
+
+        waspath = SMTASPathWrapper(
+            '%s_aspath_ctx' % self.name, ann_sort, ann_var_map,
+            as_path_fun, as_path_sort, as_path_map)
+
+        waspathlen = SMTASPathLenWrapper(
+            '%s_aspathlen_ctx' % self.name, ann_sort, ann_var_map,
+            as_path_len_fun)
+
+        wnext_hop = SMTNexthopWrapper(
+            '%s_next_hop_ctx' % self.name, ann_sort, ann_var_map,
+            next_hop_fun, next_hop_sort, next_hop_map)
+
+        wlocalpref = SMTLocalPrefWrapper(
+            '%s_local_pref_ctx' % self.name, ann_sort, ann_var_map,
+            local_pref_fun)
+
+        wpermitted = SMTPermittedWrapper(
+            '%s_permitted_ctx' % self.name, ann_sort, ann_var_map,
+            permitted_fun)
+
+        wcommunities = {}
+        for community in all_communities:
+            name = community.name
+            c_sort = self.ctx.as_path_len_ctx.fun_range_sort
+            c_fun = z3.Function('%s_%s_com_fun' % (self.name, community.name), ann_sort, c_sort)
+
+            wc1 = SMTCommunityWrapper(
+                '%s_%s_ctx' % (self.name, name), community, ann_sort,
+                ann_var_map, c_fun)
+            wcommunities[community] = wc1
+
+        ctx = SMTContext('%s_ctx' % self.name, announcements, announcements_vars, ann_sort,
+                         wprefix, wpeer, worigin, waspath, waspathlen,
+                         wnext_hop, wlocalpref, wcommunities, wpermitted, prev_ctxs=[self.ctx] + self.ctx.prev_ctxs)
         return ctx
 
-    def get_config(self, model):
-        lines = [b.get_config(model) for b in self.boxes]
+    def get_config(self):
+        lines = [b.get_config() for b in self.boxes]
         new_map = RouteMap(name=self.route_map.name,
                            lines=lines)
         return new_map
 
-    def get_val(self, model):
-        return [b.get_val(model) for b in self.boxes]
+    def get_value(self):
+        return [b.get_value() for b in self.boxes]
+
+    def get_var(self):
+        return [b.get_var() for b in self.boxes]
+
+    def set_model(self, model):
+        for box in self.boxes:
+            box.set_model(model)
