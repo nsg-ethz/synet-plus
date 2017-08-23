@@ -6,10 +6,11 @@ Helpers with building SMT Context
 
 import z3
 
-from synet.topo.bgp import VALUENOTSET
-
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
+
+
+VALUENOTSET = 'EMPTY?Value'
 
 
 def is_empty(var):

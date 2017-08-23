@@ -8,8 +8,92 @@ from collections import Iterable
 from ipaddress import IPv4Network
 from ipaddress import IPv6Network
 
+from synet.utils.smt_context import is_symbolic
+from synet.utils.smt_context import is_empty
+from synet.utils.smt_context import VALUENOTSET
 
-VALUENOTSET = 'EMPTY?Value'
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
+
+
+class BGP_ATTRS_ORIGIN(Enum):
+    """Enum of BGP origin types"""
+    IGP = 1
+    EBGP = 2
+    INCOMPLETE = 3
+
+
+class Announcement(object):
+    """
+    Carry BGP Announcement information
+    """
+
+    def __init__(self, prefix, peer, origin,
+                 as_path, as_path_len, next_hop, local_pref, communities,
+                 permitted):
+        """
+        :param prefix: the prefix that's being announced
+        :param peer: the peer from whom that prefix has been received
+                    (this is not technically in the BGP attributes set)
+        :param origin: See BGP_ATTRS_ORIGIN
+        :param as_path: List of AS numbers
+        :param as_path_len: int
+        :param next_hop:
+            1. If the BGP Peers are in different AS then the next_hop IP address
+               that will be sent in the update message will be the IP address of
+               the advertising router.
+            2. If the BGP peers are in the same AS (IBGP Peers),
+                and the destination network being advertised in the update message
+                is also in the same AS, then the next_hop IP address that will be sent
+                in the update message will be the IP address of the advertising router
+            3. If the BGP peers are in the same AS (IBGP Peers),
+                and the destination network being advertised in the update message
+                is in an external AS, then the next_hop IP address that will be
+                sent in the update message will be the IP address of the external
+                peer router which sent the advertisement to this AS.
+        :param local_pref: is only used in updates sent to the IBGP Peers,
+                It is not passed on to the BGP peers in other autonomous systems.
+        :param communities: dict Community values: Community->True/False
+        :param permitted: Access.permit or Access.deny
+        """
+        if isinstance(as_path, list):
+            if not is_symbolic(as_path_len) and not is_empty(as_path_len):
+                assert len(as_path) == as_path_len
+
+        self.prefix = prefix
+        self.peer = peer
+        self.origin = origin
+        self.as_path = as_path
+        self.as_path_len = as_path_len
+        self.next_hop = next_hop
+        self.local_pref = local_pref
+        self.communities = communities
+        self.permitted = permitted
+        self.__setattr__ = self._disable_mutations
+
+    def _disable_mutations(self, key, value):
+        assert hasattr(self, key), "Cannot assign new attributes"
+        val = str(getattr(self, key))
+        err = "Cannot assigned value to %s, existing value is %s" % (key, val)
+        assert val == VALUENOTSET, err
+        super(Announcement, self).__setattr__(key, value)
+
+    def __str__(self):
+        return "Announcement<%s, %s, %s, %s, %s, %s, %s>" % (
+            self.prefix, self.peer, self.origin,
+            self.as_path, self.next_hop, self.local_pref, self.communities
+        )
+
+    def copy(self):
+        comms = {}
+        for comm, fun in self.communities.iteritems():
+            comms[comm] = fun
+        return Announcement(
+            prefix=self.prefix, peer=self.peer, origin=self.origin,
+            as_path=self.as_path, next_hop=self.next_hop,
+            as_path_len=self.as_path_len, local_pref=self.local_pref,
+            communities=comms, permitted=self.permitted)
 
 
 class Access(Enum):

@@ -35,8 +35,8 @@ from collections import namedtuple
 
 import z3
 
-from synet.synthesis.ebgp import Announcement
 from synet.topo.bgp import Access
+from synet.topo.bgp import Announcement
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import Community
@@ -47,7 +47,7 @@ from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
-from synet.topo.bgp import VALUENOTSET
+
 from synet.utils.smt_context import SMTASPathLenWrapper
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTCommunityWrapper
@@ -61,6 +61,7 @@ from synet.utils.smt_context import SMTPrefixWrapper
 from synet.utils.smt_context import SMTSymbolicObject
 from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import is_symbolic
+from synet.utils.smt_context import VALUENOTSET
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"

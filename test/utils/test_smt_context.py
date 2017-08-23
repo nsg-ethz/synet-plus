@@ -2,11 +2,9 @@ import unittest
 
 import z3
 
-from synet.synthesis.ebgp import Announcement
-from synet.synthesis.ebgp import BGP_ATTRS_ORIGIN
-
+from synet.topo.bgp import Announcement
+from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
-from synet.topo.bgp import VALUENOTSET
 
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
@@ -21,6 +19,7 @@ from synet.utils.smt_context import SMTPermittedWrapper
 from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import is_symbolic
+from synet.utils.smt_context import VALUENOTSET
 
 
 __author__ = "Ahmed El-Hassany"
