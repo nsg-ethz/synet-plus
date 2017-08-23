@@ -792,20 +792,54 @@ class SMTContext(SMTSymbolicObject):
                         origin_ctx=None, as_path_ctx=None, as_path_len_ctx=None,
                         next_hop_ctx=None, local_pref_ctx=None,
                         communities_ctx=None, permitted_ctx=None,
-                        prev_ctxs=None):
+                        prev_ctxs=None, transformer=None):
         """Helper to create new context with ability to override one or more vars """
         announcements = announcements or self.announcements
         announcements_map = announcements_map or self.announcements_map
         announcement_sort = announcement_sort or self.announcement_sort
-        prefix_ctx = prefix_ctx or self.prefix_ctx
-        peer_ctx = peer_ctx or self.peer_ctx
-        origin_ctx = origin_ctx or self.origin_ctx
-        as_path_ctx = as_path_ctx or self.as_path_ctx
-        as_path_len_ctx = as_path_len_ctx or self.as_path_len_ctx
-        next_hop_ctx = next_hop_ctx or self.next_hop_ctx
-        local_pref_ctx = local_pref_ctx or self.local_pref_ctx
-        communities_ctx = communities_ctx or self.communities_ctx
-        permitted_ctx = permitted_ctx or self.permitted_ctx
+        ann_vars_map = {}
+        for ann_name, ann_var in announcements_map.iteritems():
+            ann_vars_map[ann_var] = announcements[ann_name]
+
+        def empty_transformer(ann_var, ann):
+            return ann_vars_map[ann_var]
+
+        if not transformer:
+            transformer = empty_transformer
+
+        def get_val_context(given, original):
+            """Decide on the proper value context"""
+            # If a new value context then use it
+            if given:
+                return given
+            # If the announcements in the context didn't change
+            # the use the original context
+            new_vals = set(announcements_map.values())
+            old_vals = set(self.announcements_map.values())
+            if transformer == empty_transformer and new_vals == old_vals:
+                return original
+            # Else create a new context with a subset of the args
+            new_fun = z3.Function("%s_subset_%s_fun" % (name, original.name),
+                                  self.announcement_sort,
+                                  original.fun_range_sort)
+            return original.get_new_context(
+                name="%s_subset_%s" % (name, original.name),
+                ann_vars=ann_vars_map.keys(),
+                new_fun=new_fun,
+                transformer=transformer)
+        prefix_ctx = get_val_context(prefix_ctx, self.prefix_ctx)
+        peer_ctx = get_val_context(peer_ctx, self.peer_ctx)
+        origin_ctx = get_val_context(origin_ctx, self.origin_ctx)
+        as_path_ctx = get_val_context(as_path_ctx, self.as_path_ctx)
+        as_path_len_ctx = get_val_context(as_path_len_ctx, self.as_path_len_ctx)
+        next_hop_ctx = get_val_context(next_hop_ctx, self.next_hop_ctx)
+        local_pref_ctx = get_val_context(local_pref_ctx, self.local_pref_ctx)
+        if not communities_ctx:
+            communities_ctx = {}
+        for comm, comm_ctx in self.communities_ctx.iteritems():
+            communities_ctx[comm] = get_val_context(
+                communities_ctx.get(comm, None), self.communities_ctx[comm])
+        permitted_ctx = get_val_context(permitted_ctx, self.permitted_ctx)
         if prev_ctxs is None:
             prev_ctxs = []
         prev_ctxs = [self] + prev_ctxs
