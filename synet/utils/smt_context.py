@@ -794,8 +794,8 @@ class SMTContext(SMTSymbolicObject):
                         communities_ctx=None, permitted_ctx=None,
                         prev_ctxs=None, transformer=None):
         """Helper to create new context with ability to override one or more vars """
-        announcements = announcements or self.announcements
-        announcements_map = announcements_map or self.announcements_map
+        announcements = announcements if announcements is not None else self.announcements
+        announcements_map = announcements_map if announcements_map is not None else self.announcements_map
         announcement_sort = announcement_sort or self.announcement_sort
         ann_vars_map = {}
         for ann_name, ann_var in announcements_map.iteritems():
