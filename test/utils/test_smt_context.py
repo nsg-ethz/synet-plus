@@ -894,7 +894,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         # Assertions
         self.assertEqual(ret, z3.sat)
         self.assertEquals(w.get_var(ann1), 100)
-        self.assertEquals(len(constraints), 1)
+        self.assertEquals(len(constraints), 0)
 
     def test_incorrect(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1357,7 +1357,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         # Assertions
         self.assertEqual(ret, z3.sat)
         self.assertEquals(w.get_var(ann1), 5)
-        self.assertEquals(len(constraints), 1)
+        self.assertEquals(len(constraints), 0)
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
