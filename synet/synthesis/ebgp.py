@@ -3,26 +3,15 @@
 Synthesize configurations for eBGP protocol
 """
 
-import copy
-from collections import namedtuple
-from enum import Enum
-
 import z3
 
-from synet.utils.mins import get_min_eval_select
-from synet.utils.mins import get_max_eval_select
-
-
-from synet.topo.bgp import Access
-from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import VALUENOTSET
-from synet.topo.bgp import MatchLocalPref
-from synet.topo.bgp import MatchPeer
+from synet.topo.bgp import Access
+from synet.topo.bgp import Announcement
+from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import RouteMap
-from synet.topo.bgp import MatchIpPrefixListList
-
+from synet.topo.bgp import RouteMapLine
+from synet.utils.policy import SMTRouteMap
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -31,596 +20,329 @@ __email__ = "a.hassany@gmail.com"
 z3.set_option('unsat-core', True)
 
 
-class BGP_ATTRS_ORIGIN(Enum):
-    """Enum of BGP origin types"""
-    IGP = 1
-    EBGP = 2
-    INCOMPLETE = 3
-
-
-SetDrop = namedtuple('DropRoute', ['value'])
-
-
-"""
-PREFIX: the prefix that's being announced
-PEER: the peer from whom that prefix has been received
-      (this is not technically in the BGP attributes set)
-ORIGIN: See BGP_ATTRS_ORIGIN
-ASPATH: List of AS numbers
-NEXT_HOP:
-    1. If the BGP Peers are in different AS then the NEXT_HOP IP address
-       that will be sent in the update message will be the IP address of
-       the advertising router.
-    2. If the BGP peers are in the same AS (IBGP Peers),
-        and the destination network being advertised in the update message
-        is also in the same AS, then the NEXT_HOP IP address that will be sent
-        in the update message will be the IP address of the advertising router
-    3. If the BGP peers are in the same AS (IBGP Peers),
-        and the destination network being advertised in the update message
-        is in an external AS, then the NEXT_HOP IP address that will be
-        sent in the update message will be the IP address of the external
-        peer router which sent the advertisement to this AS.
-LOCAL_PREF: is only used in updates sent to the IBGP Peers,
-            It is not passed on to the BGP peers in other autonomous systems.
-COMMUNITIES: List of Community values
-"""
-Announcement = namedtuple('Announcement', ['PREFIX', 'PEER', 'ORIGIN',
-                                           'AS_PATH', 'NEXT_HOP',
-                                           'LOCAL_PREF', 'COMMUNITIES'])
-Imported = namedtuple('Imported', ['PREFIX', 'PEER', 'ORIGIN', 'AS_PATH',
-                                   'NEXT_HOP', 'LOCAL_PREF', 'COMMUNITIES'])
-Selected = namedtuple('Selected', ['PREFIX', 'PEER', 'ORIGIN', 'AS_PATH',
-                                   'NEXT_HOP', 'LOCAL_PREF', 'COMMUNITIES'])
-Exported = namedtuple('Exported', ['PREFIX', 'PEER', 'ORIGIN', 'AS_PATH',
-                                   'NEXT_HOP', 'LOCAL_PREF', 'COMMUNITIES'])
-
-RouteMapResult = namedtuple('RouteMapResult',
-                            ['name', 'route_map', 'line', 'match_fun',
-                             'match_synthesized', 'match_syn_map', 'action',
-                             'action_val', 'localpref', 'communities',
-                             'drop', 'smt', 'prev_result'])
-
-
 class EBGP(object):
     """
-    Synthesize configurations for eBGP protocol
+    Synthesize eBGP Config for one router
     """
-    def __init__(self, asnum, peer_name, nexthop, announcements,
-                 all_communities, solver=None):
+    def __init__(self, node, network_graph, propagation_graph, general_ctx):
         """
-        :param announcements: list of announcements received
-        :param all_communities: a tuple of all the defined communities
-        :param solver: optional instance of z3 solver
+        :param node: The router to synthesize configs for
+        :param network_graph: NetworkGraph the general network gaph
+        :param propagation_graph: nx.DiGraph of the propagated routes
+        :param general_ctx: The general context with all the announcement variables
         """
-        self.asnum = asnum
-        self.peer_name = peer_name
-        self.nexthop = nexthop
-        self.solver = solver or z3.Solver()
-        assert isinstance(announcements, dict)
-        self.all_communities = all_communities
-        c_mask = tuple(['F' for i in range(len(self.all_communities))])
-        # The default "not valid" announcement
-        # Used as helper in some SMT formulas
-        self.notvalid = Announcement(PREFIX='NOTVALIDPREFIX',
-                                     PEER='NOTVALIDPEER',
-                                     ORIGIN=BGP_ATTRS_ORIGIN.EBGP,
-                                     AS_PATH=[i for i in range(100)],
-                                     NEXT_HOP='NOTVALIDNXTHOP',
-                                     LOCAL_PREF=0,
-                                     COMMUNITIES=c_mask)
+        self.node = node
+        self.network_graph = network_graph
+        self.general_ctx = general_ctx
+        self.propagation_graph = propagation_graph
+        # Input route map -> context exported by the neighbor
+        self.peer_exported_ctx = {}
+        # Input Peer -> context learned from the neighbor
+        # After applying the route map
+        self.peer_imported_ctx = {}
+        # Route maps (SMT)
+        self.peer_route_map = {}
+        self.constraints = {}
+        self._model = None
+        # Announcement name to list of peers that will advertise it
+        self.prefix_ann_name_peers = {}
+        # Annoucement name to the best peer that will advertise it
+        self.ann_name_best = {}
+        self.selected_ctx = self._get_selected_sham()
+        #self.compute_best_routes()
 
-        self.anns = announcements
-        # Special none valid route to help with Z3 tricks!
-        self.anns['notvalid'] = self.notvalid
-        # Announcement Z3 type
-        self.ann_sort = None
-        # List of Z3 announcement objects
-        self.all_announcements = None
-        # Peer Z3 type
-        self.peer_sort = None
-        # List of Z3 peer objects
-        self.all_peers = None
-        # Prefix Z3 type
-        self.perfix_sort = None
-        # List of Z3 prefix objects
-        self.all_prefixes = None
-        # Announcement->Prefix
-        self.prefix = None
-        # Z3 Announcement->Peer
-        self.peer = None
-        # Z3 Announcement->LocalPref
-        self.localpref = None
-        # Z3 Announcement->AsPath Length
-        self.aspathlength = None
-        # Z3 Announcement-> True if Denied Routes
-        self.route_denied = None
-        # Z3 Communities
-        self.communities = {}
-        # Z3 Communities reverse map, takes z3 function name and return community
-        self.reverse_communities = {}
-        self.na_ann = None
-        self._load_announcements()
-        self.exported = {}
-
-    def get_announcement(self, announcement_name):
-        """Given a string name of the announcement return it's Z3 value"""
-        return self._announcements_map[announcement_name]
-
-    def get_not_valid_ann(self):
-        """Return the Z3 variable for the special not valid announcement"""
-        return self.get_announcement('notvalid')
-
-    def get_peer(self, peer_name):
-        """Given a string name of a peer return it's Z3 value"""
-        return self._peers_map[peer_name]
-
-    def get_prefix(self, prefix_name):
-        """Given a string name of a prefix return it's Z3 value"""
-        return self._prefixes_map[prefix_name]
-
-    def _load_announcements(self):
+    def _get_selected_sham(self):
         """
-        Parse the given announcement list and initialize the various Z3 types
-        :param announcements:
+        To resolve circular dependancies of getting the context generate by each router
+        First generate a context with all variables.
+        Then it will be glued in the selection process to concrete values
+        :return: SMTContext
+        """
+        anns = {}
+        ann_map = {}
+        exported_names = []
+        selected = self.propagation_graph.node[self.node]['selected']
+        for propagated in selected:
+            exported_names.append(propagated.ann_name)
+        for ann_name in exported_names:
+            ann = self.general_ctx.announcements[ann_name]
+            n = "%s_%s_sel" % (self.node, ann_name)
+            gctx = self.general_ctx
+            if self.network_graph.is_peer(self.node):
+                # If this is a peer, then all variables are known a priori
+                new_ann = ann
+            else:
+                new_ann = Announcement(
+                    prefix=ann.prefix,
+                    peer=z3.Const('%s_peer' % n,
+                                  gctx.peer_ctx.fun_range_sort),
+                    origin=z3.Const('%s_origin' % n,
+                                    gctx.origin_ctx.fun_range_sort),
+                    as_path=z3.Const('%s_as_path' % n,
+                                     gctx.as_path_ctx.fun_range_sort),
+                    as_path_len=z3.Const('%s_as_path_len' % n,
+                                         z3.IntSort()),
+                    next_hop=z3.Const('%s_next_hop' % n,
+                                      gctx.next_hop_ctx.fun_range_sort),
+                    local_pref=z3.Const('%s_local_pref' % n,
+                                        z3.IntSort()),
+                    communities=dict(
+                        [(c,
+                          z3.Const("%s_c_%s" % (n, c.name),
+                                   z3.BoolSort())) for c in ann.communities]),
+                    permitted=True
+                )
+            anns[ann_name] = new_ann
+            ann_map[ann_name] = self.general_ctx.announcements_map[ann_name]
+        return self.general_ctx.get_new_context(
+            name='S_%s' % (self.node),
+            announcements=anns, announcements_map=ann_map)
+
+    def get_export_ctx(self, neighbor):
+        """Get the smt context that will be exported to the neighbor"""
+        set_localpref = ActionSetLocalPref(100)
+        line = RouteMapLine(matches=None, actions=[set_localpref],
+                            access=Access.permit, lineno=10)
+        name = "E_%s_to_%s" % (self.node, neighbor)
+        rmap = RouteMap(name=name, lines=[line])
+        smap = SMTRouteMap(rmap.name, rmap, self.selected_ctx)
+        return smap.get_new_context()
+
+    def get_neighbor_ctx(self, neighbor):
+        """
+        SMT context from the neighbor (BEFORE applying the import route maps)
+        :param neighbor: string, node in NetworkGraph
+        :return: SMTContext
+        """
+        assert neighbor != self.node
+        if neighbor not in self.peer_exported_ctx:
+            box = self.network_graph.node[neighbor]['syn']['box']
+            exported_ctx = box.get_export_ctx(self.node)
+            self.peer_exported_ctx[neighbor] = exported_ctx
+        return self.peer_exported_ctx[neighbor]
+
+    def get_imported_ctx(self, neighbor):
+        """
+        SMT context from the neighbor (AFTER applying the import route maps)
+        :param neighbor: string, node in NetworkGraph
+        :return: SMTContext
+        """
+        if neighbor not in self.peer_imported_ctx:
+            # The route map to applied to the exported announcements
+            map_name = self.network_graph.get_bgp_import_route_map(self.node, neighbor)
+            if not map_name:
+                rmap = self.get_default_import_map(self.node, neighbor)
+                self.network_graph.add_route_map(self.node, rmap)
+                map_name = rmap.name
+            rmap = self.network_graph.get_route_maps(self.node)[map_name]
+            # The generated context after applying the imported roue maps
+            exported_ctx = self.get_neighbor_ctx(neighbor)
+            smap = SMTRouteMap(name=rmap.name, route_map=rmap, context=exported_ctx)
+            self.peer_route_map[neighbor] = smap
+            imported_ctx = smap.get_new_context()
+            self.peer_imported_ctx[neighbor] = imported_ctx
+        return self.peer_imported_ctx[neighbor]
+
+    def get_default_import_map(self, node, neighbor):
+        """
+        Get a default import route map, when no import route map is define
+        :param node:
+        :param neighbor:
+        :return:
+        """
+        line = RouteMapLine(matches=None, actions=None,
+                            access=Access.permit, lineno=10)
+        name = "RImport_%s_%s" % (node, neighbor)
+        rmap = RouteMap(name=name, lines=[line])
+        return rmap
+
+    def compute_best_routes(self):
+        """Compute self.ann_name_best and self.prefix_ann_name_peers"""
+        selected_routes = self.propagation_graph.node[self.node].get('selected', [])
+        for prop in selected_routes:
+            #ann_name_best[propagated.ann_name] = propagated.peer
+            prefix = self.general_ctx.announcements[prop.ann_name].prefix
+            self.ann_name_best[prefix] = (prop.peer, prop.ann_name)
+
+        for neighbor in self.network_graph.neighbors(self.node):
+            # The context exported by the neighbor
+            if not self.propagation_graph.has_edge(neighbor, self.node):
+                continue
+            # The announcements learned from that given peer
+            best = self.propagation_graph[neighbor][self.node].get('best', [])
+            nonbest = self.propagation_graph[neighbor][self.node].get('nonbest', [])
+            all_anns = best + nonbest
+            for prop in all_anns:
+                ann_name = prop.ann_name
+                prefix = self.general_ctx.announcements[ann_name].prefix
+                if prefix not in self.prefix_ann_name_peers:
+                    self.prefix_ann_name_peers[prefix] = []
+                self.prefix_ann_name_peers[prefix].append((prop.peer, prop.ann_name))
+
+    def _set_denied_prefixes(self, ann_name_best, prefix_ann_name_peers):
+        """
+        Set the constraints for the prefixes that are leaned but the router
+        will deny then and wont install them in the routing table
+        :param ann_name_best:
+        :param prefix_ann_name_peers:
         :return: None
         """
-        # Create Z3 Enum type for the announcements
-        (self.ann_sort, all_announcements) = \
-            z3.EnumSort('AnnouncementSort',
-                        self.anns.keys())
-        # Create Z3 Enum type for peers
-        peers_list = list(set([ann.PEER for ann in self.anns.values()]))
-        for a in peers_list:
-            assert isinstance(a, basestring), "%s %s" % (a, type(a))
-        (self.peer_sort, all_peers) = z3.EnumSort('PeerSort', peers_list)
-        # Create Z3 Enum type for Prefixes
-        anns_list = list(set([ann.PREFIX for ann in self.anns.values()]))
-        (self.perfix_sort, all_prefixes) = z3.EnumSort('PrefixSort', anns_list)
-
-        self.all_announcements = sorted(all_announcements)
-        self.all_peers = sorted(all_peers)
-        self.all_prefixes = sorted(all_prefixes)
-        # For convenience
-        ann_map = dict([(str(ann), ann) for ann in self.all_announcements])
-        self._announcements_map = ann_map
-        peer_map = dict([(str(peer), peer) for peer in self.all_peers])
-        self._peers_map = peer_map
-        prefixes_map = dict([(str(prefix), prefix) for prefix in self.all_prefixes])
-        self._prefixes_map = prefixes_map
-        self.na_ann = self.get_not_valid_ann()
-
-        # Announcement Prefix
-        self.prefix = z3.Function('Prefix', self.ann_sort, self.perfix_sort)
-        # Announcement Peer
-        self.peer = z3.Function('Peer', self.ann_sort, self.peer_sort)
-        # LocalPref Function
-        self.localpref = z3.Function('LocalPref', self.ann_sort, z3.IntSort())
-        # AsPath Length
-        self.aspathlength = z3.Function('ASPathLength', self.ann_sort, z3.IntSort())
-        # Denied Routes
-        self.route_denied = z3.Function('DeniedRoutes', self.ann_sort, z3.BoolSort())
-
-        # Create functions for communities
-        self.communities = {}
-        for c in self.all_communities:
-            name = 'Has_%s' % c
-            self.communities[c] = z3.Function(name, self.ann_sort, z3.BoolSort())
-            self.reverse_communities[name] = c
-
-        # Feed the announcement info to the solver
-        for i, name in enumerate(sorted(self.anns.keys())):
-            ann = self.anns[name]
-            var = self.get_announcement(name)
-            # Set Prefix
-            name = 'init_prefix_%s' % str(var)
-            constraint = self.prefix(var) == self.get_prefix(ann.PREFIX)
-            self.solver.assert_and_track(constraint, name)
-            # Set Peer
-            name = 'init_peer_%s' % str(var)
-            constraint = self.peer(var) == self.get_peer(ann.PEER)
-            self.solver.assert_and_track(constraint, name)
-            # Set AS PATH LENGTH, TODO: Set AS PATH it self!
-            name = 'init_as_path_length_%s' % str(var)
-            constraint = self.aspathlength(var) == len(ann.AS_PATH)
-            self.solver.assert_and_track(constraint, name)
-            # Set LOCAL PREF
-            if ann.LOCAL_PREF == '?':
-                self.solver.add(self.localpref(var) > 0)
-            else:
-                name = 'init_local_pref_%s' % str(var)
-                constraint = self.localpref(var) == ann.LOCAL_PREF
-                self.solver.assert_and_track(constraint, name)
-            # Nothing denied, only route maps can do that
-            self.solver.add(self.route_denied(var) == False)
-
-            # Assign communities
-            for i, c in enumerate(ann.COMMUNITIES):
-                c_name = self.all_communities[i]
-                c_fun = self.communities[c_name]
-                assert_name = 'init_comm_%s_%s' % (str(var), c_name)
-                if c == 'T':
-                    self.solver.assert_and_track(c_fun(var) == True, assert_name)
-                elif c == 'F':
-                    self.solver.assert_and_track(c_fun(var) == False, assert_name)
-
-    def _get_communities_match(self, name, match, prev_communities):
-        """
-        Given a MatchCommunity, return a Z3 function and list of constraints
-        for the synthesis.
-        :param name: The name of this route map
-        :param match: MatchCommunity
-        :param prev_communities: dict of previous communities
-        :return:
-        """
-        assert isinstance(match, MatchCommunitiesList)
-        communities = match.match.communities
-        assert len(communities) == 1, "Only only community per list is supported"
-        match_synthesized = None
-        match_syn_map = None
-        if communities != [VALUENOTSET]:
-            constraints = []
-            match_fun = prev_communities[communities[0]]
-        else:
-            # This is a bit tricky to handle
-            # In case the community match is EMPTY,
-            #     the the synthesizer is free to choose any community
-            # We create a dummy function such that it ranges and values maps exactly to
-            # one or more assigned communities.
-            # Then we enumerate the communities,
-            # and the variable _Selected_Community tells us which one that successfully
-            # mapped to our dummy match
-            f_name = '%s_Synthesize_Comm_Match' % name
-            dummy_match = z3.Function(f_name, self.ann_sort, z3.BoolSort())
-            c_name = '%s_Selected_Comm_Match' % name
-            match_synthesized = z3.Const(c_name, z3.IntSort())
-            match_syn_map = {}
-            constrains = []
-            for i, community in enumerate(sorted(prev_communities.keys())):
-                t1 = z3.Const('%s_Tmp%d' % (name, i), self.ann_sort)
-                match_syn_map[i] = prev_communities[community]
-                constrains.append(
-                    z3.And(match_synthesized == i,
-                           z3.ForAll(
-                               [t1],
-                               dummy_match(t1) == prev_communities[community](t1)
-                           ))
-                )
-            constraints = [z3.Or(*constrains)]
-            #self.solver.append(constrains)
-            match_fun = dummy_match
-        return match_fun, match_synthesized, match_syn_map, constraints
-
-    def _get_localpref_match(self, name, match, prev_localpref):
-        """
-        Given a MatchLocalPref, return a Z3 function and list of constraints
-        for the synthesis.
-        :param name: The name of this route map
-        :param match: MatchLocalPref
-        :param prev_localpref:
-        :return:
-        """
-        assert isinstance(match, MatchLocalPref)
-        if match.match != VALUENOTSET:
-            match_fun = lambda x: prev_localpref(x) == match.match
-        else:
-            t1, t2 = z3.Consts('%s_Tmp1 %s_Tmp2' % (name, name), self.ann_sort)
-            f_name = '%s_Synthesize_LocalPref_Match' % (name)
-            dummy_match = z3.Function(f_name, self.ann_sort, z3.IntSort())
-            c_name = '%s_Selected_LocalPref_Match' % (name)
-            match_synthesized = z3.Const(c_name, z3.IntSort())
-            match_syn_map = None
-            self.solver.append(
-                z3.ForAll(
-                    [t1],
-                    dummy_match(t1) == z3.If(prev_localpref(t1) == match_synthesized, True, False))
-            )
-            match_fun = dummy_match
-
-        return match_fun, constraints
-
-    def process_route_map(self, route_map, line, prev_localpref,
-                          prev_communities, prev_drop, prev_result=None):
-        """
-        Process a RouteMap and return RouteMapResult
-        :param route_map: instance of RouteMap
-        :param prev_localpref:
-        :param prev_communities:
-        :param prev_drop:
-        :param prev_result:
-        :return:
-        """
-        name = "%s_%d" % (route_map.name, line.lineno)
-        assert len(line.matches) == 1, "Only one match per line is supported"
-        assert len(line.actions) in [0, 1], "Only one action per line is supported"
-        match = line.matches[0]
-        if len(line.actions) == 1:
-            action = line.actions[0]
-        else:
-            assert line.access in [VALUENOTSET, Access.deny, Access.permit]
-            if line.access == Access.permit:
-                action = SetDrop(False)
-            elif line.access == Access.deny:
-                action = SetDrop(True)
-            else:
-                action = SetDrop(VALUENOTSET)
-        # Temp variables for the quantifiers
-        t1, t2 = z3.Consts('%s_Tmp1 %s_Tmp2' % (name, name), self.ann_sort)
-
-        # The match part of the route map
-        match_synthesized = None
-        match_syn_map = None
-        # Capture the match function, should be a boolean function
-        if isinstance(match, MatchCommunitiesList):
-            match_fun, match_synthesized, match_syn_map, constraints = self._get_communities_match(name, match, prev_communities)
-            for constraint in constraints:
-                self.solver.append(constraint)
-        elif isinstance(match, MatchLocalPref):
-            if match.match != VALUENOTSET:
-                match_fun = lambda x: prev_localpref(x) == match.match
-            else:
-                t1, t2 = z3.Consts('%s_Tmp1 %s_Tmp2' % (name, name), self.ann_sort)
-                f_name = '%s_Synthesize_LocalPref_Match' % (name)
-                dummy_match = z3.Function(f_name, self.ann_sort, z3.IntSort())
-                c_name = '%s_Selected_LocalPref_Match' % (name)
-                match_synthesized = z3.Const(c_name, z3.IntSort())
-                match_syn_map = None
-                self.solver.append(
-                    z3.ForAll(
-                        [t1],
-                        dummy_match(t1) == z3.If(prev_localpref(t1) == match_synthesized, True, False))
-                )
-                match_fun = dummy_match
-        elif isinstance(match, MatchPeer):
-            if match.match != VALUENOTSET:
-                match_fun = lambda x: self.peer(x) == self.get_peer(match.match)
-            else:
-                dummy_match = z3.Function('%s_Synthesize_Peer_Match' % (name), self.ann_sort, z3.BoolSort())
-                match_synthesized = z3.Const('%s_Selected_Peer_Match' % (name), self.peer_sort)
-                match_syn_map = None
-                self.solver.append(z3.ForAll([t1], dummy_match(t1) == z3.If(self.peer(t1) == match_synthesized, True, False)))
-                match_fun = dummy_match
-        elif isinstance(match, MatchIpPrefixListList):
-            assert len(match.match.networks) == 1, "Only one prefix supported"
-            if match.match.networks != [VALUENOTSET]:
-                match_fun = lambda x: self.prefix(x) == self.get_prefix(match.match.networks[0])
-            else:
-                dummy_match = z3.Function('%s_Synthesize_Prefix_Match' % name, self.ann_sort, z3.BoolSort())
-                match_synthesized = z3.Const('%s_Selected_Prefix_Match' % (name), z3.IntSort())
-                match_syn_map = {}
-                constrains = []
-                for i, prefix in enumerate(sorted(self._prefixes_map.values())):
-                    match_syn_map[i] = prefix
-                    constrains.append(
-                        z3.And(match_synthesized == i,
-                               z3.ForAll([t1], dummy_match(t1) == z3.If(self.prefix(t1) == prefix, True, False)))
-                    )
-                constrains = z3.Or(*constrains)
-                self.solver.append(constrains)
-                match_fun = dummy_match
-        else:
-            raise ValueError("Unknown match type %s" % type(match))
-
-        # Handle actions
-        if line.access == Access.deny:
-            # Function for denied routes
-            route_denied = z3.Function('%s_DeniedRoutes' % (name,), self.ann_sort, z3.BoolSort())
-            action_fun = route_denied
-            action_val = z3.Const('%s_action_val' % name, z3.BoolSort())
-            # If match then drop route, no further eval is needed
-            c = z3.ForAll(
-                [t1],
-                z3.If(match_fun(t1) == True,
-                      route_denied(t1) == action_val,
-                      route_denied(t1) == prev_drop(t1)))
-            c = z3.And(c, action_val == True)
-            result_communities = prev_communities
-            result_localpref = prev_localpref
-            result_drop = route_denied
-            result_smt = c
-        elif isinstance(action, ActionSetLocalPref):
-            newlocalpref = z3.Function('%s_localPref' % name, self.ann_sort, z3.IntSort())
-            action_fun = newlocalpref
-            action_val = z3.Const('%s_action_val' % name, z3.IntSort())
-            # If local pref is not fixed, then leave it empty for the SMT to assign
-            c = z3.ForAll([t1], newlocalpref(t1) == z3.If(match_fun(t1) == True, action_val, prev_localpref(t1)))
-            if action.value != VALUENOTSET:
-                c = z3.And(c, action_val == action.value)
-            else:
-                c = z3.And(c, action_val > 0)
-            # If the route already dropped, then don't bother
-            with_drop = z3.ForAll([t1], z3.Implies(prev_drop(t1) == False, c))
-            result_communities = prev_communities
-            result_localpref = newlocalpref
-            result_drop = prev_drop
-            result_smt = with_drop
-        elif isinstance(action, ActionSetCommunity):
-            newcommunity = z3.Function('%s_Has%s' % (name, action.community), self.ann_sort, z3.BoolSort())
-            action_fun = newcommunity
-            action_val = z3.Const('%s_action_val' % name, z3.BoolSort())
-            c = z3.ForAll([t1], newcommunity(t1) == z3.If(match_fun(t1), action_val, prev_communities[action.community](t1)))
-            if action.value != EMPTY:
-                c = z3.And(c, action_val == action.value)
-            result_communities = prev_communities.copy()
-            result_communities[action.community] = newcommunity
-            result_localpref = prev_localpref
-            result_drop = prev_drop
-            result_smt = c
-        elif isinstance(action, SetDrop):
-            # Function for denied routes
-            route_denied = z3.Function('%s_DeniedRoutes' % name, self.ann_sort, z3.BoolSort())
-            action_fun = route_denied
-            action_val = z3.Const('%s_action_val' % name, z3.BoolSort())
-            c = z3.ForAll(
-                [t1],
-                route_denied(t1) == z3.If(
-                    match_fun(t1) == True,
-                    action_val,
-                    prev_drop(t1)))
-            if action.value != VALUENOTSET:
-                c = z3.And(c, action_val == action.value)
-            result_communities = prev_communities
-            result_localpref = prev_localpref
-            result_drop = route_denied
-            result_smt = c
-
-        # Prepare our results
-        result = RouteMapResult(name, route_map=route_map, line=line, match_fun=match_fun, match_synthesized=match_synthesized,
-                                match_syn_map=match_syn_map, action=action_fun, action_val=action_val,
-                                communities=result_communities, localpref=result_localpref, drop=result_drop,
-                                smt=result_smt, prev_result=prev_result)
-        return result
-
-    def process_route_maps(self, route_maps):
-        """
-        Iterate through the lines of the given route map with holes
-        :param route_map: RouteMap as part of requirement
-        :return: RouteMapResult of the last route map in the list
-        """
-        if len(route_maps.lines) == 0:
-            result = RouteMapResult(
-                'EmptyRouteMap', route_map=None, line=None, match_fun=None,
-                match_synthesized=None, match_syn_map=None, action=None,
-                action_val=None, communities=self.communities,
-                localpref=self.localpref, drop=self.route_denied,
-                smt=None, prev_result=None)
-            return result
-        first = route_maps.lines[0]
-        result = self.process_route_map(
-            route_map=route_maps, line=first, prev_communities=self.communities,
-            prev_localpref=self.localpref, prev_drop=self.route_denied,
-            prev_result=None)
-        name = 'route_map_%d_%s' % (first.lineno, route_maps.name)
-        self.solver.assert_and_track(result.smt, name)
-        prev_result = result
-        for line in route_maps.lines[1:]:
-            result = self.process_route_map(
-                route_map=route_maps, line=line, prev_communities=prev_result.communities,
-                prev_localpref=prev_result.localpref,
-                prev_drop=prev_result.drop, prev_result=prev_result)
-            name = 'route_map_%d_%s' % (line.lineno, route_maps.name)
-            self.solver.assert_and_track(result.smt, name)
-            prev_result = result
-        return prev_result
-
-    def eval_route_map(self, model, result, summary=True):
-        lines = []
-        if result.prev_result is not None:
-            lines.extend(self.eval_route_map(model, result.prev_result, summary))
-        name = result.name
-        if result.route_map is None:
-            return []
-        print "\tRoute Map", name
-
-        # Create a copy to maintain the original route map with holes
-        line = copy.deepcopy(result.line)
-
-        if result.match_synthesized is None:
-            matches = line.matches
-            print "\t\t", "Match", matches
-            val = model.eval(result.action_val)
-            print "\t\t", "Action", result.action, val
-        else:
-            if result.match_syn_map:
-                synthesize_match = result.match_syn_map[model.eval(result.match_synthesized).as_long()]
-                name = str(synthesize_match)
-                if str(result.match_synthesized).endswith('Selected_Prefix_Match'):
-                    line.matches[0].match.networks = [name]
-                elif name.startswith('Has_Community'):
-                    comm = self.reverse_communities[name]
-                    line.matches[0].match.communities = [comm]
-                else:
-                    raise Exception("Unknown function name %s" % name)
-            else:
-                synthesize_match = model.eval(result.match_synthesized)
-                synthesize_match = str(synthesize_match)
-                try:
-                    synthesize_match = int(synthesize_match)
-                except:
-                    pass
-                line.matches[0].match = synthesize_match
-
-            print "\t\t", "Match (S)", line.matches, synthesize_match
-            print "\t\t", "Action", result.action, model.eval(result.action_val)
-
-        if str(result.action).endswith('DeniedRoutes') and line.access == VALUENOTSET:
-            val = model.eval(result.action_val)
-            if z3.is_true(val):
-                line.access = Access.deny
-            else:
-                line.access = Access.permit
-
-        #for route in self._announcements_map.values():
-        #     if str(route) == 'Ann0': continue
-        #     print "\t\t", result.match, route, model.eval(result.match(route))
-        #     print "\t\t", result.action, route, model.eval(result.action(route))
-        return lines + [line]
-
-    def solve(self, route_maps, required_names=[]):
-        na = self.get_not_valid_ann()
-        result = self.process_route_maps(route_maps)
-
-        localpref_fun = result.localpref
-        communities_fun = result.communities
-        route_denied = result.drop
-        select_route_vars = []
-        for prefix in set([ann.PREFIX for ann in self.anns.values()]):
-            if prefix == self.notvalid.PREFIX:
+        for prefix in prefix_ann_name_peers:
+            if prefix in ann_name_best:
                 continue
-            Selected = z3.Const('SelectedRoute%s' % prefix, self.ann_sort)
-            select_route_vars.append(Selected)
-            prefixAnn = [self.get_announcement(ann) for ann in self._announcements_map if self.anns[ann].PREFIX == prefix]
-            if len(prefixAnn) == 1:
-                self.solver.assert_and_track(Selected == z3.If(route_denied(prefixAnn[0]), na, prefixAnn[0]), 'direct_%s' % prefix)
-            else:
-                MaxLP = z3.Const('MaxLP%s' % prefix, z3.IntSort())
-                MinAS = z3.Const('MinAS%s' % prefix, z3.IntSort())
-                # Find the maximum local pref
-                self.solver.add(MaxLP == localpref_fun(get_max_eval_select(route_denied, False, localpref_fun, na, *prefixAnn)))
-                self.solver.add(Selected == get_min_eval_select(localpref_fun, MaxLP, self.aspathlength, na, *prefixAnn))
+            # Prefix was denied completely
+            for (peer, ann_name) in prefix_ann_name_peers[prefix]:
+                imported_ctx = self.get_imported_ctx(peer)
+                ann_var = self.general_ctx.announcements_map[ann_name]
+                name = '%s_deny_%s_from_%s' % (self.node, ann_name, peer)
+                permitted = imported_ctx.permitted_ctx
+                const = z3.And(permitted.get_var(ann_var) == False)
+                self.constraints[name] = const
 
-            for name in required_names:
-                if prefix == self.anns[name].PREFIX:
-                    n = 'select_%s_%s' % (prefix, name)
-                    self.solver.assert_and_track(
-                        Selected == self.get_announcement(name), n)
+    def select_fun(self, ann_name_best, prefix_ann_name_peers):
+        """The BGP Selection process"""
+        self._set_denied_prefixes(ann_name_best, prefix_ann_name_peers)
+        for prefix in ann_name_best:
+            best_peer, best_ann_name = ann_name_best[prefix]
+            best_ann_var = self.general_ctx.announcements_map[best_ann_name]
+            best_ctx = self.get_imported_ctx(best_peer)
+            name = "%s_sel_%s" % (self.node, best_ann_name)
+            constraints = []
+            # First assert that the learned perfix has the same attributes
+            # As the one selected (because the the shim context)
+            for value_ctx in self.selected_ctx.ctx_names:
+                if value_ctx != 'communities_ctx':
+                    ctx1 = getattr(self.selected_ctx, value_ctx)
+                    ctx2 = getattr(best_ctx, value_ctx)
+                    constraints.append(ctx1.get_var(best_ann_var) ==
+                                       ctx2.get_var(best_ann_var))
+                else:
+                    ctx1 = getattr(self.selected_ctx, value_ctx)
+                    ctx2 = getattr(best_ctx, value_ctx)
+                    for comm in ctx1:
+                        constraints.append(ctx1[comm].get_var(best_ann_var) ==
+                                           ctx2[comm].get_var(best_ann_var))
 
-        if self.solver.check() == z3.sat:
-            model = self.solver.model()
-            selected_routes = []
-            for route in select_route_vars:
-                route = str(model.eval(route))
-                # Skip the non valid route
-                if route == 'notvalid': continue
-                selected_routes.append(route)
+            # Assert that the selected prefix is permitted
+            constraints.append(
+                self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True)
 
-            lines = self.eval_route_map(model, result)
-            self.synthesized_route_map = RouteMap(route_maps.name, lines)
-            #for name in sorted(self._announcements_map.keys()):
-            #    ann = self.get_announcement(name)
-            #   print "Drop", route_denied, name, model.eval(route_denied(ann))
-            #assert set(selected_routes) == set(required_names), "Selected Routes are %s and required are %s" % (selected_routes, required_names)
-            self.exported = {}
-            for var in select_route_vars:
-                ann_name = str(model.eval(var))
-                if ann_name == 'notvalid': continue
-                ann = self.anns[ann_name]
-                prefix = ann.PREFIX
-                peer = ann.PEER
-                origin = ann.ORIGIN
-                as_path = ann.AS_PATH
-                next_hop = ann.NEXT_HOP
-                localpref = model.eval(localpref_fun(var)).as_long()
-                comms = []
-                for comm in self.all_communities:
-                    comms.append('T' if z3.is_true(model.eval(communities_fun[comm](var))) else 'F')
-                communities = tuple(comms)
-                new_ann = Announcement(PREFIX=prefix, PEER=self.peer_name, ORIGIN=origin, AS_PATH=[self.asnum] + as_path,
-                                       NEXT_HOP=self.nexthop, LOCAL_PREF=localpref, COMMUNITIES=communities)
-                self.exported[ann_name] = new_ann
+            for (peer, other_ann_name) in prefix_ann_name_peers[prefix]:
+                s_ctx = self.selected_ctx
+                o_ctx = self.get_imported_ctx(peer)
+                other_ann_var = self.general_ctx.announcements_map[other_ann_name]
+                if peer == best_peer and other_ann_name == best_ann_name:
+                    continue
+                else:
+                    s_localpref = s_ctx.local_pref_ctx.get_var(best_ann_var)
+                    o_localpref = o_ctx.local_pref_ctx.get_var(other_ann_var)
 
-            #print self.solver.to_smt2()
-            #print model
-            return True
-        else:
-            print self.solver.unsat_core()
-            return False
+                    s_aslen = s_ctx.as_path_len_ctx.get_var(best_ann_var)
+                    o_aslen = o_ctx.as_path_len_ctx.get_var(other_ann_var)
+
+                    s_origin = s_ctx.origin_ctx.get_var(best_ann_var)
+                    o_origin = o_ctx.origin_ctx.get_var(other_ann_var)
+
+                    igp_origin = o_ctx.origin_ctx.range_map[
+                        BGP_ATTRS_ORIGIN.IGP]
+                    ebgp_origin = o_ctx.origin_ctx.range_map[
+                        BGP_ATTRS_ORIGIN.EBGP]
+                    incomplete_origin = o_ctx.origin_ctx.range_map[
+                        BGP_ATTRS_ORIGIN.INCOMPLETE]
+
+                    other_permitted = o_ctx.permitted_ctx.get_var(other_ann_var)
+                    # The BGP selection process
+                    constraints.append(
+                        z3.Or(
+                            # 1) Permitted
+                            z3.And(other_permitted == False),
+                            # 2) If Permitted, local pref
+                            z3.And(other_permitted,
+                                   s_localpref > o_localpref),
+                            # 3) AS Path Length
+                            z3.And(other_permitted,
+                                   s_localpref == o_localpref,
+                                   s_aslen < o_aslen),
+                            # 4) Origin Code IGP < EGP < Incomplete
+                            z3.And(other_permitted,
+                                   s_localpref == o_localpref,
+                                   s_aslen == o_aslen,
+                                   z3.Or(
+                                       # IGP is the lowest
+                                       z3.And(s_origin == igp_origin,
+                                              o_origin != igp_origin),
+                                       # EGP over incomplete
+                                       z3.And(s_origin == ebgp_origin,
+                                              o_origin == incomplete_origin)))
+                            # TODO (AH): More selection process
+                            # 5) MED Selection
+                            # 6) Prefer eBGP over iBGP paths.
+                            # 7) Path with the lowest IGP metric to the BGP next hop.
+                            # 8) Determine if multiple paths
+                            #    require installation in the
+                            #    routing table for BGP Multipath.
+                            #      Continue, if bestpath is not yet selected.
+                            # 9) Prefer the route that comes from the BGP router
+                            #    with the lowest router ID.
+
+                        ))
+                    if self.node == 'R3':
+                        print "LOCAL PREF", prefix, peer, s_localpref, o_localpref
+                        print "SELECTION", prefix, constraints[-1]
+                    # Make sure all variables are bound to a value
+                    # (not just the best route)
+                    for value_ctx in self.selected_ctx.ctx_names:
+                        if value_ctx != 'communities_ctx':
+                            ctx1 = getattr(s_ctx, value_ctx)
+                            ctx2 = getattr(o_ctx, value_ctx)
+                            constraints.append(ctx1.get_var(other_ann_var) ==
+                                               ctx2.get_var(other_ann_var))
+                        else:
+                            ctx1 = getattr(self.selected_ctx, value_ctx)
+                            ctx2 = getattr(o_ctx, value_ctx)
+                            for comm in ctx1:
+                                constraints.append(ctx1[comm].get_var(other_ann_var) ==
+                                                   ctx2[comm].get_var(other_ann_var))
+
+            self.constraints[name] = z3.And(*constraints)
+
+    def synthesize(self):
+        """Synthesize the BGP configurations for this box"""
+        self.compute_best_routes()
+        self.select_fun(self.ann_name_best, self.prefix_ann_name_peers)
+
+    def add_constraints(self, solver):
+        """Add the Z3 constraints to the solver"""
+        self.selected_ctx.add_constraints(solver)
+        for rmap in self.peer_route_map.values():
+            rmap.add_constraints(solver)
+        for ctx in self.peer_exported_ctx.values():
+            ctx.add_constraints(solver)
+        for ctx in self.peer_imported_ctx.values():
+            ctx.add_constraints(solver)
+        for name, const in self.constraints.iteritems():
+            if isinstance(const, bool):
+                assert const is True
+                continue
+            solver.assert_and_track(const, name)
+
+    def set_model(self, model):
+        """Set the Z3 Model for this box"""
+        self._model = model
+        self.selected_ctx.set_model(model)
+        for rmap in self.peer_route_map.values():
+            rmap.set_model(model)
+        for ctx in self.peer_exported_ctx.values():
+            ctx.set_model(model)
+        for ctx in self.peer_imported_ctx.values():
+            ctx.set_model(model)
+
+    def get_config(self):
+        """Get concrete route configs"""
+        configs = []
+        for _, rmap in self.peer_route_map.iteritems():
+            configs.append(rmap.get_config())
+        return configs
+
+    def __str__(self):
+        return "EBGPBox(%s)" % self.node
