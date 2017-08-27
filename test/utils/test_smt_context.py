@@ -894,7 +894,25 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         # Assertions
         self.assertEqual(ret, z3.sat)
         self.assertEquals(w.get_var(ann1), 100)
-        self.assertEquals(constraints, {})
+        self.assertEquals(len(constraints), 1)
+
+    def test_incorrect(self):
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        ann_var_map = {}
+        ann_var_map[ann1] = self.anns['Ann1_Google'].copy()
+        ann_var_map[ann2] = self.anns['Ann1_Google'].copy()
+        ann_var_map[ann1].local_pref = VALUENOTSET
+        ann_var_map[ann2].local_pref = VALUENOTSET
+        # Create wrapper
+        w = SMTLocalPrefWrapper(
+            'wlocalpref', self.ann_sort, ann_var_map,
+            self.local_pref_fun)
+        solver = self.get_solver()
+        tmp = z3.Const('test_tmp', self.ann_sort)
+        solver.add(w.get_var(ann1) == -1)
+        w.add_constraints(solver)
+        ret = solver.check()
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -935,7 +953,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         self.assertTrue(len(constraints) > 0)
         self.assertEquals(w.get_var(ann1), 100)
         self.assertEquals(w.get_var(ann2), 100)
-        self.assertEquals(len(constraints), 2)
+        self.assertEquals(len(constraints), 3)
 
     def test_new_ctx(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1339,7 +1357,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         # Assertions
         self.assertEqual(ret, z3.sat)
         self.assertEquals(w.get_var(ann1), 5)
-        self.assertEquals(constraints, {})
+        self.assertEquals(len(constraints), 1)
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
