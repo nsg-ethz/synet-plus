@@ -72,7 +72,8 @@ class SMTValueWrapper(SMTSymbolicObject):
 
     def __init__(self, name, attr_name, announcement_sort,
                  announcements_var_map, fun, fun_range_sort,
-                 range_map, eval_fun, getter, setter, prev_ctxs=None):
+                 range_map, eval_fun, getter, setter, var_correctness=None,
+                 prev_ctxs=None):
         """
         :param name: ID used in generating new vars
         :param attr_name: the attribute name in the annoucement to be synthesized
@@ -102,6 +103,7 @@ class SMTValueWrapper(SMTSymbolicObject):
         self._fun_used = False
         self.general_constraints = {}
         self.var_constraints = {}
+        self.var_correctness = var_correctness
         self._model = None
         self._range_is_concerete = None
         if self.range_map is None:
@@ -141,6 +143,12 @@ class SMTValueWrapper(SMTSymbolicObject):
         """Set a new variable in the announcement"""
         name = "var_%s_%s" % (self.name, str(ann_var))
         value = z3.Const(name, self.fun_range_sort)
+        if self.var_correctness:
+            if ann_var not in self.var_constraints:
+                self.var_constraints[ann_var] = []
+            c_name = "%s_correct" % name
+            const = self.var_correctness(value)
+            self.var_constraints[ann_var].append((c_name, const))
         self._setter(self.announcements_var_map[ann_var], value)
         return value
 
@@ -190,7 +198,9 @@ class SMTValueWrapper(SMTSymbolicObject):
             fun = self._fun
             name = self._get_track_name(ann_var)
             constraint = fun(ann_var) == val
-            ret = [(name, constraint)]
+            ret += [(name, constraint)]
+        if ann_var in self.var_constraints:
+            ret.extend(self.var_constraints[ann_var])
         return var_const + ret
 
     def get_general_constraints(self, get_prev):
@@ -199,6 +209,11 @@ class SMTValueWrapper(SMTSymbolicObject):
             for ctx in self._prev_ctxs:
                 prev_constraints = ctx.get_general_constraints(get_prev=True)
                 constraints.update(prev_constraints)
+        if self._fun_used and self.var_correctness:
+            consts = []
+            for ann_var in self.announcements_var_map:
+                consts.append(self.var_correctness(self._fun(ann_var)))
+            constraints["%s_fun_correct" % self.name] = z3.And(*consts)
         return constraints
 
     def add_constraints(self, solver):
@@ -212,7 +227,7 @@ class SMTValueWrapper(SMTSymbolicObject):
         for ctx in self._prev_ctxs:
             prev_constraints = ctx.add_constraints(solver)
             for name, const in prev_constraints.iteritems():
-                assert name not in constraints
+                assert name not in constraints, "Double name %s" % name
                 constraints[name] = const
         for ann_var in self.ann_var_iter():
             var_consts = self.get_var_constraints(ann_var, get_prev=False)
@@ -476,6 +491,7 @@ class SMTLocalPrefWrapper(SMTValueWrapper):
         super(SMTLocalPrefWrapper, self).__init__(
             name, 'local_pref', announcement_sort, announcements_var_map,
             localpref_fun, z3.IntSort(), None, eval_fun=eval_fun,
+            var_correctness=lambda var: var > 0,
             getter=getter, setter=setter, prev_ctxs=prev_ctxs)
 
     def get_new_context(self, name, ann_vars, new_fun, transformer):
@@ -558,8 +574,13 @@ class SMTASPathLenWrapper(SMTValueWrapper):
             ann.as_path_len = value
 
         super(SMTASPathLenWrapper, self).__init__(
-            name, 'as_path_len', announcement_sort, announcements_var_map,
-            as_path_len_fun, z3.IntSort(), None, eval_fun=eval_fun,
+            name=name, attr_name='as_path_len',
+            announcement_sort=announcement_sort,
+            announcements_var_map=announcements_var_map,
+            fun=as_path_len_fun, fun_range_sort=z3.IntSort(),
+            range_map=None,
+            var_correctness=lambda var: var >= 0,
+            eval_fun=eval_fun,
             getter=getter, setter=setter, prev_ctxs=prev_ctxs)
 
     def get_new_context(self, name, ann_vars, new_fun, transformer):
@@ -737,13 +758,13 @@ class SMTContext(SMTSymbolicObject):
         if get_prev:
             for prev_ctx in self.prev_ctxs:
                 prev_consts = prev_ctx.get_general_constraints(get_prev=True)
-                for name, const in prev_consts:
-                    assert name not in constraints
+                for name, const in prev_consts.iteritems():
+                    assert name not in constraints, "Double name %s" % name
                     constraints[name] = const
         for val_ctx in self.iter_ctxs():
-            prev_consts = val_ctx.get_general_constraints(get_prev)
-            for name, const in prev_consts:
-                assert name not in constraints
+            prev_consts = val_ctx.get_general_constraints(False)
+            for name, const in prev_consts.iteritems():
+                assert name not in constraints, "Double name %s" % name
                 constraints[name] = const
         return constraints
 
