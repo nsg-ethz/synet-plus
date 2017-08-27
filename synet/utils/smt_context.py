@@ -143,12 +143,12 @@ class SMTValueWrapper(SMTSymbolicObject):
         """Set a new variable in the announcement"""
         name = "var_%s_%s" % (self.name, str(ann_var))
         value = z3.Const(name, self.fun_range_sort)
-        if self.var_correctness:
-            if ann_var not in self.var_constraints:
-                self.var_constraints[ann_var] = []
-            c_name = "%s_correct" % name
-            const = self.var_correctness(value)
-            self.var_constraints[ann_var].append((c_name, const))
+        #if self.var_correctness and not self.range_map:
+        #    if ann_var not in self.var_constraints:
+        #        self.var_constraints[ann_var] = []
+        #    c_name = "%s_correct" % name
+        #    const = self.var_correctness(value)
+        #    self.var_constraints[ann_var].append((c_name, const))
         self._setter(self.announcements_var_map[ann_var], value)
         return value
 
@@ -168,6 +168,14 @@ class SMTValueWrapper(SMTSymbolicObject):
                     self._setter(self.announcements_var_map[ann_var], evaluted)
                 return evaluted
             else:
+                if self.var_correctness and not self.range_map and \
+                                ann_var not in self.var_constraints:
+                    if ann_var not in self.var_constraints:
+                        self.var_constraints[ann_var] = []
+                    name = "var_%s_%s" % (self.name, str(ann_var))
+                    c_name = "%s_correct" % name
+                    const = self.var_correctness(value)
+                    self.var_constraints[ann_var].append((c_name, const))
                 return value
 
         return value
