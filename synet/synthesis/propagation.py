@@ -7,21 +7,9 @@ from collections import namedtuple
 import z3
 import networkx as nx
 
-from synet.utils.common import PathReq
 from synet.synthesis.ebgp import EBGP
-
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import Access
-from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
-from synet.topo.bgp import MatchPeer
-from synet.topo.bgp import MatchIpPrefixListList
-from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import RouteMap
-from synet.topo.bgp import RouteMapLine
-
-
+from synet.utils.common import PathReq
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
 from synet.utils.smt_context import SMTContext
@@ -34,10 +22,6 @@ from synet.utils.smt_context import SMTPrefixWrapper
 from synet.utils.smt_context import SMTPermittedWrapper
 from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
-from synet.utils.smt_context import VALUENOTSET
-
-
-from synet.utils.policy import SMTRouteMap
 
 
 __author__ = "Ahmed El-Hassany"
@@ -45,7 +29,6 @@ __email__ = "a.hassany@gmail.com"
 
 
 z3.set_option('unsat-core', True)
-
 
 
 class EBGPPropagation(object):
