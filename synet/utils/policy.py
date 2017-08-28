@@ -266,6 +266,7 @@ class SMTCommunity(SMTSynMatchVal):
                 model_eval_fun=model_eval,
                 config_class=lambda x: community)
         else:
+            assert is_empty(community) or is_symbolic(community)
             model_eval = lambda model, val: z3.is_true(model.eval(val))
             self.context = context
             val_ctx = context.communities_ctx.values()[0]
