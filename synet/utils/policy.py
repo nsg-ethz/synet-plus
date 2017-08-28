@@ -1364,7 +1364,7 @@ class SMTActions(SMTAction):
         self.constraints = {}
         prev_ctx = self.ctx
         for i, action in enumerate(self.actions):
-            new_name = "%s_%d" % (self.name, i)
+            new_name = "%s_%s_%d" % (self.name, action.__class__.__name__, i)
             fun = self.action_dispatch[type(action)]
             box = fun(name=new_name, action=action, context=prev_ctx)
             prev_ctx = box.get_new_context()
@@ -1605,11 +1605,11 @@ class SMTRouteMapLine(SMTAction):
 
         # No need to apply the actions if the route is dropped
         if line.access == Access.deny:
-            self.actions = SMTActions(name="a_%s" % name, match=self.matches,
+            self.actions = SMTActions(name="Action_%s" % name, match=self.matches,
                                       actions=[self.permitted_action],
                                       context=self.ctx)
         else:
-            self.actions = SMTActions(name="a_%s" % name, match=self.matches,
+            self.actions = SMTActions(name="Action_%s" % name, match=self.matches,
                                       actions=[self.permitted_action] + line.actions,
                                       context=self.ctx)
         self.new_ctx = self.actions.get_new_context()
@@ -1665,7 +1665,7 @@ class SMTRouteMap(SMTAction):
         self.constraints = []
         self.var_constraints = []
         for i, line in enumerate(self.route_map.lines):
-            name = "%s_line_%s" % (self.name, i)
+            name = "%s_line_%s" % (self.name, line.lineno)
             box = SMTRouteMapLine(name, line=line, context=self.ctx)
             self.boxes.append(box)
 
