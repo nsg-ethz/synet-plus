@@ -1357,6 +1357,7 @@ class SMTActions(SMTAction):
         self.action_dispatch = {
             ActionSetLocalPref: self._set_localpref,
             ActionSetCommunity: self._set_community,
+            ActionSetNextHop: self._set_next_hop,
             SMTSetPermitted: self._set_access,
         }
         self.boxes = []
@@ -1424,6 +1425,10 @@ class SMTActions(SMTAction):
 
     def _set_localpref(self, name, action, context):
         return SMTSetLocalPref(name=name, localpref=action.value,
+                               match=self.match, context=context)
+
+    def _set_next_hop(self, name, action, context):
+        return SMTSetNextHop(name=name, next_hop=action.value,
                                match=self.match, context=context)
 
     def _set_access(self, name, action, context):
