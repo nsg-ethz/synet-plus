@@ -392,6 +392,32 @@ class ActionSetLocalPref(Action):
         return self.__str__()
 
 
+class ActionSetNextHop(Action):
+    def __init__(self, next_hop):
+        self._value = next_hop
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetNextHop(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
 class ActionString(Action):
     def __init__(self, value):
         assert isinstance(value, basestring)

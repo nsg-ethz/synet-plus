@@ -5,6 +5,7 @@ import z3
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import ActionSetNextHop
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
@@ -30,6 +31,7 @@ from synet.utils.policy import SMTRouteMap
 from synet.utils.policy import SMTRouteMapLine
 from synet.utils.policy import SMTSetCommunity
 from synet.utils.policy import SMTSetLocalPref
+from synet.utils.policy import SMTSetNextHop
 
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
@@ -1016,6 +1018,56 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertEquals(ctx2.local_pref_ctx.get_value(ann1), 200)
         self.assertEquals(ctx2.local_pref_ctx.get_value(ann2), 100)
         self.assertEquals(set2.get_config(), ActionSetLocalPref(200))
+
+
+class SMTSetNextHopTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        self.all_communities = (c1,)
+
+        ann1 = Announcement(
+            prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
+            local_pref=100, communities={c1: True}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Yahoo', peer='DT', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='DT',
+            local_pref=100, communities={c1: True}, permitted=True)
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+        }
+
+    def test_set_concrete(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        dt = ctx.next_hop_ctx.range_map['DT']
+        swiss = ctx.next_hop_ctx.range_map['SwissCom']
+        # Match
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+        # Set
+        set1 = SMTSetNextHop(name='s1', next_hop='DT', match=match, context=ctx)
+        # Load SMT
+        s1 = self.get_solver()
+        set1.add_constraints(s1)
+        ctx2 = set1.get_new_context()
+        ctx2.add_constraints(s1)
+        # Assertions
+        self.assertEquals(s1.check(), z3.sat)
+        self.assertTrue(set1.is_concrete())
+        model1 = s1.model()
+        set1.set_model(model1)
+        ctx2.set_model(model1)
+        self.assertEquals(set1.get_var(), dt)
+        self.assertEquals(ctx.next_hop_ctx.get_value(ann1), 'SwissCom')
+        self.assertEquals(ctx.next_hop_ctx.get_value(ann2), 'DT')
+        self.assertEquals(ctx2.next_hop_ctx.get_value(ann1), 'DT')
+        self.assertEquals(ctx2.next_hop_ctx.get_value(ann2), 'DT')
+        self.assertEquals(set1.get_config(), ActionSetNextHop('DT'))
 
 
 class SMTSetCommunityTest(SMTSetup):

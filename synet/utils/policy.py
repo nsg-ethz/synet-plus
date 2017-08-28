@@ -39,6 +39,7 @@ from synet.topo.bgp import Access
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import ActionSetNextHop
 from synet.topo.bgp import Community
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
@@ -984,6 +985,129 @@ class SMTSetLocalPref(SMTSetVal):
             '%s_subset_local_pref' % name,
             ann_vars=ann_var_map.keys(),
             new_fun=new_local_pref_fun,
+            transformer=transformer)
+        permitted_ctx = self.ctx.permitted_ctx.get_new_context(
+            '%s_subset_permitted' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.permitted_ctx._fun,
+            transformer=transformer)
+        communities_ctx = {}
+        for community, community_ctx in self.ctx.communities_ctx.iteritems():
+            communities_ctx[community] = community_ctx.get_new_context(
+                '%s_subset_community_%s' % (name, community.name),
+                ann_vars=ann_var_map.keys(),
+                new_fun=community_ctx._fun,
+                transformer=transformer)
+
+        ctx = self.ctx.get_new_context(
+            name=name,
+            announcements=announcements,
+            announcements_map=announcements_map,
+            prefix_ctx=prefix_ctx,
+            peer_ctx=peer_ctx,
+            origin_ctx=origin_ctx,
+            as_path_ctx=as_path_ctx,
+            as_path_len_ctx=as_path_len_ctx,
+            next_hop_ctx=next_hop_ctx,
+            local_pref_ctx=local_pref_ctx,
+            communities_ctx=communities_ctx,
+            permitted_ctx=permitted_ctx,
+            prev_ctxs=[self.ctx] + self.ctx.prev_ctxs)
+        return ctx
+
+
+class SMTSetNextHop(SMTSetVal):
+    """
+    Set the next hop
+    """
+
+    def __init__(self, name, next_hop, match, context):
+        """
+        :param name: a unique name to generate the SMT vars and fun
+        :param next_hop: NextHop VALUENOTSET
+        :param match: and SMTObject with a match_fun
+        :param context: SMTContext
+        """
+        super(SMTSetNextHop, self).__init__(
+            name=name,
+            value=next_hop,
+            match=match,
+            value_ctx=context.next_hop_ctx,
+            config_class=ActionSetNextHop,
+            model_val=lambda model, var: model.eval(var),
+            context=context
+        )
+
+    def get_new_context(self):
+        name = '%s_ctx' % self.name
+        announcements = {}
+        announcements_map = {}
+        ann_var_map = {}
+        if self.match.is_concrete():
+            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+                ann = self.ctx.announcements[ann_name]
+                if self.match.is_match(ann_var):
+                    new_ann = ann.copy()
+                    new_ann.next_hop = self.get_var()
+                else:
+                    new_ann = ann
+                announcements[ann_name] = new_ann
+                announcements_map[ann_name] = ann_var
+                ann_var_map[ann_var] = new_ann
+        else:
+            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+                ann = self.ctx.announcements[ann_name]
+                new_ann = ann.copy()
+                new_ann.next_hop = z3.If(
+                    self.match.match_fun(ann_var) == True,
+                    self.get_value(),
+                    self.value_ctx.get_value(ann_var)
+                )
+                announcements[ann_name] = new_ann
+                announcements_map[ann_name] = ann_var
+                ann_var_map[ann_var] = new_ann
+
+        def transformer(ann_var, ann):
+            """Transformer for the new context"""
+            return ann_var_map[ann_var]
+
+        new_next_hop_fun = z3.Function(
+            "%s_next_hop_fun" % name, self.ctx.announcement_sort, z3.IntSort())
+
+        prefix_ctx = self.ctx.prefix_ctx.get_new_context(
+            name='%s_subset_prefix' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.prefix_ctx._fun,
+            transformer=transformer)
+        peer_ctx = self.ctx.peer_ctx.get_new_context(
+            '%s_subset_peer' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.peer_ctx._fun,
+            transformer=transformer)
+        origin_ctx = self.ctx.origin_ctx.get_new_context(
+            '%s_subset_origin' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.origin_ctx._fun,
+            transformer=transformer)
+        as_path_ctx = self.ctx.as_path_ctx.get_new_context(
+            '%s_subset_as_path' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        as_path_len_ctx = self.ctx.as_path_len_ctx.get_new_context(
+            '%s_subset_as_path_len' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.as_path_len_ctx._fun,
+            transformer=transformer)
+        next_hop_ctx = self.ctx.next_hop_ctx.get_new_context(
+            '%s_subset_next_hop' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=new_next_hop_fun,
+            transformer=transformer)
+        local_pref_ctx = self.ctx.local_pref_ctx.get_new_context(
+            '%s_subset_local_pref' % name,
+            ann_vars=ann_var_map.keys(),
+            new_fun=self.ctx.local_pref_ctx,
             transformer=transformer)
         permitted_ctx = self.ctx.permitted_ctx.get_new_context(
             '%s_subset_permitted' % name,
