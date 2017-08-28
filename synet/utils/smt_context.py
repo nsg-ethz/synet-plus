@@ -843,7 +843,7 @@ class SMTContext(SMTSymbolicObject):
                 return given
             # If the announcements in the context didn't change
             # the use the original context
-            new_vals = set(announcements_map.values())
+            new_vals = set(ann_vars_map.values())
             old_vals = set(self.announcements_map.values())
             if transformer == empty_transformer and new_vals == old_vals:
                 return original
