@@ -199,6 +199,15 @@ class EBGP(object):
                 const = z3.And(permitted.get_var(ann_var) == False)
                 self.constraints[name] = const
 
+    def get_as_len_enabled(self):
+        """
+        Return True if selecting routes based on AS Path len is enabled
+        Will return concrete or symbolic variable (if it's a hole)
+        :return:
+        """
+        # TODO: "bgp bestpath as-path ignore" from configs
+        return True
+
     def select_fun(self, ann_name_best, prefix_ann_name_peers):
         """The BGP Selection process"""
         self._set_denied_prefixes(ann_name_best, prefix_ann_name_peers)
@@ -207,6 +216,7 @@ class EBGP(object):
             best_ann_var = self.general_ctx.announcements_map[best_ann_name]
             best_ctx = self.get_imported_ctx(best_peer)
             name = "%s_sel_%s" % (self.node, best_ann_name)
+            as_len_enabled = self.get_as_len_enabled()
             constraints = []
             # First assert that the learned perfix has the same attributes
             # As the one selected (because the the shim context)
@@ -261,12 +271,16 @@ class EBGP(object):
                                    s_localpref > o_localpref),
                             # 3) AS Path Length
                             z3.And(other_permitted,
+                                   as_len_enabled, # Can we use AS Path len
                                    s_localpref == o_localpref,
                                    s_aslen < o_aslen),
                             # 4) Origin Code IGP < EGP < Incomplete
                             z3.And(other_permitted,
                                    s_localpref == o_localpref,
-                                   s_aslen == o_aslen,
+                                   z3.Or(
+                                       as_len_enabled == False,
+                                       z3.And(as_len_enabled, s_aslen == o_aslen),
+                                   ),
                                    z3.Or(
                                        # IGP is the lowest
                                        z3.And(s_origin == igp_origin,
