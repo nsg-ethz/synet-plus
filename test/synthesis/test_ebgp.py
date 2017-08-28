@@ -5,33 +5,12 @@ from synet.utils.common import PathReq
 from synet.utils.common import PathProtocols
 from synet.topo.graph import NetworkGraph
 from synet.topo.bgp import Access
-from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
-from synet.topo.bgp import CommunityList
-from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import MatchIpPrefixListList
-from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
-
-from synet.utils.policy import OrOp
-from synet.utils.policy import SMTActions
-from synet.utils.policy import SMTCommunity
-from synet.utils.policy import SMTCommunityList
-from synet.utils.policy import SMTLocalPref
-from synet.utils.policy import SMTIpPrefix
-from synet.utils.policy import SMTIpPrefixList
-from synet.utils.policy import SMTMatch
-from synet.utils.policy import SMTMatches
-from synet.utils.policy import SMTNextHop
-from synet.utils.policy import SMTRouteMap
-from synet.utils.policy import SMTRouteMapLine
-from synet.utils.policy import SMTSetCommunity
-from synet.utils.policy import SMTSetLocalPref
 
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
@@ -47,8 +26,12 @@ from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import VALUENOTSET
 
-
 from synet.synthesis.propagation import EBGPPropagation
+
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
+
 
 class SMTSetup(unittest.TestCase):
     def _pre_load(self):
@@ -206,7 +189,7 @@ class SMTSetup(unittest.TestCase):
 
 
 class EBGPTest(SMTSetup):
-    def get_g(self):
+    def get_g_one_router_two_peers(self):
         """
         Get a simple graph of 1 local router and two peers ATT, DT
         :return: Networkx Digraph
@@ -229,15 +212,39 @@ class EBGPTest(SMTSetup):
         g_phy.add_bgp_neighbor('R1', 'ATT')
         g_phy.add_bgp_neighbor('R1', 'DT')
 
-        g_phy.add_bgp_advertise('ATT', self.anns['ATT_Google'])
-        g_phy.add_bgp_advertise('ATT', self.anns['ATT_YouTube'])
-        g_phy.add_bgp_advertise('DT', self.anns['DT_Google'])
-
+        for ann in self.anns.values():
+            g_phy.add_bgp_advertise(ann.peer, ann)
         return g_phy
 
+    def get_g_two_routers_one_peer(self):
+        """
+        Get a simple graph of 1 local router and two peers ATT, DT
+        :return: Networkx Digraph
+        """
+        # Start with some initial inputs
+        # This input only define routers
+        g_phy = NetworkGraph()
+        g_phy.add_router('R1')
+        g_phy.add_router('R2')
+        g_phy.add_peer('ATT')
+        g_phy.set_bgp_asnum('R1', 100)
+        g_phy.set_bgp_asnum('R2', 200)
+        g_phy.set_bgp_asnum('ATT', 2000)
 
-    def setUp(self):
-        super(EBGPTest, self).setUp()
+        g_phy.add_peer_edge('R1', 'ATT')
+        g_phy.add_router_edge('R1', 'R2')
+        g_phy.add_peer_edge('R2', 'ATT')
+        g_phy.add_router_edge('R2', 'R1')
+        g_phy.add_peer_edge('ATT', 'R1')
+        g_phy.add_peer_edge('ATT', 'R2')
+
+        g_phy.add_bgp_neighbor('R1', 'ATT')
+        g_phy.add_bgp_neighbor('R1', 'R2')
+        g_phy.add_bgp_neighbor('R2', 'ATT')
+
+        for ann in self.anns.values():
+            g_phy.add_bgp_advertise(ann.peer, ann)
+        return g_phy
 
     def load_import_route_maps(self, g, node, neighbor, value):
         set_localpref = ActionSetLocalPref(value)
@@ -249,8 +256,7 @@ class EBGPTest(SMTSetup):
         g.add_bgp_imoprt_route_map(node, neighbor, rmap.name)
 
     def test_small(self):
-        g = self.get_g()
-
+        g = self.get_g_one_router_two_peers()
         youtube_req1 = PathReq(PathProtocols.BGP, 'YouTube', ['ATT', 'R1'], 10)
         google_req1 = PathReq(PathProtocols.BGP, 'Google', ['DT', 'R1'], 10)
 
@@ -271,3 +277,48 @@ class EBGPTest(SMTSetup):
         self.assertEquals(ret, z3.sat)
         p.set_model(solver.model())
         print r1.get_config()
+
+    def test_triangle(self):
+        # Communities
+        num_comms = 1
+        num_prefixs = 1
+        all_communities = []
+        anns = {}
+        prefixs = []
+        for n in range(num_comms):
+            c1 = Community("100:%d" % n)
+            all_communities.append(c1)
+        for n in range(num_prefixs):
+            comms = dict([(c, False) for c in self.all_communities])
+            prefix = "Prefix_%d" % n
+            prefixs.append(prefix)
+            ann_name = "ATT_%s" % prefix
+            ann1 = Announcement(
+                prefix=prefix, peer='ATT', origin=BGP_ATTRS_ORIGIN.EBGP,
+                as_path=[5000], as_path_len=1,
+                next_hop='ATTHop', local_pref=100,
+                communities=comms, permitted=True)
+            anns[ann_name] = ann1
+        self.all_communities = set(all_communities)
+        self.anns = anns
+        self._define_types()
+
+        g = self.get_g_two_routers_one_peer()
+
+        reqs = []
+        for prefix in prefixs:
+            req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1'], 10)
+            req2 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R2'], 10)
+            reqs.append(req1)
+            reqs.append(req2)
+
+        p = EBGPPropagation(reqs, g)
+        p.synthesize()
+        solver = z3.Solver()
+        p.add_constraints(solver, track=False)
+        ret = solver.check()
+        print solver.to_smt2()
+        print solver.unsat_core()
+
+        self.assertEquals(ret, z3.sat)
+        p.set_model(solver.model())

@@ -6,12 +6,14 @@ Synthesize configurations for eBGP protocol
 import z3
 
 from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import ActionSetNextHop
 from synet.topo.bgp import Access
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.utils.policy import SMTRouteMap
+from synet.utils.smt_context import get_as_path_key
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -48,7 +50,15 @@ class EBGP(object):
         self.prefix_ann_name_peers = {}
         # Annoucement name to the best peer that will advertise it
         self.ann_name_best = {}
+
+        # Peer -> List of ann_names that are imported from it
+        self.peer_imported_ann_names = {}
+        # Peer -> List of ann_names that are exported to it
+        self.peer_exported_ann_names = {}
+        self.compute_exported_routes()
+
         self.selected_ctx = self._get_selected_sham()
+
         # Peer -> the export context to it
         self.export_ctx= {}
         # Peer -> the export SMT route map to it
@@ -56,8 +66,9 @@ class EBGP(object):
 
     def _get_selected_sham(self):
         """
-        To resolve circular dependancies of getting the context generate by each router
-        First generate a context with all variables.
+        To resolve circular dependencies of getting the context generate
+        by each router
+        First generate a context with all symbolic variables.
         Then it will be glued in the selection process to concrete values
         :return: SMTContext
         """
@@ -104,15 +115,57 @@ class EBGP(object):
     def get_export_ctx(self, neighbor):
         """Get the smt context that will be exported to the neighbor"""
         if neighbor not in self.export_ctx:
-            set_localpref = ActionSetLocalPref(100)
-            line = RouteMapLine(matches=None, actions=[set_localpref],
-                                access=Access.permit, lineno=10)
-            name = "E_%s_to_%s" % (self.node, neighbor)
-            rmap = RouteMap(name=name, lines=[line])
-            smap = SMTRouteMap(rmap.name, rmap, self.selected_ctx)
-            self.export_route_map[neighbor] = smap
-            self.export_ctx[neighbor] = smap.get_new_context()
+            anns = {}
+            ann_map = {}
+            for ann_name, prop in self.peer_exported_ann_names[neighbor].iteritems():
+                # Generate new context with updated values
+                sctx = self.selected_ctx
+                ann = sctx.announcements[ann_name]
+                ann_var = sctx.announcements_map[ann_name]
+                n = "%s_%s_%s_export" % (self.node, neighbor, ann_name)
+                as_path_key = get_as_path_key(prop.as_path)
+                as_path = sctx.as_path_ctx.range_map[as_path_key]
+                as_path_len = prop.as_path_len
+                new_ann = Announcement(
+                    prefix=ann.prefix,
+                    peer=sctx.peer_ctx.range_map[self.node],
+                    origin=sctx.origin_ctx.get_var(ann_var),
+                    as_path=as_path,
+                    as_path_len=as_path_len,
+                    next_hop=self.get_exported_next_hop(neighbor),
+                    local_pref=100,
+                    communities=dict(
+                        [(c,
+                          z3.Const("%s_c_%s" % (n, c.name),
+                                   z3.BoolSort())) for c in ann.communities]),
+                    permitted=True
+                )
+                anns[ann_name] = new_ann
+                ann_map[ann_name] = self.general_ctx.announcements_map[ann_name]
+            new_ctx = self.general_ctx.get_new_context(
+                name='E_%s_%s' % (self.node, neighbor),
+                announcements=anns, announcements_map=ann_map)
+
+            # Apply export route maps, if any
+            map_name = self.network_graph.get_bgp_export_route_map(self.node, neighbor)
+            if not map_name:
+                self.export_ctx[neighbor] = new_ctx
+            else:
+                rmap = self.network_graph.get_route_maps(self.node)[map_name]
+                # The generated context after applying the imported roue maps
+                exported_ctx = self.get_neighbor_ctx(neighbor)
+                smap = SMTRouteMap(name=rmap.name, route_map=rmap, context=new_ctx)
+                self.peer_route_map[neighbor] = smap
+                new_ctx = smap.get_new_context()
+            self.export_ctx[neighbor] = new_ctx
         return self.export_ctx[neighbor]
+
+    def get_exported_next_hop(self, neigbor):
+        """
+        Return the next hop value to be set
+        to the routes exported the neighbor
+        """
+        return self.general_ctx.next_hop_ctx.range_map[self.node+'Hop']
 
     def get_neighbor_ctx(self, neighbor):
         """
@@ -162,14 +215,30 @@ class EBGP(object):
         rmap = RouteMap(name=name, lines=[line])
         return rmap
 
+    def compute_exported_routes(self):
+        # Exported
+        for neighbor in self.network_graph.neighbors(self.node):
+            # The context exported by the neighbor
+            if not self.propagation_graph.has_edge(self.node, neighbor):
+                continue
+            # The announcements learned from that given peer
+            best = self.propagation_graph[self.node][neighbor].get('best', [])
+            nonbest = self.propagation_graph[self.node][neighbor].get('nonbest', [])
+            all_anns = best + nonbest
+            for prop in all_anns:
+                ann_name = prop.ann_name
+                if neighbor not in self.peer_exported_ann_names:
+                    self.peer_exported_ann_names[neighbor] = {}
+                self.peer_exported_ann_names[neighbor][ann_name] = prop
+
     def compute_best_routes(self):
         """Compute self.ann_name_best and self.prefix_ann_name_peers"""
         selected_routes = self.propagation_graph.node[self.node].get('selected', [])
         for prop in selected_routes:
-            #ann_name_best[propagated.ann_name] = propagated.peer
             prefix = self.general_ctx.announcements[prop.ann_name].prefix
-            self.ann_name_best[prefix] = (prop.peer, prop.ann_name)
+            self.ann_name_best[prefix] = prop
 
+        # Imported
         for neighbor in self.network_graph.neighbors(self.node):
             # The context exported by the neighbor
             if not self.propagation_graph.has_edge(neighbor, self.node):
@@ -183,6 +252,9 @@ class EBGP(object):
                 prefix = self.general_ctx.announcements[ann_name].prefix
                 if prefix not in self.prefix_ann_name_peers:
                     self.prefix_ann_name_peers[prefix] = []
+                if neighbor not in self.peer_imported_ann_names:
+                    self.peer_imported_ann_names[neighbor] = []
+                self.peer_imported_ann_names[neighbor].append(ann_name)
                 self.prefix_ann_name_peers[prefix].append((prop.peer, prop.ann_name))
 
     def _set_denied_prefixes(self, ann_name_best, prefix_ann_name_peers):
@@ -217,30 +289,32 @@ class EBGP(object):
     def select_fun(self, ann_name_best, prefix_ann_name_peers):
         """The BGP Selection process"""
         self._set_denied_prefixes(ann_name_best, prefix_ann_name_peers)
-        for prefix in ann_name_best:
-            best_peer, best_ann_name = ann_name_best[prefix]
+        for prefix, propagated in ann_name_best.iteritems():
+            best_peer = propagated.peer
+            best_ann_name = propagated.ann_name
             best_ann_var = self.general_ctx.announcements_map[best_ann_name]
             best_ctx = self.get_imported_ctx(best_peer)
             name = "%s_sel_%s" % (self.node, best_ann_name)
             as_len_enabled = self.get_as_len_enabled()
-            constraints = []
+            const_set = []
+            const_selection = []
             # First assert that the learned perfix has the same attributes
             # As the one selected (because the the shim context)
             for value_ctx in self.selected_ctx.ctx_names:
                 if value_ctx != 'communities_ctx':
                     ctx1 = getattr(self.selected_ctx, value_ctx)
                     ctx2 = getattr(best_ctx, value_ctx)
-                    constraints.append(ctx1.get_var(best_ann_var) ==
+                    const_set.append(ctx1.get_var(best_ann_var) ==
                                        ctx2.get_var(best_ann_var))
                 else:
                     ctx1 = getattr(self.selected_ctx, value_ctx)
                     ctx2 = getattr(best_ctx, value_ctx)
                     for comm in ctx1:
-                        constraints.append(ctx1[comm].get_var(best_ann_var) ==
+                        const_set.append(ctx1[comm].get_var(best_ann_var) ==
                                            ctx2[comm].get_var(best_ann_var))
 
             # Assert that the selected prefix is permitted
-            constraints.append(
+            const_set.append(
                 self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True)
 
             for (peer, other_ann_name) in prefix_ann_name_peers[prefix]:
@@ -268,7 +342,7 @@ class EBGP(object):
 
                     other_permitted = o_ctx.permitted_ctx.get_var(other_ann_var)
                     # The BGP selection process
-                    constraints.append(
+                    const_selection.append(
                         z3.Or(
                             # 1) Permitted
                             z3.And(other_permitted == False),
@@ -306,45 +380,47 @@ class EBGP(object):
                             #    with the lowest router ID.
 
                         ))
-                    if self.node == 'R3':
-                        print "LOCAL PREF", prefix, peer, s_localpref, o_localpref
-                        print "SELECTION", prefix, constraints[-1]
                     # Make sure all variables are bound to a value
                     # (not just the best route)
-                    for value_ctx in self.selected_ctx.ctx_names:
-                        if value_ctx != 'communities_ctx':
-                            ctx1 = getattr(s_ctx, value_ctx)
-                            ctx2 = getattr(o_ctx, value_ctx)
-                            constraints.append(ctx1.get_var(other_ann_var) ==
-                                               ctx2.get_var(other_ann_var))
-                        else:
-                            ctx1 = getattr(self.selected_ctx, value_ctx)
-                            ctx2 = getattr(o_ctx, value_ctx)
-                            for comm in ctx1:
-                                constraints.append(ctx1[comm].get_var(other_ann_var) ==
-                                                   ctx2[comm].get_var(other_ann_var))
+                    if other_ann_name != best_ann_name:
+                        for value_ctx in self.selected_ctx.ctx_names:
+                            if value_ctx != 'communities_ctx':
+                                ctx1 = getattr(s_ctx, value_ctx)
+                                ctx2 = getattr(o_ctx, value_ctx)
+                                const_set.append(ctx1.get_var(other_ann_var) ==
+                                                   ctx2.get_var(other_ann_var))
+                            else:
+                                ctx1 = getattr(self.selected_ctx, value_ctx)
+                                ctx2 = getattr(o_ctx, value_ctx)
+                                for comm in ctx1:
+                                    const_set.append(ctx1[comm].get_var(other_ann_var) ==
+                                                       ctx2[comm].get_var(other_ann_var))
 
-            self.constraints[name] = z3.And(*constraints)
+            self.constraints["%s_set" % name] = z3.And(*const_set)
+            self.constraints[name] = z3.And(*const_selection)
 
     def synthesize(self):
         """Synthesize the BGP configurations for this box"""
         self.compute_best_routes()
         self.select_fun(self.ann_name_best, self.prefix_ann_name_peers)
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         """Add the Z3 constraints to the solver"""
-        self.selected_ctx.add_constraints(solver)
+        self.selected_ctx.add_constraints(solver, track)
         for rmap in self.peer_route_map.values():
-            rmap.add_constraints(solver)
+            rmap.add_constraints(solver, track)
         for ctx in self.peer_exported_ctx.values():
-            ctx.add_constraints(solver)
+            ctx.add_constraints(solver, track)
         for ctx in self.peer_imported_ctx.values():
-            ctx.add_constraints(solver)
+            ctx.add_constraints(solver, track)
         for name, const in self.constraints.iteritems():
             if isinstance(const, bool):
                 assert const is True
                 continue
-            solver.assert_and_track(const, name)
+            if track:
+                solver.assert_and_track(const, name)
+            else:
+                solver.add(const)
 
     def set_model(self, model):
         """Set the Z3 Model for this box"""
