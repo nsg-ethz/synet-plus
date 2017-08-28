@@ -49,7 +49,10 @@ class EBGP(object):
         # Annoucement name to the best peer that will advertise it
         self.ann_name_best = {}
         self.selected_ctx = self._get_selected_sham()
-        #self.compute_best_routes()
+        # Peer -> the export context to it
+        self.export_ctx= {}
+        # Peer -> the export SMT route map to it
+        self.export_route_map = {}
 
     def _get_selected_sham(self):
         """
@@ -100,13 +103,16 @@ class EBGP(object):
 
     def get_export_ctx(self, neighbor):
         """Get the smt context that will be exported to the neighbor"""
-        set_localpref = ActionSetLocalPref(100)
-        line = RouteMapLine(matches=None, actions=[set_localpref],
-                            access=Access.permit, lineno=10)
-        name = "E_%s_to_%s" % (self.node, neighbor)
-        rmap = RouteMap(name=name, lines=[line])
-        smap = SMTRouteMap(rmap.name, rmap, self.selected_ctx)
-        return smap.get_new_context()
+        if neighbor not in self.export_ctx:
+            set_localpref = ActionSetLocalPref(100)
+            line = RouteMapLine(matches=None, actions=[set_localpref],
+                                access=Access.permit, lineno=10)
+            name = "E_%s_to_%s" % (self.node, neighbor)
+            rmap = RouteMap(name=name, lines=[line])
+            smap = SMTRouteMap(rmap.name, rmap, self.selected_ctx)
+            self.export_route_map[neighbor] = smap
+            self.export_ctx[neighbor] = smap.get_new_context()
+        return self.export_ctx[neighbor]
 
     def get_neighbor_ctx(self, neighbor):
         """
