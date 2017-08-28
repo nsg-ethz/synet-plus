@@ -134,10 +134,7 @@ class EBGP(object):
                     as_path_len=as_path_len,
                     next_hop=self.get_exported_next_hop(neighbor),
                     local_pref=100,
-                    communities=dict(
-                        [(c,
-                          z3.Const("%s_c_%s" % (n, c.name),
-                                   z3.BoolSort())) for c in ann.communities]),
+                    communities=dict([(c, val) for c, val in ann.communities.iteritems()]),
                     permitted=True
                 )
                 anns[ann_name] = new_ann
