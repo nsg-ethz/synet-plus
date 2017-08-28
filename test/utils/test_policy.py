@@ -240,13 +240,13 @@ class SMTCommunityTest(SMTSetup):
         s2.add(c2_match.match_fun(ann1) == False)
         s3.add(c3_match.match_fun(ann1) == True)
         # SMT Solving
-        c1_match.add_constraints(s1)
-        c2_match.add_constraints(s2)
-        c3_match.add_constraints(s3)
-        ctx.add_constraints(s1)
-        ctx.add_constraints(s2)
-        ctx.add_constraints(s3)
-        ctx.add_constraints(s4)
+        c1_match.add_constraints(s1, True)
+        c2_match.add_constraints(s2, True)
+        c3_match.add_constraints(s3, True)
+        ctx.add_constraints(s1, True)
+        ctx.add_constraints(s2, True)
+        ctx.add_constraints(s3, True)
+        ctx.add_constraints(s4, True)
         # Assertions
         self.assertEquals(s1.check(), z3.sat)
         self.assertEquals(s2.check(), z3.sat)
@@ -281,8 +281,8 @@ class SMTCommunityTest(SMTSetup):
         s1.add(c1_match.match_fun(ann1) == True)
         s1.add(c1_match.match_fun(ann2) == True)
         # SMT Solving
-        c1_match.add_constraints(s1)
-        ctx.add_constraints(s1)
+        c1_match.add_constraints(s1, True)
+        ctx.add_constraints(s1, True)
         # Assertions
         self.assertEquals(s1.check(), z3.sat)
         m1 = s1.model()
@@ -310,8 +310,8 @@ class SMTCommunityListTest(SMTSetup):
         s1 = self.get_solver()
         match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
         s1.add(match1 == True)
-        ctx.add_constraints(s1)
-        l1_match.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        l1_match.add_constraints(s1, True)
 
 
         self.assertEquals(s1.check(), z3.sat)
@@ -324,8 +324,8 @@ class SMTCommunityListTest(SMTSetup):
         s2 = self.get_solver()
         match2 = l2_match.match_fun(self.ann_map['Ann1_Google'])
         s2.add(match2 == True)
-        ctx.add_constraints(s2)
-        l2_match.add_constraints(s2)
+        ctx.add_constraints(s2, True)
+        l2_match.add_constraints(s2, True)
         self.assertEquals(s2.check(), z3.sat)
         m = s2.model()
         l2_match.set_model(m)
@@ -360,8 +360,8 @@ class SMTCommunityListTest(SMTSetup):
         s1 = self.get_solver()
         match1 = l1_m.match_fun(self.ann_map['Prefix_0'])
         s1.add(match1 == True)
-        ctx.add_constraints(s1)
-        l1_m.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        l1_m.add_constraints(s1, True)
 
         self.assertTrue(l1_m.is_concrete())
         self.assertEquals(s1.check(), z3.sat)
@@ -397,8 +397,8 @@ class SMTCommunityListTest(SMTSetup):
         s1 = self.get_solver()
         match1 = l1_m.match_fun(self.ann_map['Prefix_0'])
         s1.add(match1 == True)
-        ctx.add_constraints(s1)
-        l1_m.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        l1_m.add_constraints(s1, True)
         self.assertFalse(l1_m.is_concrete())
         self.assertEquals(s1.check(), z3.sat)
         m = s1.model()
@@ -444,8 +444,8 @@ class SMTIpPrefixTest(SMTSetup):
         s1.add(p1_match.match_fun(ann2) == False)
         s1.add(p2_match.match_fun(ann2) == True)
         # Solve SMT
-        p1_match.add_constraints(s1)
-        p2_match.add_constraints(s1)
+        p1_match.add_constraints(s1, True)
+        p2_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -474,9 +474,9 @@ class SMTIpPrefixTest(SMTSetup):
         s1.add(p4_match.match_fun(ann1) == False)
         s1.add(p4_match.match_fun(ann2) == True)
         # Solve SMT
-        ctx.add_constraints(s1)
-        p3_match.add_constraints(s1)
-        p4_match.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        p3_match.add_constraints(s1, True)
+        p4_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -533,10 +533,10 @@ class SMTIpPrefixListTest(SMTSetup):
         s1.add(match2 == True)
         s1.add(match3 == True)
         s1.add(match4 == True)
-        l1_match.add_constraints(s1)
-        l2_match.add_constraints(s1)
-        l3_match.add_constraints(s1)
-        l4_match.add_constraints(s1)
+        l1_match.add_constraints(s1, True)
+        l2_match.add_constraints(s1, True)
+        l3_match.add_constraints(s1, True)
+        l4_match.add_constraints(s1, True)
         self.assertEquals(s1.check(), z3.sat)
         m = s1.model()
 
@@ -590,8 +590,8 @@ class SMTNextHopTest(SMTSetup):
         s1.add(p1_match.match_fun(ann2) == False)
         s1.add(p2_match.match_fun(ann2) == True)
         # SMT Sove
-        p1_match.add_constraints(s1)
-        p2_match.add_constraints(s1)
+        p1_match.add_constraints(s1, True)
+        p2_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -619,8 +619,8 @@ class SMTNextHopTest(SMTSetup):
         s1.add(p2_match.match_fun(ann1) == False)
         s1.add(p2_match.match_fun(ann2) == True)
         # Load SMT
-        p1_match.add_constraints(s1)
-        p2_match.add_constraints(s1)
+        p1_match.add_constraints(s1, True)
+        p2_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -669,8 +669,8 @@ class SMTLocalPrefTest(SMTSetup):
         s1.add(p1_match.match_fun(ann2) == False)
         s1.add(p2_match.match_fun(ann2) == True)
         # Solve SMT
-        p1_match.add_constraints(s1)
-        p2_match.add_constraints(s1)
+        p1_match.add_constraints(s1, True)
+        p2_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertTrue(p1_match.is_concrete_match())
@@ -699,9 +699,9 @@ class SMTLocalPrefTest(SMTSetup):
         s1.add(p4_match.match_fun(ann1) == False)
         s1.add(p4_match.match_fun(ann2) == True)
         # Solve SMT
-        ctx.add_constraints(s1)
-        p3_match.add_constraints(s1)
-        p4_match.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        p3_match.add_constraints(s1, True)
+        p4_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertFalse(p3_match.is_concrete_match())
@@ -770,11 +770,11 @@ class SMTMatchTest(SMTSetup):
         s1.add(match2 == True)
         s1.add(match3 == True)
         s1.add(match4 == True)
-        ctx.add_constraints(s1)
-        l1_match.add_constraints(s1)
-        l2_match.add_constraints(s1)
-        l3_match.add_constraints(s1)
-        l4_match.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        l1_match.add_constraints(s1, True)
+        l2_match.add_constraints(s1, True)
+        l3_match.add_constraints(s1, True)
+        l4_match.add_constraints(s1, True)
         self.assertEquals(s1.check(), z3.sat)
         m = s1.model()
         l1_match.set_model(m)
@@ -808,11 +808,11 @@ class SMTMatchTest(SMTSetup):
         s1 = self.get_solver()
         match1 = l1_match.match_fun(google)
         s1.add(match1 == True)
-        l1_match.add_constraints(s1)
-        ctx.add_constraints(s1)
+        l1_match.add_constraints(s1, True)
+        ctx.add_constraints(s1, True)
         match2 = l2_match.match_fun(google)
         s1.add(match2 == True)
-        l2_match.add_constraints(s1)
+        l2_match.add_constraints(s1, True)
         # Assertions
         ret = s1.check()
         self.assertEquals(ret, z3.sat)
@@ -855,10 +855,10 @@ class SMTMatchTest(SMTSetup):
         s1.add(match1 == True)
         s1.add(match2 == True)
         s1.add(match3 == True)
-        ctx.add_constraints(s1)
-        l1_match.add_constraints(s1)
-        l2_match.add_constraints(s1)
-        l3_match.add_constraints(s1)
+        ctx.add_constraints(s1, True)
+        l1_match.add_constraints(s1, True)
+        l2_match.add_constraints(s1, True)
+        l3_match.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -914,8 +914,8 @@ class SMTMatchesTest(SMTSetup):
         s1 = self.get_solver()
         match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
         s1.add(match1 == True)
-        l1_match.add_constraints(s1)
-        ctx.add_constraints(s1)
+        l1_match.add_constraints(s1, True)
+        ctx.add_constraints(s1, True)
         ret = s1.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -931,8 +931,8 @@ class SMTMatchesTest(SMTSetup):
         match1 = l1_match.match_fun(self.ann_map['Ann1_Google'])
         match2 = l1_match.match_fun(self.ann_map['Ann2_Yahoo'])
         # Load Constraints
-        l1_match.add_constraints(s1)
-        ctx.add_constraints(s1)
+        l1_match.add_constraints(s1, True)
+        ctx.add_constraints(s1, True)
         ret = s1.check()
         self.assertEquals(ret, z3.sat)
         m = s1.model()
@@ -972,9 +972,9 @@ class SMTSetLocalPrefTest(SMTSetup):
         set1 = SMTSetLocalPref(name='s1', localpref=200, match=match, context=ctx)
         # Load SMT
         s1 = self.get_solver()
-        set1.add_constraints(s1)
+        set1.add_constraints(s1, True)
         ctx2 = set1.get_new_context()
-        ctx2.add_constraints(s1)
+        ctx2.add_constraints(s1, True)
         # Assertions
         self.assertEquals(s1.check(), z3.sat)
         self.assertTrue(set1.is_concrete())
@@ -1003,9 +1003,9 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertFalse(set2.is_concrete())
         s2.add(set2.action_fun(ann1) == 200)
         ctx2 = set2.get_new_context()
-        ctx2.add_constraints(s2)
-        set2.add_constraints(s2)
-        match.add_constraints(s2)
+        ctx2.add_constraints(s2, True)
+        set2.add_constraints(s2, True)
+        match.add_constraints(s2, True)
         ctx2 = set2.get_new_context()
         self.assertEquals(s2.check(), z3.sat)
         model2 = s2.model()
@@ -1053,9 +1053,9 @@ class SMTSetNextHopTest(SMTSetup):
         set1 = SMTSetNextHop(name='s1', next_hop='DT', match=match, context=ctx)
         # Load SMT
         s1 = self.get_solver()
-        set1.add_constraints(s1)
+        set1.add_constraints(s1, True)
         ctx2 = set1.get_new_context()
-        ctx2.add_constraints(s1)
+        ctx2.add_constraints(s1, True)
         # Assertions
         self.assertEquals(s1.check(), z3.sat)
         self.assertTrue(set1.is_concrete())
@@ -1111,9 +1111,9 @@ class SMTSetCommunityTest(SMTSetup):
         # Concrete, Additive = True
         s = self.get_solver()
         self.assertTrue(match.is_concrete())
-        set1.add_constraints(s)
-        match.add_constraints(s)
-        ctx.add_constraints(s)
+        set1.add_constraints(s, True)
+        match.add_constraints(s, True)
+        ctx.add_constraints(s, True)
 
         self.assertEquals(s.check(), z3.sat)
         self.assertTrue(set1.is_concrete())
@@ -1146,9 +1146,9 @@ class SMTSetCommunityTest(SMTSetup):
         # Concrete, Additive = False
 
         self.assertTrue(set1.is_concrete())
-        set1.add_constraints(s)
-        match.add_constraints(s)
-        ctx.add_constraints(s)
+        set1.add_constraints(s, True)
+        match.add_constraints(s, True)
+        ctx.add_constraints(s, True)
 
         self.assertEquals(s.check(), z3.sat)
         ctx2 = set1.get_new_context()
@@ -1180,11 +1180,11 @@ class SMTSetCommunityTest(SMTSetup):
 
         s = self.get_solver()
         # Concrete, Additive = False
-        set1.add_constraints(s)
-        match.add_constraints(s)
+        set1.add_constraints(s, True)
+        match.add_constraints(s, True)
 
         ctx2 = set1.get_new_context()
-        ctx2.add_constraints(s)
+        ctx2.add_constraints(s, True)
         self.assertTrue(set1.is_concrete())
 
 
@@ -1309,10 +1309,10 @@ class SMTActionsTest(SMTSetup):
 
         # Concrete, Additive = True
         s = self.get_solver()
-        actions.add_constraints(s)
-        match.add_constraints(s)
+        actions.add_constraints(s, True)
+        match.add_constraints(s, True)
         ctx2 = actions.get_new_context()
-        ctx2.add_constraints(s)
+        ctx2.add_constraints(s, True)
         s.add(ctx2.local_pref_ctx.fun(ann1) == 200)
 
         self.assertEquals(s.check(), z3.sat)
@@ -1375,9 +1375,9 @@ class SMTRouteMapLineTest(SMTSetup):
         l = SMTRouteMapLine(name='l', line=line, context=ctx)
         # Load SMT
         s = self.get_solver()
-        l.add_constraints(s)
+        l.add_constraints(s, True)
         ctx2 = l.get_new_context()
-        ctx2.add_constraints(s)
+        ctx2.add_constraints(s, True)
         ret = s.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1415,9 +1415,9 @@ class SMTRouteMapLineTest(SMTSetup):
 
         # Load SMT
         s = self.get_solver()
-        l.add_constraints(s)
+        l.add_constraints(s, True)
         ctx2 = l.get_new_context()
-        ctx2.add_constraints(s)
+        ctx2.add_constraints(s, True)
         s.add(l.matches.match_fun(ann1) == True)
         ret = s.check()
         # Assertions
@@ -1458,10 +1458,10 @@ class SMTRouteMapLineTest(SMTSetup):
         l = SMTRouteMapLine(name='l', line=line, context=ctx)
         # Load SMT
         s = self.get_solver()
-        l.add_constraints(s)
+        l.add_constraints(s, True)
         ctx2 = l.get_new_context()
         s.add(l.permitted_action.get_var() == True)
-        ctx2.add_constraints(s)
+        ctx2.add_constraints(s, True)
         ret = s.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1526,8 +1526,8 @@ class SMTRouteMapLineTest(SMTSetup):
             if name.endswith('_1'):
                 s1.add(ctx2.local_pref_ctx.fun(ann) == 200)
 
-        rline.add_constraints(s1)
-        ctx2.add_constraints(s1)
+        rline.add_constraints(s1, True)
+        ctx2.add_constraints(s1, True)
         ret = s1.check()
         self.assertEquals(ret, z3.sat)
         model = s1.model()
@@ -1603,11 +1603,11 @@ class SMTRouteMapTest(SMTSetup):
         r = SMTRouteMap(name='l', route_map=route_map, context=ctx)
 
         s = self.get_solver()
-        r.add_constraints(s)
+        r.add_constraints(s, True)
         ctx2 = r.get_new_context()
         s.add(ctx2.local_pref_ctx.fun(ann2) == 400)
 
-        ctx2.add_constraints(s)
+        ctx2.add_constraints(s, True)
         self.assertEquals(s.check(), z3.sat)
         model = s.model()
         r.set_model(model)
@@ -1691,8 +1691,8 @@ class SMTRouteMapTest(SMTSetup):
             if name.endswith('_1'):
                 s1.add(ctx2.local_pref_ctx.get_var(ann) == 200)
 
-        ctx2.add_constraints(s1)
-        smap.add_constraints(s1)
+        ctx2.add_constraints(s1, True)
+        smap.add_constraints(s1, True)
         self.assertEquals(s1.check(), z3.sat)
         model = s1.model()
         ctx2.set_model(model)
@@ -1783,10 +1783,10 @@ class SMTRouteMapTest(SMTSetup):
                 s1.add(ctx1.local_pref_ctx.get_var(ann) == 200)
                 s1.add(ctx2.local_pref_ctx.get_var(ann) == 50)
 
-        ctx1.add_constraints(s1)
-        ctx2.add_constraints(s1)
-        smap1.add_constraints(s1)
-        smap2.add_constraints(s1)
+        ctx1.add_constraints(s1, True)
+        ctx2.add_constraints(s1, True)
+        smap1.add_constraints(s1, True)
+        smap2.add_constraints(s1, True)
         import time
         start = time.time()
         self.assertEquals(s1.check(), z3.sat)
@@ -1909,10 +1909,10 @@ class SMTRouteMapTest(SMTSetup):
             else:
                 s1.add(union_ctx.local_pref_ctx.get_var(ann) == 50)
 
-        smap1.add_constraints(s1)
-        smap2.add_constraints(s1)
-        ctx1.add_constraints(s1)
-        ctx2.add_constraints(s1)
+        smap1.add_constraints(s1, True)
+        smap2.add_constraints(s1, True)
+        ctx1.add_constraints(s1, True)
+        ctx2.add_constraints(s1, True)
         import time
         start = time.time()
         ret = s1.check()

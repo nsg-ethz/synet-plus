@@ -50,7 +50,7 @@ class SMTSymbolicObject(object):
         """
         raise NotImplementedError()
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         """
         Add constraints to the z3 solver that relates to this var
         :param solver:
@@ -224,7 +224,7 @@ class SMTValueWrapper(SMTSymbolicObject):
             constraints["%s_fun_correct" % self.name] = z3.And(*consts)
         return constraints
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         """
         Add constraints to the z3 solver that relates to this var
         :param solver:
@@ -233,7 +233,7 @@ class SMTValueWrapper(SMTSymbolicObject):
         constraints = {}
         current_constraints = {}
         for ctx in self._prev_ctxs:
-            prev_constraints = ctx.add_constraints(solver)
+            prev_constraints = ctx.add_constraints(solver, track)
             for name, const in prev_constraints.iteritems():
                 assert name not in constraints, "Double name %s" % name
                 constraints[name] = const
@@ -244,7 +244,10 @@ class SMTValueWrapper(SMTSymbolicObject):
                 constraints[name] = const
                 current_constraints[name] = const
         for name, const in current_constraints.iteritems():
-            solver.assert_and_track(const, name)
+            if track:
+                solver.assert_and_track(const, name)
+            else:
+                solver.add(const)
         return constraints
 
     def _transform_anns(self, ann_vars, transformer):
@@ -783,7 +786,7 @@ class SMTContext(SMTSymbolicObject):
             var_consts.extend(ret)
         return var_consts
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         """
         Add the constraints to the solver
         :param solver:
@@ -797,7 +800,10 @@ class SMTContext(SMTSymbolicObject):
                 assert name not in constraints, "Double name %s" % name
                 constraints[name] = const
         for name, const in constraints.iteritems():
-            solver.assert_and_track(const, name)
+            if track:
+                solver.assert_and_track(const, name)
+            else:
+                solver.add(const)
         return constraints
 
     def set_model(self, model):

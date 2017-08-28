@@ -142,7 +142,7 @@ class TestSMTPrefixWrapper(SMTSetup):
             prefix_map=self.prefix_map)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -166,7 +166,7 @@ class TestSMTPrefixWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.get_var(tmp) == google))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -191,7 +191,7 @@ class TestSMTPrefixWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == google))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -232,7 +232,7 @@ class TestSMTPrefixWrapper(SMTSetup):
         tmp2 = z3.Const('test_tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == google))
         solver.add(z3.ForAll([tmp2], w2.get_var(tmp1) == yahoo))
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -278,7 +278,7 @@ class TestSMTPeerWrapper(SMTSetup):
             peer_map=self.peer_map)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -302,7 +302,7 @@ class TestSMTPeerWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.get_var(tmp) == swisscom))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -327,7 +327,7 @@ class TestSMTPeerWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == swisscom))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -365,7 +365,7 @@ class TestSMTPeerWrapper(SMTSetup):
         tmp2 = z3.Const('test_tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.fun(tmp1) == swisscom))
         solver.add(z3.ForAll([tmp1], w2.get_var(tmp2) == dt))
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         # Assertions
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
@@ -427,7 +427,7 @@ class TestSMTOriginWrapper(SMTSetup):
             origin_map=self.origin_map)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -458,7 +458,7 @@ class TestSMTOriginWrapper(SMTSetup):
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(tmp == ann4)
         solver.add(w.get_var(tmp) == ebgp)
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -491,7 +491,7 @@ class TestSMTOriginWrapper(SMTSetup):
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(tmp == ann4)
         solver.add(w.fun(tmp) == ebgp)
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -536,7 +536,7 @@ class TestSMTOriginWrapper(SMTSetup):
         solver.add(w1.get_var(tmp1) == ebgp)
         solver.add(w2.get_var(ann1) == ebgp)
         solver.add(w2.get_var(ann2) == ebgp)
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w2.set_model(model)
@@ -583,7 +583,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             self.nexthop_map)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -601,7 +601,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             self.nexthop_map)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -624,7 +624,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         tmp = z3.Const('test_tmp', self.ann_sort)
 
         solver.add(z3.ForAll([tmp], w.fun(tmp) == swisscom))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         # Assertions
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
@@ -656,7 +656,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             self.nexthop_fun, self.nexthop_sort,
             self.nexthop_map)
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -700,7 +700,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = self.anns[ann_name]
             nxthop = self.nexthop_map[nexthop_map[ann.prefix]]
             solver.add(w.get_var(ann_var) == nxthop)
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(constraints, {})
@@ -746,7 +746,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             ann = self.anns[ann_name]
             nxthop = self.nexthop_map[nexthop_map[ann.prefix]]
             solver.add(w.fun(ann_var) == nxthop)
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -789,7 +789,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         tmp2 = z3.Const('test_tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.fun(tmp1) == swisscom))
         solver.add(z3.ForAll([tmp1], w2.get_var(tmp2) == dt))
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         # Assertions
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
@@ -844,7 +844,7 @@ class TestSMTNexthopWrapper(SMTSetup):
         tmp2= z3.Const('tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w2.fun(tmp1) == nxt1))
         solver.add(z3.ForAll([tmp2], w3.fun(tmp2) == nxt2))
-        u.add_constraints(solver)
+        u.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -889,7 +889,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
             self.local_pref_fun)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEqual(ret, z3.sat)
@@ -911,7 +911,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(w.get_var(ann1) == -1)
-        w.add_constraints(solver)
+        w.add_constraints(solver, True)
         ret = solver.check()
 
     def test_symbolic(self):
@@ -926,7 +926,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.get_var(tmp) == 100))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         w.set_model(solver.model())
         # Assertions
@@ -944,7 +944,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == 100))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -980,7 +980,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         tmp2 = z3.Const('tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == 100))
         solver.add(z3.ForAll([tmp2], w2.get_var(tmp2) == 200))
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1031,9 +1031,9 @@ class TestSMTCommunityWrapper(SMTSetup):
             'wc3', c3, self.ann_sort, self.ann_var_map, self.communities_fun[c3])
         # Assumptions
         solver = self.get_solver()
-        constraints1 = wc1.add_constraints(solver)
-        constraints2 = wc2.add_constraints(solver)
-        constraints3 = wc3.add_constraints(solver)
+        constraints1 = wc1.add_constraints(solver, True)
+        constraints2 = wc2.add_constraints(solver, True)
+        constraints3 = wc3.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         wc1.set_model(model)
@@ -1068,9 +1068,9 @@ class TestSMTCommunityWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], wc1.get_var(tmp) == True))
-        constraints1 = wc1.add_constraints(solver)
-        constraints2 = wc2.add_constraints(solver)
-        constraints3 = wc3.add_constraints(solver)
+        constraints1 = wc1.add_constraints(solver, True)
+        constraints2 = wc2.add_constraints(solver, True)
+        constraints3 = wc3.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         wc1.set_model(model)
@@ -1096,7 +1096,7 @@ class TestSMTCommunityWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == 100))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         model = solver.model()
         w.set_model(model)
@@ -1155,12 +1155,12 @@ class TestSMTCommunityWrapper(SMTSetup):
         solver.add(z3.ForAll([tmp2], w11.get_var(tmp2) == True))
         solver.add(z3.ForAll([tmp3], w12.get_var(tmp3) == False))
         solver.add(z3.ForAll([tmp4], w13.get_var(tmp4) == False))
-        wc1.add_constraints(solver)
-        wc2.add_constraints(solver)
-        wc3.add_constraints(solver)
-        w11.add_constraints(solver)
-        w12.add_constraints(solver)
-        w13.add_constraints(solver)
+        wc1.add_constraints(solver, True)
+        wc2.add_constraints(solver, True)
+        wc3.add_constraints(solver, True)
+        w11.add_constraints(solver, True)
+        w12.add_constraints(solver, True)
+        w13.add_constraints(solver, True)
 
         ret = solver.check()
         # Assertions
@@ -1221,7 +1221,7 @@ class TestSMTASPathWrapper(SMTSetup):
         ret = solver.check()
         self.assertEqual(ret, z3.sat)
         self.assertEquals(w.get_var(ann1), p1)
-        self.assertEquals(w.add_constraints(solver), {})
+        self.assertEquals(w.add_constraints(solver, True), {})
 
     def test_symbolic(self):
         ann1 = self.ann_map['Ann1_Google']
@@ -1241,7 +1241,7 @@ class TestSMTASPathWrapper(SMTSetup):
             self.as_path_map)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1269,7 +1269,7 @@ class TestSMTASPathWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == p1))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1311,7 +1311,7 @@ class TestSMTASPathWrapper(SMTSetup):
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w1.fun(tmp) == p1))
         solver.add(z3.ForAll([tmp], w2.fun(tmp) == p2))
-        constraints = w2.add_constraints(solver)
+        constraints = w2.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1352,7 +1352,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
             self.as_path_len_fun)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEqual(ret, z3.sat)
@@ -1371,7 +1371,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.get_var(tmp) == 5))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1391,7 +1391,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == 5))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1426,7 +1426,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         tmp2 = z3.Const('tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == 5))
         solver.add(z3.ForAll([tmp2], w2.get_var(tmp2) == 10))
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1466,7 +1466,7 @@ class TestSMTPermittedWrapper(SMTSetup):
             self.permitted_fun)
         # Assumptions
         solver = self.get_solver()
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEqual(ret, z3.sat)
@@ -1485,7 +1485,7 @@ class TestSMTPermittedWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.get_var(tmp) == True))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1505,7 +1505,7 @@ class TestSMTPermittedWrapper(SMTSetup):
         solver = self.get_solver()
         tmp = z3.Const('test_tmp', self.ann_sort)
         solver.add(z3.ForAll([tmp], w.fun(tmp) == True))
-        constraints = w.add_constraints(solver)
+        constraints = w.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1540,7 +1540,7 @@ class TestSMTPermittedWrapper(SMTSetup):
         tmp2 = z3.Const('tmp2', self.ann_sort)
         solver.add(z3.ForAll([tmp1], w1.get_var(tmp1) == True))
         solver.add(z3.ForAll([tmp2], w2.get_var(tmp2) == False))
-        w2.add_constraints(solver)
+        w2.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1642,7 +1642,7 @@ class TestSMTContext(SMTSetup):
 
         # Assumptions
         solver = self.get_solver()
-        constraints1 = ctx.add_constraints(solver)
+        constraints1 = ctx.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)
@@ -1738,7 +1738,7 @@ class TestSMTContext(SMTSetup):
         solver = self.get_solver()
         tmp1 = z3.Const('tmp1', self.ann_sort)
         solver.add(z3.ForAll([tmp1], ctx2.local_pref_ctx.fun(tmp1) == 200))
-        constraints1 = ctx2.add_constraints(solver)
+        constraints1 = ctx2.add_constraints(solver, True)
         ret = solver.check()
         # Assertions
         self.assertEquals(ret, z3.sat)

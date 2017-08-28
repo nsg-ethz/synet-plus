@@ -220,7 +220,7 @@ class SMTSynMatchVal(SMTObject):
     def get_general_constraints(self, get_prev):
         return self.constraints
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         for name, const in self.constraints.iteritems():
             solver.assert_and_track(const, name)
         return self.constraints
@@ -474,10 +474,10 @@ class SMTCommunityList(SMTSynMatchVal):
             smt.set_model(model)
         self._model = model
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         constraints = {}
         for smt in self._smt_matches:
-            constraints.update(smt.add_constraints(solver))
+            constraints.update(smt.add_constraints(solver, track))
         for name, constraint in self.constraints.iteritems():
             solver.assert_and_track(constraint, name)
         return constraints
@@ -550,10 +550,10 @@ class SMTIpPrefixList(SMTSynMatchVal):
                             access=self.prefix_list.access,
                             networks=prefixes)
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         constraints = {}
         for smt in self._smt_matches:
-            constraints.update(smt.add_constraints(solver))
+            constraints.update(smt.add_constraints(solver, track))
         for name, constraint in self.constraints.iteritems():
             solver.assert_and_track(constraint, name)
             constraints[name] = constraint
@@ -585,7 +585,7 @@ class SMTTrueMatch(SMTSynMatchVal):
     def get_config(self):
         return None
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         return {}
 
     def set_model(self, model):
@@ -698,10 +698,10 @@ class SMTMatch(SMTSynMatchVal):
         for smt in self.smts:
             smt.set_model(model)
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         constraints = {}
         for smt in self.smts:
-            constraints.update(smt.add_constraints(solver))
+            constraints.update(smt.add_constraints(solver, track))
         for name, constraint in self.constraints.iteritems():
             solver.assert_and_track(constraint, name)
             constraints[name] = constraint
@@ -766,10 +766,10 @@ class SMTMatches(SMTSynMatchVal):
         for box in self.boxes:
             box.set_model(model)
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         constraints = {}
         for box in self.boxes:
-            constraints.update(box.add_constraints(solver))
+            constraints.update(box.add_constraints(solver, track))
         return constraints
 
 
@@ -854,7 +854,7 @@ class SMTSetVal(SMTAction):
     def set_model(self, model):
         self._model = model
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         if not self._action_fun_used:
             return {}
         if self.match.is_concrete():
@@ -1250,7 +1250,7 @@ class SMTSetCommunity(SMTAction):
         val = self.get_value()
         return ActionSetCommunity(val)
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         for name, c in self.constraints.iteritems():
             solver.assert_and_track(c, name)
         return self.constraints
@@ -1408,11 +1408,11 @@ class SMTActions(SMTAction):
     def get_var_constraints(self, ann_var, get_prev):
         return []
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         constraints = {}
         constraints.update(self.constraints)
         for box in self.boxes:
-            const = box.add_constraints(solver)
+            const = box.add_constraints(solver, track)
             constraints.update(const)
         return constraints
 
@@ -1642,12 +1642,12 @@ class SMTRouteMapLine(SMTAction):
     def get_new_context(self):
         return self.new_ctx
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         constraints = {}
         constraints.update(self.constraints)
-        constraints.update(self.permitted_action.add_constraints(solver))
-        constraints.update(self.actions.add_constraints(solver))
-        constraints.update(self.matches.add_constraints(solver))
+        constraints.update(self.permitted_action.add_constraints(solver, track))
+        constraints.update(self.actions.add_constraints(solver, track))
+        constraints.update(self.matches.add_constraints(solver, track))
         return constraints
 
     def __str__(self):
@@ -1669,9 +1669,9 @@ class SMTRouteMap(SMTAction):
             box = SMTRouteMapLine(name, line=line, context=self.ctx)
             self.boxes.append(box)
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track):
         for box in self.boxes:
-            box.add_constraints(solver)
+            box.add_constraints(solver, track)
 
     def is_concrete(self):
         return False
