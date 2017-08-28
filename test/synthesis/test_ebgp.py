@@ -289,7 +289,7 @@ class EBGPTest(SMTSetup):
             c1 = Community("100:%d" % n)
             all_communities.append(c1)
         for n in range(num_prefixs):
-            comms = dict([(c, False) for c in self.all_communities])
+            comms = dict([(c, False) for c in all_communities])
             prefix = "Prefix_%d" % n
             prefixs.append(prefix)
             ann_name = "ATT_%s" % prefix
