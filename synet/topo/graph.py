@@ -152,7 +152,7 @@ class NetworkGraph(nx.DiGraph):
         if attr and EDGE_TYPE in attr:
             type_set = True
         if not type_set:
-            msg = 'Cannot add directly edges, must use' \
+            msg = 'Cannot add directly edges, must use ' \
                   'add_router_edge, add_peer_edge etc..'
             raise ValueError(msg)
         super(NetworkGraph, self).add_edge(u, v, attr_dict, **attr)
@@ -182,8 +182,8 @@ class NetworkGraph(nx.DiGraph):
         :param attr: attributes
         :return: None
         """
-        assert self.is_peer(u) or self.is_peer(v), "One side is not a peer router" % u
-        assert self.is_router(u) or self.is_router(v), "One side is not a local router" % u
+        assert self.is_peer(u) or self.is_peer(v), "One side is not a peer router %s" % u
+        assert self.is_router(u) or self.is_router(v), "One side is not a local router %s" % u
         if attr_dict is None:
             attr_dict = {}
         attr_dict[EDGE_TYPE] = EDGETYPE.ROUTER
