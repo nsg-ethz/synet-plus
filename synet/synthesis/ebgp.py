@@ -14,6 +14,7 @@ from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.utils.policy import SMTRouteMap
 from synet.utils.smt_context import get_as_path_key
+from synet.utils.smt_context import is_symbolic
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -112,6 +113,13 @@ class EBGP(object):
             name='S_%s' % (self.node),
             announcements=anns, announcements_map=ann_map)
 
+    def can_export_communities(self, neighbor):
+        """
+        Return true if the router is configured to send
+        the communities values to the neighbor
+        """
+        return True
+
     def get_export_ctx(self, neighbor):
         """Get the smt context that will be exported to the neighbor"""
         if neighbor not in self.export_ctx:
@@ -126,6 +134,15 @@ class EBGP(object):
                 as_path_key = get_as_path_key(prop.as_path)
                 as_path = sctx.as_path_ctx.range_map[as_path_key]
                 as_path_len = prop.as_path_len
+                can_send_comm = self.can_export_communities(neighbor)
+                if not is_symbolic(can_send_comm):
+                    if can_send_comm:
+                        communities = dict([(c, val) for c, val in ann.communities.iteritems()])
+                    else:
+                        communities = dict([(c, False) for c in ann.communities])
+                else:
+                    communities = dict([(c, z3.If(can_send_comm==True, val, False))
+                                        for c, val in ann.communities.iteritems()])
                 new_ann = Announcement(
                     prefix=ann.prefix,
                     peer=sctx.peer_ctx.range_map[self.node],
@@ -134,7 +151,7 @@ class EBGP(object):
                     as_path_len=as_path_len,
                     next_hop=self.get_exported_next_hop(neighbor),
                     local_pref=100,
-                    communities=dict([(c, val) for c, val in ann.communities.iteritems()]),
+                    communities=communities,
                     permitted=True
                 )
                 anns[ann_name] = new_ann
