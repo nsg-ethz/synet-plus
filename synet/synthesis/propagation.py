@@ -113,7 +113,7 @@ class EBGPPropagation(object):
             if as_path not in self.as_path_list:
                 self.as_path_list.append(as_path)
         # TODO better compute next hop and peers
-        self.next_hop_list = list(self.network_graph.local_routers_iter())
+        self.next_hop_list = list("%sHop" % r for r in self.network_graph.local_routers_iter())
         self.peer_list = list(self.network_graph.routers_iter())
 
     def get_general_context(self):
@@ -403,9 +403,9 @@ class EBGPPropagation(object):
             self.network_graph[src][dst]['syn']['nonbest'] = attrs['nonbest']
         self.print_union()
 
-    def add_constraints(self, solver):
+    def add_constraints(self, solver, track=True):
         for box in self.boxes:
-            box.add_constraints(solver)
+            box.add_constraints(solver, track)
 
     def set_model(self, model):
         for box in self.boxes:
