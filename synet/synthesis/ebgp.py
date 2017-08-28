@@ -301,21 +301,18 @@ class EBGP(object):
             # First assert that the learned perfix has the same attributes
             # As the one selected (because the the shim context)
             for value_ctx in self.selected_ctx.ctx_names:
+                ctx1 = getattr(self.selected_ctx, value_ctx)
+                ctx2 = getattr(best_ctx, value_ctx)
                 if value_ctx != 'communities_ctx':
-                    ctx1 = getattr(self.selected_ctx, value_ctx)
-                    ctx2 = getattr(best_ctx, value_ctx)
-                    const_set.append(ctx1.get_var(best_ann_var) ==
-                                       ctx2.get_var(best_ann_var))
+                    c = ctx1.get_var(best_ann_var) == ctx2.get_var(best_ann_var)
+                    self.constraints["%s_%s" % (name, value_ctx)] = c
                 else:
-                    ctx1 = getattr(self.selected_ctx, value_ctx)
-                    ctx2 = getattr(best_ctx, value_ctx)
                     for comm in ctx1:
-                        const_set.append(ctx1[comm].get_var(best_ann_var) ==
-                                           ctx2[comm].get_var(best_ann_var))
+                        c = ctx1[comm].get_var(best_ann_var) == ctx2[comm].get_var(best_ann_var)
+                        self.constraints["%s_c_%s" % (name, comm.name)] = c
 
             # Assert that the selected prefix is permitted
-            const_set.append(
-                self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True)
+            self.constraints["%s_permitted" % name] = self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True
 
             for (peer, other_ann_name) in prefix_ann_name_peers[prefix]:
                 s_ctx = self.selected_ctx
