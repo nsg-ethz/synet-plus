@@ -280,8 +280,8 @@ class EBGPTest(SMTSetup):
 
     def test_triangle(self):
         # Communities
-        num_comms = 1
-        num_prefixs = 1
+        num_comms = 5
+        num_prefixs = 100
         all_communities = []
         anns = {}
         prefixs = []
@@ -311,14 +311,27 @@ class EBGPTest(SMTSetup):
             req2 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R2'], 10)
             reqs.append(req1)
             reqs.append(req2)
-
+        import time
+        start = time.time()
         p = EBGPPropagation(reqs, g)
         p.synthesize()
+        end = time.time()
+        init_time = end - start
         solver = z3.Solver()
+        start = time.time()
         p.add_constraints(solver, track=False)
+        end = time.time()
+        load_time = end - start
+        start = time.time()
         ret = solver.check()
-        print solver.to_smt2()
-        print solver.unsat_core()
-
+        end = time.time()
+        smt_time = end - start
+        print "Init Time", init_time, "Seconds"
+        print "SMT Load Time", load_time, "Seconds"
+        print "SMT Solve Time", smt_time, "Seconds"
+        #print solver.to_smt2()
+        #print solver.unsat_core()
         self.assertEquals(ret, z3.sat)
         p.set_model(solver.model())
+        r1 = p.network_graph.node['R1']['syn']['box']
+        print r1.get_config()
