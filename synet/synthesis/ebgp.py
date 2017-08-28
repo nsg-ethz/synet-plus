@@ -117,7 +117,7 @@ class EBGP(object):
         if neighbor not in self.export_ctx:
             anns = {}
             ann_map = {}
-            for ann_name, prop in self.peer_exported_ann_names[neighbor].iteritems():
+            for ann_name, prop in self.peer_exported_ann_names.get(neighbor, {}).iteritems():
                 # Generate new context with updated values
                 sctx = self.selected_ctx
                 ann = sctx.announcements[ann_name]
