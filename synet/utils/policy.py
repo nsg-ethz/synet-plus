@@ -1166,9 +1166,7 @@ class SMTSetCommunity(SMTAction):
         self.constraints = {}
         self.ctx = context
         self.prev_comm_ctx = self.ctx.communities_ctx
-
         self._new_comm_vars = dict([(comm, {}) for comm in self.prev_comm_ctx.keys()])
-
         self._load_action()
 
     def is_concrete_value(self):
@@ -1184,11 +1182,11 @@ class SMTSetCommunity(SMTAction):
 
     def _load_action(self):
         def new_var(comm, ann_var):
-            return z3.Const('%s_new_var_%s_%s' % (self.name, comm.name, str(ann_var)), z3.BoolSort())
+            name = '%s_new_var_%s_%s' % (self.name, comm.name, str(ann_var))
+            return z3.Const(name, z3.BoolSort())
 
         def get_prev(comm, ann_var):
             ret_val = None
-
             if self.match.is_concrete() is True:
                 if self.match.is_match(ann_var):
                     if comm in self._communities:
@@ -1201,7 +1199,7 @@ class SMTSetCommunity(SMTAction):
                                 self.prev_comm_ctx[comm].get_var(ann_var),
                                 False)
                             name = '%s_new_var_%s_%s_S' % (self.name, comm.name, str(ann_var))
-                            self.constraints[name] = const
+                            self.constraints[name] = ret_val == const
                         else:
                             ret_val = self.prev_comm_ctx[comm].get_var(ann_var) if self.additive else False
                 elif not self.match.is_match(ann_var):
@@ -1210,28 +1208,27 @@ class SMTSetCommunity(SMTAction):
                 if comm in self._communities:
                     ret_val = new_var(comm, ann_var)
                     const = z3.If(
-                        self.match.match(ann_var) == True,
+                        self.match.match_fun(ann_var) == True,
                         True,
                         self.prev_comm_ctx[comm].get_var(ann_var))
                     name = '%s_new_var_%s_%s_S' % (self.name, comm.name, str(ann_var))
-                    self.constraints[name] = const
+                    self.constraints[name] = ret_val == const
                 else:
                     ret_val = new_var(comm, ann_var)
                     const = z3.If(
-                        self.match.match(ann_var) == True,
+                        self.match.match_fun(ann_var) == True,
                         z3.If(
                             self.additive == True,
                             self.prev_comm_ctx[comm].get_var(ann_var),
                             False),
                         self.prev_comm_ctx[comm].get_var(ann_var))
                     name = '%s_new_var_%s_%s_S' % (self.name, comm.name, str(ann_var))
-                    self.constraints[name] = const
+                    self.constraints[name] = ret_val == const
             return ret_val
 
-        if self.is_concrete() and self.match.is_concrete():
-            for comm in self.prev_comm_ctx.keys():
-                for ann_var in self.prev_comm_ctx[comm].announcements_var_map.keys():
-                    self._new_comm_vars[comm][ann_var] = get_prev(comm, ann_var)
+        for comm in self.prev_comm_ctx.keys():
+            for ann_var in self.prev_comm_ctx[comm].announcements_var_map.keys():
+                self._new_comm_vars[comm][ann_var] = get_prev(comm, ann_var)
 
     def get_value(self):
         if VALUENOTSET not in self._communities:

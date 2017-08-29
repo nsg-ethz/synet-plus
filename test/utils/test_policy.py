@@ -1165,7 +1165,6 @@ class SMTSetCommunityTest(SMTSetup):
         self.assertTrue(ctx2.communities_ctx[c3].get_var(ann2))
         self.assertEquals(set1.get_config(), ActionSetCommunity([c1, c2]))
 
-
     def test_set_concrete_syn_notadditive(self):
         ctx = self.get_context()
         ann1 = self.ann_map['Ann1_Google']
