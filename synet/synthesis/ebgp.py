@@ -426,7 +426,8 @@ class EBGP(object):
             ctx.add_constraints(solver, track)
         for name, const in self.constraints.iteritems():
             if isinstance(const, bool):
-                assert const is True
+                err = "Constraint already unsatisfied %s" % name
+                assert const is True, err
                 continue
             if track:
                 solver.assert_and_track(const, name)
