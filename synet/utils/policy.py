@@ -221,7 +221,7 @@ class SMTSynMatchVal(SMTObject):
         return self.constraints
 
     def add_constraints(self, solver, track):
-        for name, const in self.constraints.iteritems():
+        for name, const in self.get_general_constraints(True).iteritems():
             solver.assert_and_track(const, name)
         return self.constraints
 
@@ -1438,9 +1438,10 @@ class SMTActions(SMTAction):
                                context=context)
 
 
-class SMTSetPermitted(SMTSetVal):
+class SMTSetPermitted(SMTAction):
     """
-    Set the Local Pref for a route
+    Set the permitted field in the announcement
+    Only overrides when access is set to Access.deny
     """
 
     def __init__(self, name, access, match, context):
@@ -1450,14 +1451,12 @@ class SMTSetPermitted(SMTSetVal):
         :param match: and SMTObject with a match_fun
         :param context: SMTContext
         """
+        assert isinstance(match, SMTObject)
         self.ctx = context
         if is_symbolic(access) or is_empty(access):
             value = access
         else:
             value = True if access == Access.permit else False
-
-        def model_eval(model, val):
-            return z3.is_true(model.eval(val))
 
         def config_class(val):
             if isinstance(val, bool):
@@ -1469,44 +1468,135 @@ class SMTSetPermitted(SMTSetVal):
             else:
                 return Access.deny
 
-        super(SMTSetPermitted, self).__init__(
-            name=name,
-            value=value,
-            match=match,
-            value_ctx=context.permitted_ctx,
-            config_class=config_class,
-            model_val=model_eval,
-            context=context
-        )
+        self.name = name
+        self._value = value
+        self.match = match
+        self.value_ctx = context.permitted_ctx
+        self.config_class = config_class
+        self.model_val = lambda model, var: z3.is_true(model.eval(var))
+        self.ctx = context
+
+        self.constraints = {}
+        self._action_val = None
+        self._action_fun = None
+        self._action_fun_used = False
+        self._model = None
+        self._load_action()
+
+    @property
+    def action_fun(self):
+        """
+        Return the actions z3 function
+        This will trigger adding more constraints
+        """
+        self._action_fun_used = True
+        return self._action_fun
+
+    def _load_action(self):
+        domain = self.value_ctx.announcement_sort
+        f_range = self.value_ctx.fun_range_sort
+        val_name = '%s_val' % self.name
+        new_var = z3.Const(val_name, f_range)
+        f_name = "%s_fun" % self.name
+        self._action_fun = z3.Function(f_name, domain, f_range)
+
+        # If value is empty, convert it to z3 variable
+        if is_empty(self._value):
+            self._action_val = new_var
+        else:
+            if is_symbolic(self._value):
+                self._action_val = self._value
+            else:
+                # The variable is a string and there is a z3 object for it
+                if self.value_ctx.range_map is not None:
+                    self._action_val = self.value_ctx.range_map[self._value]
+                else:
+                    # The variable is not mapped to z3 objects
+                    # (for example local prefs)
+                    self._action_val = self._value
+
+    def is_concrete(self):
+        return self.match.is_concrete() and not is_empty(self._value)
+
+    def get_var(self):
+        return self._action_val
+
+    def get_value(self):
+        var = self.get_var()
+        if self._model and is_symbolic(var):
+            return self.model_val(self._model, var)
+        return self.value_ctx.get_value_of_var(var)
+
+    def set_model(self, model):
+        self._model = model
+
+    def add_constraints(self, solver, track):
+        if not self._action_fun_used:
+            return {}
+        if self.match.is_concrete():
+            for ann_var in self.value_ctx.ann_var_iter():
+                name = "%s_set_action_val_%s" % (self.name, str(ann_var))
+                if self.match.is_match(ann_var):
+                    val = self.get_var()
+                else:
+                    val = self.value_ctx.get_var(ann_var)
+                constraint = self._action_fun(ann_var) == val
+                self.constraints[name] = constraint
+        else:
+            tmp = z3.Const("%s_tmp" % self.name, self.value_ctx.announcement_sort)
+            constraint = z3.ForAll(
+                [tmp],
+                self._action_fun(tmp) == z3.If(
+                    z3.And(self.match.match_fun(tmp) == True, self._action_val == False),
+                    False,
+                    self.value_ctx.get_var(tmp)
+                ))
+            name = "%s_set_action_val_all"
+            self.constraints[name] = constraint
+        for name, constraint in self.constraints.iteritems():
+            solver.assert_and_track(constraint, name)
+        return self.constraints
+
+    def get_config(self):
+        val = self.get_value()
+        return self.config_class(val)
+
+    def __str__(self):
+        return "<%s(%s)>" % (self.__class__.__name__, self.name)
+
+    def __repr__(self):
+        return self.__str__()
 
     def get_new_context(self):
         name = '%s_ctx' % self.name
         announcements = {}
         announcements_map = {}
         ann_var_map = {}
-        if self.match.is_concrete():
-            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
-                ann = self.ctx.announcements[ann_name]
-                if self.match.is_match(ann_var):
-                    new_ann = ann.copy()
-                    new_ann.permitted = self.get_var()
+        permitted_value = self.get_var()
+
+        def get_permited(ann_var, premitted_var, original, match):
+            if match.is_concrete() and not is_symbolic(premitted_var):
+                if permitted_value:
+                    ret = original
                 else:
-                    new_ann = ann
-                announcements[ann_name] = new_ann
-                announcements_map[ann_name] = ann_var
-                ann_var_map[ann_var] = new_ann
-        else:
-            for ann_name, ann_var in self.ctx.announcements_map.iteritems():
-                ann = self.ctx.announcements[ann_name]
-                new_ann = ann.copy()
-                new_ann.permitted = z3.If(
-                    self.match.match_fun(ann_var) == True,
-                    self.get_value(),
-                    self.value_ctx.get_value(ann_var)
-                )
-                announcements[ann_name] = new_ann
-                announcements_map[ann_name] = ann_var
-                ann_var_map[ann_var] = new_ann
+                    ret = False if match.is_match(ann_var) else original
+            else:
+                ret = z3.If(
+                    z3.And(
+                        match.match_fun(ann_var) == True,
+                        permitted_value == False),
+                    False,
+                    original)
+            return ret
+
+        for ann_name, ann_var in self.ctx.announcements_map.iteritems():
+            ann = self.ctx.announcements[ann_name]
+            new_ann = ann.copy()
+            new_ann.permitted = get_permited(ann_var, permitted_value, ann.permitted, self.match)
+            announcements[ann_name] = new_ann
+            announcements_map[ann_name] = ann_var
+            ann_var_map[ann_var] = new_ann
+
 
         def transformer(ann_var, ann):
             """Transformer for the new context"""

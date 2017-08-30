@@ -32,6 +32,7 @@ from synet.utils.policy import SMTRouteMapLine
 from synet.utils.policy import SMTSetCommunity
 from synet.utils.policy import SMTSetLocalPref
 from synet.utils.policy import SMTSetNextHop
+from synet.utils.policy import SMTSetPermitted
 
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
@@ -1327,6 +1328,141 @@ class SMTActionsTest(SMTSetup):
         self.assertTrue(ctx2.communities_ctx[c2].get_value(ann2))
         self.assertTrue(ctx2.communities_ctx[c3].get_value(ann2))
         self.assertEquals(actions.get_config(), [set_c, set_pref])
+
+
+class SMTSetPermittedTest(SMTSetup):
+    def _pre_load(self):
+        # Communities
+        c1 = Community("100:16")
+        self.all_communities = (c1,)
+
+        ann1 = Announcement(
+            prefix='Google', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
+            local_pref=100, communities={c1: True}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Yahoo', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
+            local_pref=100, communities={c1: True}, permitted=True)
+
+        ann3 = Announcement(
+            prefix='eBay', peer='SwissCom', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5, next_hop='SwissCom',
+            local_pref=100, communities={c1: True}, permitted=False)
+
+        self.anns = {
+            'Ann1_Google': ann1,
+            'Ann2_Yahoo': ann2,
+            'Ann3_eBay': ann3,
+        }
+
+    def test_set_concrete(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        ann3 = self.ann_map['Ann3_eBay']
+
+        # Match
+        match = SMTIpPrefix(name='p1', prefix='Google', context=ctx)
+        # Set
+        set1 = SMTSetPermitted(name='s1',access=Access.deny,
+                               match=match, context=ctx)
+        set2 = SMTSetPermitted(name='s2', access=Access.permit,
+                               match=match, context=ctx)
+
+        # Load SMT
+        s1 = self.get_solver()
+        ctx2 = set1.get_new_context()
+        ctx3 = set2.get_new_context()
+        set1.add_constraints(s1, True)
+        set2.add_constraints(s1, True)
+        ctx2.add_constraints(s1, True)
+        ctx3.add_constraints(s1, True)
+        # Assertions
+        self.assertEquals(s1.check(), z3.sat)
+        self.assertTrue(set1.is_concrete())
+        self.assertTrue(set2.is_concrete())
+        model1 = s1.model()
+        set1.set_model(model1)
+        set2.set_model(model1)
+        ctx2.set_model(model1)
+        ctx3.set_model(model1)
+
+        self.assertEquals(set1.get_var(), False)
+        self.assertEquals(set2.get_var(), True)
+
+        self.assertEquals(ctx.permitted_ctx.get_value(ann1), True)
+        self.assertEquals(ctx.permitted_ctx.get_value(ann2), True)
+        self.assertEquals(ctx.permitted_ctx.get_value(ann3), False)
+
+        self.assertEquals(ctx2.permitted_ctx.get_value(ann1), False)
+        self.assertEquals(ctx2.permitted_ctx.get_value(ann2), True)
+        self.assertEquals(ctx2.permitted_ctx.get_value(ann3), False)
+
+        self.assertEquals(ctx3.permitted_ctx.get_value(ann1), True)
+        self.assertEquals(ctx3.permitted_ctx.get_value(ann2), True)
+        self.assertEquals(ctx3.permitted_ctx.get_value(ann3), False)
+        self.assertEquals(set1.get_config(), Access.deny)
+
+    def test_set_notconcrete(self):
+        ctx = self.get_context()
+        ann1 = self.ann_map['Ann1_Google']
+        ann2 = self.ann_map['Ann2_Yahoo']
+        ann3 = self.ann_map['Ann3_eBay']
+
+        # Match
+        match = SMTIpPrefix(name='p1', prefix=VALUENOTSET, context=ctx)
+        # Set
+        set1 = SMTSetPermitted(name='s1', access=VALUENOTSET,
+                               match=match, context=ctx)
+        set2 = SMTSetPermitted(name='s2', access=VALUENOTSET,
+                               match=match, context=ctx)
+
+        # Load SMT
+        s1 = self.get_solver()
+        s2 = s1 #self.get_solver()
+        ctx2 = set1.get_new_context()
+        ctx3 = set2.get_new_context()
+        s1.add(match.match_fun(ann1) == True)
+        s1.add(ctx2.permitted_ctx.get_var(ann1) == False)
+        s1.add(ctx2.permitted_ctx.get_var(ann2) == True)
+        s1.add(ctx2.permitted_ctx.get_var(ann3) == False)
+
+        s2.add(ctx3.permitted_ctx.get_var(ann1) == True)
+        match.add_constraints(s1, True)
+        set1.add_constraints(s1, True)
+        set2.add_constraints(s2, True)
+        ctx2.add_constraints(s1, True)
+        ctx3.add_constraints(s2, True)
+        # Assertions
+        self.assertEquals(s1.check(), z3.sat)
+        self.assertEquals(s2.check(), z3.sat)
+        self.assertFalse(set1.is_concrete())
+        self.assertFalse(set2.is_concrete())
+        model1 = s1.model()
+        model2 = s2.model()
+        set1.set_model(model1)
+        set2.set_model(model2)
+        ctx2.set_model(model1)
+        ctx3.set_model(model2)
+
+        self.assertEquals(set1.get_value(), False)
+        self.assertEquals(set2.get_value(), True)
+
+        self.assertEquals(ctx.permitted_ctx.get_value(ann1), True)
+        self.assertEquals(ctx.permitted_ctx.get_value(ann2), True)
+        self.assertEquals(ctx.permitted_ctx.get_value(ann3), False)
+
+        self.assertEquals(ctx2.permitted_ctx.get_value(ann1), False)
+        self.assertEquals(ctx2.permitted_ctx.get_value(ann2), True)
+        self.assertEquals(ctx2.permitted_ctx.get_value(ann3), False)
+
+        self.assertEquals(ctx3.permitted_ctx.get_value(ann1), True)
+        self.assertEquals(ctx3.permitted_ctx.get_value(ann2), True)
+        self.assertEquals(ctx3.permitted_ctx.get_value(ann3), False)
+        self.assertEquals(set1.get_config(), Access.deny)
+        self.assertEquals(set2.get_config(), Access.permit)
 
 
 class SMTRouteMapLineTest(SMTSetup):
