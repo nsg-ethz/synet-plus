@@ -147,7 +147,7 @@ def get_shortest_path_reqs(g, peers, communities):
                 for comm in communities:
                     clist = CommunityList(list_id="A_%s" % comm.name,
                                           access=Access.permit,
-                                          communities=[comm])
+                                          communities=[VALUENOTSET])
                     match = MatchCommunitiesList(clist)
                     set_pref = ActionSetLocalPref(VALUENOTSET)
                     line1 = RouteMapLine(matches=[match], actions=[set_pref],
