@@ -56,14 +56,13 @@ class EBGP(object):
         self.peer_imported_ann_names = {}
         # Peer -> List of ann_names that are exported to it
         self.peer_exported_ann_names = {}
-        self.compute_exported_routes()
-
-        self.selected_ctx = self._get_selected_sham()
-
         # Peer -> the export context to it
-        self.export_ctx= {}
+        self.export_ctx = {}
         # Peer -> the export SMT route map to it
         self.export_route_map = {}
+
+        self.compute_exported_routes()
+        self.selected_ctx = self._get_selected_sham()
 
     def _get_selected_sham(self):
         """
@@ -167,11 +166,11 @@ class EBGP(object):
             else:
                 rmap = self.network_graph.get_route_maps(self.node)[map_name]
                 # The generated context after applying the imported roue maps
-                exported_ctx = self.get_neighbor_ctx(neighbor)
                 smap = SMTRouteMap(name=rmap.name, route_map=rmap, context=new_ctx)
-                self.peer_route_map[neighbor] = smap
+                self.export_route_map[neighbor] = smap
                 new_ctx = smap.get_new_context()
-            self.export_ctx[neighbor] = new_ctx
+                self.export_ctx[neighbor] = new_ctx
+                self.export_route_map[neighbor] = smap
         return self.export_ctx[neighbor]
 
     def get_exported_next_hop(self, neigbor):
@@ -224,7 +223,7 @@ class EBGP(object):
         :return:
         """
         line = RouteMapLine(matches=None, actions=None,
-                            access=Access.permit, lineno=10)
+                            access=Access.permit, lineno=5)
         name = "RImport_%s_%s" % (node, neighbor)
         rmap = RouteMap(name=name, lines=[line])
         return rmap
@@ -327,7 +326,6 @@ class EBGP(object):
 
             # Assert that the selected prefix is permitted
             self.constraints["%s_permitted" % name] = self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True
-
             for (peer, other_ann_name) in prefix_ann_name_peers[prefix]:
                 s_ctx = self.selected_ctx
                 o_ctx = self.get_imported_ctx(peer)
@@ -389,7 +387,6 @@ class EBGP(object):
                             #      Continue, if bestpath is not yet selected.
                             # 9) Prefer the route that comes from the BGP router
                             #    with the lowest router ID.
-
                         ))
                     # Make sure all variables are bound to a value
                     # (not just the best route)
@@ -420,6 +417,8 @@ class EBGP(object):
         self.selected_ctx.add_constraints(solver, track)
         for rmap in self.peer_route_map.values():
             rmap.add_constraints(solver, track)
+        for rmap in self.export_route_map.values():
+            rmap.add_constraints(solver, track)
         for ctx in self.peer_exported_ctx.values():
             ctx.add_constraints(solver, track)
         for ctx in self.peer_imported_ctx.values():
@@ -440,6 +439,8 @@ class EBGP(object):
         self.selected_ctx.set_model(model)
         for rmap in self.peer_route_map.values():
             rmap.set_model(model)
+        for rmap in self.export_route_map.values():
+            rmap.set_model(model)
         for ctx in self.peer_exported_ctx.values():
             ctx.set_model(model)
         for ctx in self.peer_imported_ctx.values():
@@ -449,6 +450,8 @@ class EBGP(object):
         """Get concrete route configs"""
         configs = []
         for _, rmap in self.peer_route_map.iteritems():
+            configs.append(rmap.get_config())
+        for _, rmap in self.export_route_map.iteritems():
             configs.append(rmap.get_config())
         return configs
 
