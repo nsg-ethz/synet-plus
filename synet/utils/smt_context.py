@@ -106,7 +106,11 @@ class SMTValueWrapper(SMTSymbolicObject):
         self.var_correctness = var_correctness
         self._model = None
         self._range_is_concerete = None
-        self._reverse_rang_map = None
+        if self.range_map is None:
+            self._reverse_rang_map = None
+        else:
+            rev = dict([(value, key) for key, value in self.range_map.iteritems()])
+            self._reverse_rang_map = rev
         for ann_var, ann in self.announcements_var_map.iteritems():
             val = self._getter(ann)
             if is_empty(val):
@@ -179,9 +183,6 @@ class SMTValueWrapper(SMTSymbolicObject):
     def get_value_of_var(self, var):
         """Given a variable try to get a concrete value"""
         if is_symbolic(var) and self._reverse_rang_map:
-            if not self._reverse_rang_map and self.range_map:
-                rev = dict([(value, key) for key, value in self.range_map.iteritems()])
-                self._reverse_rang_map = rev
             if var in self._reverse_rang_map:
                 return self._reverse_rang_map[var]
         if is_symbolic(var) and self._model:
