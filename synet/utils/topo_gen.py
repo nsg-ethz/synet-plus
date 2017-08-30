@@ -12,6 +12,9 @@ from synet.utils.common import NETWORK_TYPE
 from synet.utils.common import NODE_TYPE
 from synet.utils.common import VERTEX_TYPE
 
+from synet.topo.graph import NetworkGraph
+
+
 __author__ = "Ahmed El-Hassany"
 __email__ = "eahmed@ethz.ch"
 
@@ -251,6 +254,28 @@ def read_topology_zoo(filename):
     for src, dst in graphml.edges():
         g.add_edge(lbl_map[src], lbl_map[dst], edge_type=INTERNAL_EDGE)
         g.add_edge(lbl_map[dst], lbl_map[src], edge_type=INTERNAL_EDGE)
+    return g
+
+
+def read_topology_zoo_netgraph(filename):
+    assert filename.endswith('.graphml'), 'wrong file type "%s"' % filename
+    graphml = nx.read_graphml(filename)
+    g = NetworkGraph()
+    lbl_map = {}
+    for node in graphml.nodes():
+        label = str(graphml.node[node]['label'])
+        # remove whitespaces
+        label = label.replace(' ', 'TT')
+        if label == 'None':
+            label = 'NodeID%s' % node
+        if g.has_node(label):
+            label = '%sID%s' % (label, node)
+        assert not g.has_node(label), 'Duplicate node %s with label %s' % (node, label)
+        lbl_map[node] = label
+        g.add_router(label)
+    for src, dst in graphml.edges():
+        g.add_router_edge(lbl_map[src], lbl_map[dst])
+        g.add_router_edge(lbl_map[dst], lbl_map[src])
     return g
 
 
