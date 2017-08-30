@@ -15,6 +15,8 @@ VALUENOTSET = 'EMPTY?Value'
 
 def is_empty(var):
     """Return true if the variable is VALUENOTSET"""
+    if hasattr(var, 'get_id'):
+        return False
     return str(var) == VALUENOTSET
 
 
@@ -102,17 +104,29 @@ class SMTValueWrapper(SMTSymbolicObject):
         self._prev_ctxs = prev_ctxs
         self._fun_used = False
         self.general_constraints = {}
-        self.var_constraints = {}
+        #self.var_constraints = {}
+        self.var_constraints_ids = {}
         self.var_correctness = var_correctness
         self._model = None
         self._range_is_concerete = None
-        self._reverse_rang_map = None
+        self._reverse_rang_map = {}
+        self._reverse_rang_map_id = {}
+        self.ann_var_ids = {}
         for ann_var, ann in self.announcements_var_map.iteritems():
+            new_ann = ann
             val = self._getter(ann)
             if is_empty(val):
-                self.set_new_var(ann_var)
+                var = self.get_new_var(ann_var)
+                new_ann = self._setter(ann, var)
             elif not is_symbolic(val) and self.range_map is not None:
-                self._setter(ann, self.range_map[val])
+                new_ann = self._setter(ann, self.range_map[val])
+            self.ann_var_ids[ann_var.get_id()] = new_ann
+
+    def add_var_constraint(self, ann_var, const):
+        var_id = ann_var.get_id()
+        if var_id not in self.var_constraints_ids:
+            self.var_constraints_ids[var_id] = []
+        self.var_constraints_ids[var_id].append(const)
 
     def ann_var_iter(self):
         """Iterate over the announcement variables defined for this context"""
@@ -135,43 +149,36 @@ class SMTValueWrapper(SMTSymbolicObject):
         self._fun_used = True
         return self._fun
 
-    def set_new_var(self, ann_var):
+    def get_new_var(self, ann_var):
         """Set a new variable in the announcement"""
         name = "var_%s_%s" % (self.name, str(ann_var))
-        value = z3.Const(name, self.fun_range_sort)
-        #if self.var_correctness and not self.range_map:
-        #    if ann_var not in self.var_constraints:
-        #        self.var_constraints[ann_var] = []
-        #    c_name = "%s_correct" % name
-        #    const = self.var_correctness(value)
-        #    self.var_constraints[ann_var].append((c_name, const))
-        self._setter(self.announcements_var_map[ann_var], value)
-        return value
+        var = z3.Const(name, self.fun_range_sort)
+        return var
 
     def get_var(self, ann_var):
         """
         Get the value for the given ann_var
         (applies partial eval whenever possible
         """
-        if ann_var not in self.announcements_var_map:
+        var_id = ann_var.get_id()
+        if var_id not in self.ann_var_ids:
             fun = self.fun
             return fun(ann_var)
-        value = self._getter(self.announcements_var_map[ann_var])
+        value = self._getter(self.ann_var_ids[var_id])
         if is_symbolic(value):
             if self._model:
                 evaluted = self._eval_fun(self._model, value)
                 if str(evaluted) != str(value):
-                    self._setter(self.announcements_var_map[ann_var], evaluted)
+                    self._setter(self.ann_var_ids[var_id], evaluted)
                 return evaluted
             else:
                 if self.var_correctness and not self.range_map and \
-                                ann_var not in self.var_constraints:
-                    if ann_var not in self.var_constraints:
-                        self.var_constraints[ann_var] = []
+                                var_id not in self.var_constraints_ids:
                     name = "var_%s_%s" % (self.name, str(ann_var))
                     c_name = "%s_correct" % name
                     const = self.var_correctness(value)
-                    self.var_constraints[ann_var].append((c_name, const))
+                    self.add_var_constraint(ann_var, (c_name, const))
+                    #self.var_constraints[ann_var].append((c_name, const))
                 return value
 
         return value
@@ -180,10 +187,16 @@ class SMTValueWrapper(SMTSymbolicObject):
         """Given a variable try to get a concrete value"""
         if is_symbolic(var) and self.range_map:
             if not self._reverse_rang_map:
-                rev = dict([(value, key) for key, value in self.range_map.iteritems()])
-                self._reverse_rang_map = rev
-            if var in self._reverse_rang_map:
-                return self._reverse_rang_map[var]
+                for key, value in self.range_map.iteritems():
+                    self._reverse_rang_map[value] = key
+                    self._reverse_rang_map_id[value.get_id] = key
+            var_id = var.get_id()
+            ret = self._reverse_rang_map_id.get(var_id, None)
+            if ret:
+                return ret
+            ret2 = self._reverse_rang_map.get(var, None)
+            if ret2:
+                return ret2
         if is_symbolic(var) and self._model:
             return self._eval_fun(self._model, var)
         return var
@@ -195,6 +208,7 @@ class SMTValueWrapper(SMTSymbolicObject):
 
     def get_var_constraints(self, ann_var, get_prev):
         var_const = []
+        var_id = ann_var.get_id()
         if get_prev:
             for prev_ctx in self._prev_ctxs:
                 ret = prev_ctx.get_var_constraints(ann_var, get_prev=True)
@@ -206,8 +220,8 @@ class SMTValueWrapper(SMTSymbolicObject):
             name = self._get_track_name(ann_var)
             constraint = fun(ann_var) == val
             ret += [(name, constraint)]
-        if ann_var in self.var_constraints:
-            ret.extend(self.var_constraints[ann_var])
+        if var_id in self.var_constraints_ids:
+            ret.extend(self.var_constraints_ids[var_id])
         return var_const + ret
 
     def get_general_constraints(self, get_prev):
@@ -325,6 +339,7 @@ class SMTPrefixWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the prefix value in the Announcement"""
             ann.prefix = value
+            return ann
 
         super(SMTPrefixWrapper, self).__init__(
             name, 'prefix', announcement_sort, announcements_var_map,
@@ -368,6 +383,7 @@ class SMTOriginWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the origin value in the Announcement"""
             ann.origin = value
+            return ann
 
         super(SMTOriginWrapper, self).__init__(
             name, 'origin', announcement_sort, announcements_var_map,
@@ -411,6 +427,7 @@ class SMTPeerWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the peer value in the Announcement"""
             ann.peer = value
+            return ann
 
         super(SMTPeerWrapper, self).__init__(
             name, 'peer', announcement_sort, announcements_var_map,
@@ -454,6 +471,7 @@ class SMTNexthopWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the next hop value in the Announcement"""
             ann.next_hop = value
+            return ann
 
         super(SMTNexthopWrapper, self).__init__(
             name, 'next_hop', announcement_sort, announcements_var_map,
@@ -497,6 +515,7 @@ class SMTLocalPrefWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the local pref value in the Announcement"""
             ann.local_pref = value
+            return ann
 
         super(SMTLocalPrefWrapper, self).__init__(
             name, 'local_pref', announcement_sort, announcements_var_map,
@@ -539,6 +558,7 @@ class SMTCommunityWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the community value in the Announcement"""
             ann.communities[community] = value
+            return ann
 
         super(SMTCommunityWrapper, self).__init__(
             name, 'Has_%s' % community.name, announcement_sort,
@@ -582,6 +602,7 @@ class SMTASPathLenWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the AS Length value in the Announcement"""
             ann.as_path_len = value
+            return ann
 
         super(SMTASPathLenWrapper, self).__init__(
             name=name, attr_name='as_path_len',
@@ -634,6 +655,7 @@ class SMTASPathWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the AS path value in the Announcement"""
             ann.as_path = value
+            return ann
 
         super(SMTASPathWrapper, self).__init__(
             name, 'as_path', announcement_sort, announcements_var_map,
@@ -677,6 +699,7 @@ class SMTPermittedWrapper(SMTValueWrapper):
         def setter(ann, value):
             """Set the local pref value in the Announcement"""
             ann.permitted = value
+            return ann
 
         super(SMTPermittedWrapper, self).__init__(
             name, 'permitted', announcement_sort, announcements_var_map,
@@ -870,7 +893,7 @@ class SMTContext(SMTSymbolicObject):
         local_pref_ctx = get_val_context(local_pref_ctx, self.local_pref_ctx)
         if not communities_ctx:
             communities_ctx = {}
-        for comm, comm_ctx in self.communities_ctx.iteritems():
+        for comm in self.communities_ctx:
             communities_ctx[comm] = get_val_context(
                 communities_ctx.get(comm, None), self.communities_ctx[comm])
         permitted_ctx = get_val_context(permitted_ctx, self.permitted_ctx)
