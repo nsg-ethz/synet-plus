@@ -1,4 +1,5 @@
 import unittest
+import time
 
 import z3
 from synet.utils.common import PathReq
@@ -10,10 +11,12 @@ from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
+from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchCommunitiesList
 
 from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
@@ -314,7 +317,6 @@ class EBGPTest(SMTSetup):
             req2 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R2'], 10)
             reqs.append(req1)
             reqs.append(req2)
-        import time
         start = time.time()
         p = EBGPPropagation(reqs, g)
         p.synthesize()
@@ -337,7 +339,9 @@ class EBGPTest(SMTSetup):
         self.assertEquals(ret, z3.sat)
         p.set_model(solver.model())
         r1 = p.network_graph.node['R1']['syn']['box']
+        r2 = p.network_graph.node['R2']['syn']['box']
         print r1.get_config()
+        print r2.get_config()
 
     def test_triangle_comm(self):
         # Communities
@@ -356,7 +360,7 @@ class EBGPTest(SMTSetup):
             ann_name = "ATT_%s" % prefix
             ann1 = Announcement(
                 prefix=prefix, peer='ATT', origin=BGP_ATTRS_ORIGIN.EBGP,
-                as_path=[5000], as_path_len=1,
+                as_path=[5000, 5100], as_path_len=2,
                 next_hop='ATTHop', local_pref=100,
                 communities=comms, permitted=True)
             anns[ann_name] = ann1
@@ -380,9 +384,11 @@ class EBGPTest(SMTSetup):
         g.add_route_map('R1', rmap)
         g.add_bgp_imoprt_route_map('R1', 'ATT', rmap.name)
 
-        # R2 import route map
+        # R2 import from R1 route map
         set_pref = ActionSetLocalPref(VALUENOTSET)
-        line1 = RouteMapLine(matches=None, actions=[set_pref],
+        clist = CommunityList(list_id='A', access=Access.permit, communities=[VALUENOTSET])
+        match = MatchCommunitiesList(clist)
+        line1 = RouteMapLine(matches=[match], actions=[set_pref],
                             access=Access.permit, lineno=10)
         line2 = RouteMapLine(matches=None, actions=[],
                              access=Access.permit, lineno=500)
@@ -396,14 +402,13 @@ class EBGPTest(SMTSetup):
                               networks=[VALUENOTSET])
         match = MatchIpPrefixListList(iplist)
         line1 = RouteMapLine(matches=[match], actions=None,
-                             access=VALUENOTSET, lineno=10)
+                             access=Access.permit, lineno=10)
         line2 = RouteMapLine(matches=None, actions=[],
                              access=Access.permit, lineno=500)
         name = "R2_import_ATT"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R2', rmap)
         g.add_bgp_imoprt_route_map('R2', 'ATT', rmap.name)
-
 
         reqs = []
         req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R1', 'R2'], 10)
@@ -414,8 +419,7 @@ class EBGPTest(SMTSetup):
             req2 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R2'], 10)
             reqs.append(req1)
             reqs.append(req2)
-        print reqs
-        import time
+
         start = time.time()
         p = EBGPPropagation(reqs, g)
         p.synthesize()
@@ -439,4 +443,108 @@ class EBGPTest(SMTSetup):
         self.assertEquals(ret, z3.sat)
         p.set_model(solver.model())
         r1 = p.network_graph.node['R1']['syn']['box']
+        r2 = p.network_graph.node['R2']['syn']['box']
         print r1.get_config()
+        print r2.get_config()
+
+    def test_triangle_deny(self):
+        # Communities
+        num_comms = 5
+        num_prefixs = 2
+        all_communities = []
+        anns = {}
+        prefixs = []
+        for n in range(num_comms):
+            c1 = Community("100:%d" % n)
+            all_communities.append(c1)
+        for n in range(num_prefixs):
+            comms = dict([(c, False) for c in all_communities])
+            prefix = "Prefix_%d" % n
+            prefixs.append(prefix)
+            ann_name = "ATT_%s" % prefix
+            ann1 = Announcement(
+                prefix=prefix, peer='ATT', origin=BGP_ATTRS_ORIGIN.EBGP,
+                as_path=[5000, 5100], as_path_len=2,
+                next_hop='ATTHop', local_pref=100,
+                communities=comms, permitted=True)
+            anns[ann_name] = ann1
+        self.all_communities = set(all_communities)
+        self.anns = anns
+        self._define_types()
+
+        g = self.get_g_two_routers_one_peer()
+
+        # R1 export to R2
+        iplist = IpPrefixList(name='L1', access=Access.permit,
+                              networks=[VALUENOTSET])
+        match = MatchIpPrefixListList(iplist)
+        line1 = RouteMapLine(matches=[match], actions=None,
+                             access=Access.deny, lineno=10)
+        line2 = RouteMapLine(matches=None, actions=[],
+                             access=Access.permit, lineno=20)
+        name = "R1_export_R2"
+        rmap = RouteMap(name=name, lines=[line1, line2])
+        g.add_route_map('R1', rmap)
+        g.add_bgp_export_route_map('R1', 'R2', rmap.name)
+
+        # R2 export to R1
+        iplist = IpPrefixList(name='L2', access=Access.permit,
+                              networks=[VALUENOTSET])
+        match = MatchIpPrefixListList(iplist)
+        line1 = RouteMapLine(matches=[match], actions=None,
+                             access=Access.deny, lineno=10)
+        line2 = RouteMapLine(matches=None, actions=[],
+                             access=Access.permit, lineno=20)
+        name = "R2_export_R1"
+        rmap = RouteMap(name=name, lines=[line1, line2])
+        g.add_route_map('R2', rmap)
+        g.add_bgp_export_route_map('R2', 'R1', rmap.name)
+
+        # R2 Import from R1
+        set_pref = ActionSetLocalPref(VALUENOTSET)
+        line1 = RouteMapLine(matches=None, actions=[set_pref],
+                             access=Access.permit, lineno=10)
+        line2 = RouteMapLine(matches=None, actions=[],
+                             access=Access.deny, lineno=500)
+        name = "R2_import_from_R1"
+        rmap = RouteMap(name=name, lines=[line1, line2])
+        g.add_route_map('R2', rmap)
+        g.add_bgp_imoprt_route_map('R2', 'R1', rmap.name)
+
+        reqs = []
+        req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R1'], 10)
+        reqs.append(req1)
+        req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R2'], 10)
+        reqs.append(req1)
+
+        for prefix in prefixs[1:]:
+            req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1', 'R2'], 10)
+            reqs.append(req1)
+
+        start = time.time()
+        p = EBGPPropagation(reqs, g)
+        p.synthesize()
+        end = time.time()
+        init_time = end - start
+        solver = z3.Solver()
+        start = time.time()
+        p.add_constraints(solver, track=True)
+        end = time.time()
+        load_time = end - start
+        start = time.time()
+        ret = solver.check()
+        print "Unsat core", solver.unsat_core()
+        end = time.time()
+        smt_time = end - start
+        print "Init Time", init_time, "Seconds"
+        print "SMT Load Time", load_time, "Seconds"
+        print "SMT Solve Time", smt_time, "Seconds"
+        #print solver.to_smt2()
+        #print solver.model()
+        print "Unsat core", solver.unsat_core()
+        self.assertEquals(ret, z3.sat)
+        p.set_model(solver.model())
+        r1 = p.network_graph.node['R1']['syn']['box']
+        r2 = p.network_graph.node['R2']['syn']['box']
+        print r1.get_config()
+        print r2.get_config()
