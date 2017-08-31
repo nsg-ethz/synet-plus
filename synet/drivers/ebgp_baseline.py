@@ -196,11 +196,11 @@ def main():
     print "Num Edges", len(g.edges())
     assign_setup_bgp(g, 100)
     communities = [Community("100:%d" % i) for i in range(num_comms)]
-    peers, route_maps = add_peers(g, num_peers, communities=communities, rand=rand)
-
+    peers, export_route_maps = add_peers(g, num_peers, communities=communities, rand=rand)
+    print "Export route maps", len(export_route_maps), "lines", sum([len(rmap.lines) for rmap in export_route_maps])
     set_announcements(g, num_prefixes, communities)
-
-    reqs, route_maps = get_shortest_path_reqs(g, peers, communities)
+    reqs, inner_route_maps = get_shortest_path_reqs(g, peers, communities)
+    print "Inner route maps", len(inner_route_maps), "lines", sum([len(rmap.lines) for rmap in inner_route_maps])
     print "STARTING PROPAGATION"
     start = time.time()
     p = EBGPPropagation(reqs, g)
