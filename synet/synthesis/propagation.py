@@ -4,22 +4,23 @@ Synthesize configurations for eBGP protocol
 """
 
 from collections import namedtuple
-import z3
+
 import networkx as nx
+import z3
 
 from synet.synthesis.ebgp import EBGP
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.utils.common import PathReq
-from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTASPathLenWrapper
-from synet.utils.smt_context import SMTContext
+from synet.utils.smt_context import SMTASPathWrapper
 from synet.utils.smt_context import SMTCommunityWrapper
+from synet.utils.smt_context import SMTContext
 from synet.utils.smt_context import SMTLocalPrefWrapper
 from synet.utils.smt_context import SMTNexthopWrapper
 from synet.utils.smt_context import SMTOriginWrapper
 from synet.utils.smt_context import SMTPeerWrapper
-from synet.utils.smt_context import SMTPrefixWrapper
 from synet.utils.smt_context import SMTPermittedWrapper
+from synet.utils.smt_context import SMTPrefixWrapper
 from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
 
@@ -177,13 +178,13 @@ class EBGPPropagation(object):
             communities_fun[c] = z3.Function(name, ann_sort, z3.BoolSort())
 
         return EBGPPropagation.create_context(name, all_anns, ann_map, ann_sort,
-                              prefix_fun, prefix_sort, prefix_map,
-                              peer_fun, peer_sort, peer_map,
-                              origin_fun, origin_sort, origin_map,
-                              as_path_fun, as_path_sort, as_path_map,
-                              as_path_len_fun,
-                              next_hop_fun, next_hop_sort, next_hop_map,
-                              local_pref_fun, permitted_fun, communities_fun)
+                                              prefix_fun, prefix_sort, prefix_map,
+                                              peer_fun, peer_sort, peer_map,
+                                              origin_fun, origin_sort, origin_map,
+                                              as_path_fun, as_path_sort, as_path_map,
+                                              as_path_len_fun,
+                                              next_hop_fun, next_hop_sort, next_hop_map,
+                                              local_pref_fun, permitted_fun, communities_fun)
 
     def add_path_req(self, req):
         """
@@ -215,7 +216,7 @@ class EBGPPropagation(object):
             as_path = ann.as_path
             as_path_len = ann.as_path_len
             node_as_paths[peer] = dict(best=True, as_path=as_path,
-                                          as_path_len=as_path_len)
+                                       as_path_len=as_path_len)
             first = EBGPPropagation.propagatedinfo(
                 egress=peer, ann_name=ann_name, peer=peer,
                 as_path=as_path, as_path_len=as_path_len)
@@ -272,10 +273,12 @@ class EBGPPropagation(object):
                                           as_path=as_path,
                                           as_path_len=as_path_len)
                 if i < len(path) - 1:
-                    g.add_node(path[i+1], selected=propagated)
+                    g.add_node(path[i + 1], selected=propagated)
                 # The edge is supposed to be selected as best path
                 # according to the requirements
-                label = "best:%s %s" % (propagated.ann_name, ','.join([str(n) for n in propagated.as_path]))
+                label = "best:%s %s" % (
+                    propagated.ann_name,
+                    ','.join([str(n) for n in propagated.as_path]))
                 g.add_edge(src, dst, best=propagated,
                            nonbest=None, label=label, style='solid')
 
@@ -316,7 +319,9 @@ class EBGPPropagation(object):
                     egress=egress, ann_name=selected.ann_name, peer=src,
                     as_path=as_path, as_path_len=as_path_len)
 
-                label = "nonbest: %s %s" % (propagated.ann_name, ','.join([str(n) for n in propagated.as_path]))
+                label = "nonbest: %s %s" % (
+                    propagated.ann_name,
+                    ','.join([str(n) for n in propagated.as_path]))
                 g.add_edge(src, neighbour,
                            best=None, nonbest=propagated,
                            label=label, style='dashed')
@@ -338,7 +343,7 @@ class EBGPPropagation(object):
             if req.dst_net not in nets_paths:
                 nets_paths[req.dst_net] = []
             nets_paths[req.dst_net].append(req.path)
-        for prefix in self.prefix_peers.keys():
+        for prefix in self.prefix_peers:
             if prefix not in nets_paths:
                 nets_paths[prefix] = []
         # For each prefix compute a route propagation graph
@@ -388,16 +393,20 @@ class EBGPPropagation(object):
         return g
 
     def print_union(self):
+        def pt(as_path):
+            return ','.join([str(n) for n in as_path])
         for src, dst, attrs in self.union_graph.edges_iter(data=True):
             best_label = []
             for prop in attrs['best']:
                 tmp = "best %s from %s: %s (len %s)" % (
-                    prop.ann_name, prop.egress, ','.join([str(n) for n in prop.as_path]), prop.as_path_len)
+                    prop.ann_name, prop.egress, pt(prop.as_path),
+                    prop.as_path_len)
                 best_label.append(tmp)
             nonbest_label = []
             for prop in attrs['nonbest']:
                 tmp = "nonbest %s from %s: %s (len %s)" % (
-                    prop.ann_name, prop.egress, ','.join([str(n) for n in prop.as_path]), prop.as_path_len)
+                    prop.ann_name, prop.egress, pt(prop.as_path),
+                    prop.as_path_len)
                 nonbest_label.append(tmp)
             best_str = "\\n".join(best_label)
             nonbest_str = "\\n".join(nonbest_label)

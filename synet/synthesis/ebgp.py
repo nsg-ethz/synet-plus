@@ -5,8 +5,6 @@ Synthesize configurations for eBGP protocol
 
 import z3
 
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import ActionSetNextHop
 from synet.topo.bgp import Access
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
@@ -15,6 +13,7 @@ from synet.topo.bgp import RouteMapLine
 from synet.utils.policy import SMTRouteMap
 from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_symbolic
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -27,6 +26,7 @@ class EBGP(object):
     """
     Synthesize eBGP Config for one router
     """
+
     def __init__(self, node, network_graph, propagation_graph, general_ctx):
         """
         :param node: The router to synthesize configs for
@@ -141,7 +141,7 @@ class EBGP(object):
                     else:
                         communities = dict([(c, False) for c in ann.communities])
                 else:
-                    communities = dict([(c, z3.If(can_send_comm==True, val, False))
+                    communities = dict([(c, z3.If(can_send_comm == True, val, False))
                                         for c, val in ann.communities.iteritems()])
                 new_ann = Announcement(
                     prefix=ann.prefix,
@@ -179,7 +179,7 @@ class EBGP(object):
         Return the next hop value to be set
         to the routes exported the neighbor
         """
-        return self.general_ctx.next_hop_ctx.range_map[self.node+'Hop']
+        return self.general_ctx.next_hop_ctx.range_map[self.node + 'Hop']
 
     def get_neighbor_ctx(self, neighbor):
         """
@@ -327,7 +327,8 @@ class EBGP(object):
                         self.constraints["%s_c_%s" % (name, comm.name)] = c
 
             # Assert that the selected prefix is permitted
-            self.constraints["%s_permitted" % name] = self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True
+            t_c = self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True
+            self.constraints["%s_permitted" % name] = t_c
             for (peer, other_ann_name) in prefix_ann_name_peers[prefix]:
                 s_ctx = self.selected_ctx
                 o_ctx = self.get_imported_ctx(peer)
@@ -354,6 +355,22 @@ class EBGP(object):
                     other_as_num = self.network_graph.get_bgp_asnum(peer)
                     node_as_num = self.network_graph.get_bgp_asnum(self.node)
                     other_permitted = o_ctx.permitted_ctx.get_var(other_ann_var)
+
+                    # Selection based on origin
+                    select_origin = z3.Or(
+                        # IGP is the lowest
+                        z3.And(s_origin == igp_origin,
+                               o_origin != igp_origin),
+                        # EGP over incomplete
+                        z3.And(s_origin == ebgp_origin,
+                               o_origin == incomplete_origin))
+                    # Selection based on AS Path len
+                    select_as_path_len = z3.And(
+                        as_len_enabled == True, # Can we use AS Path len
+                        s_aslen < o_aslen)
+                    # Prefer eBGP routes over iBGP
+                    select_ebgp = z3.And(node_as_num != best_as_num,
+                                         node_as_num == other_as_num)
                     # The BGP selection process
                     const_selection.append(
                         z3.Or(
@@ -364,41 +381,21 @@ class EBGP(object):
                                    s_localpref > o_localpref),
                             # 3) AS Path Length
                             z3.And(other_permitted,
-                                   as_len_enabled, # Can we use AS Path len
                                    s_localpref == o_localpref,
-                                   s_aslen < o_aslen),
+                                   select_as_path_len == True),
                             # 4) Origin Code IGP < EGP < Incomplete
                             z3.And(other_permitted,
                                    s_localpref == o_localpref,
-                                   z3.Or(
-                                       as_len_enabled == False,
-                                       z3.And(as_len_enabled, s_aslen == o_aslen),
-                                   ),
-                                   z3.Or(
-                                       # IGP is the lowest
-                                       z3.And(s_origin == igp_origin,
-                                              o_origin != igp_origin),
-                                       # EGP over incomplete
-                                       z3.And(s_origin == ebgp_origin,
-                                              o_origin == incomplete_origin))),
+                                   select_as_path_len == False,
+                                   select_origin == True),
                             # 5) TODO: MED Selection
                             # 6) Prefer eBGP over iBGP paths.
                             z3.And(
                                 other_permitted,
                                 s_localpref == o_localpref,
-                                z3.Or(
-                                    as_len_enabled == False,
-                                    z3.And(as_len_enabled, s_aslen == o_aslen),
-                                ),
-                                z3.Not(z3.Or(
-                                       # IGP is the lowest
-                                       z3.And(s_origin == igp_origin,
-                                              o_origin != igp_origin),
-                                       # EGP over incomplete
-                                       z3.And(s_origin == ebgp_origin,
-                                              o_origin == incomplete_origin))),
-                                z3.And(node_as_num != best_as_num,
-                                       node_as_num == other_as_num)),
+                                select_as_path_len == False,
+                                select_origin == False,
+                                select_ebgp == True),
                             # TODO (AH): More selection process
                             # 7) Path with the lowest IGP metric to the BGP next hop.
                             # 8) Determine if multiple paths
@@ -416,13 +413,13 @@ class EBGP(object):
                                 ctx1 = getattr(s_ctx, value_ctx)
                                 ctx2 = getattr(o_ctx, value_ctx)
                                 const_set.append(ctx1.get_var(other_ann_var) ==
-                                                   ctx2.get_var(other_ann_var))
+                                                 ctx2.get_var(other_ann_var))
                             else:
                                 ctx1 = getattr(self.selected_ctx, value_ctx)
                                 ctx2 = getattr(o_ctx, value_ctx)
                                 for comm in ctx1:
                                     const_set.append(ctx1[comm].get_var(other_ann_var) ==
-                                                       ctx2[comm].get_var(other_ann_var))
+                                                     ctx2[comm].get_var(other_ann_var))
 
             self.constraints["%s_set" % name] = z3.And(*const_set)
             self.constraints[name] = z3.And(*const_selection)
