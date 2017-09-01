@@ -279,6 +279,25 @@ def read_topology_zoo_netgraph(filename):
     return g
 
 
+def gen_mesh(mesh_size, asnum=None):
+    """Generate a full mesh topology"""
+    g_phy = NetworkGraph()
+    for num in range(mesh_size):
+        node = 'R%d' % (num + 1)
+        g_phy.add_router(node)
+        if asnum:
+            g_phy.set_bgp_asnum(node, asnum)
+
+    for src in g_phy.nodes():
+        for dst in g_phy.nodes():
+            if src == dst:
+                continue
+            g_phy.add_router_edge(src, dst)
+            if asnum:
+                g_phy.add_bgp_neighbor(src, dst)
+    return g_phy
+
+
 def main():
     from common import draw
     g = gen_grid_topo(3, 3, 1)

@@ -5,6 +5,7 @@ import unittest
 import z3
 from synet.utils.common import PathReq
 from synet.utils.common import PathProtocols
+from synet.utils.topo_gen import gen_mesh
 from synet.topo.graph import NetworkGraph
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
@@ -55,48 +56,6 @@ class iBGPTest(unittest.TestCase):
             anns["%s_%s" % (ann.peer, ann.prefix)] = ann
         return anns
 
-    def get_grid(self):
-        # Start with some initial inputs
-        # This input only define routers
-        g_phy = NetworkGraph()
-        g_phy.add_router('R1')
-        g_phy.add_router('R2')
-        g_phy.add_router('R3')
-        g_phy.add_router('R4')
-
-        g_phy.set_bgp_asnum('R1', 100)
-        g_phy.set_bgp_asnum('R2', 100)
-        g_phy.set_bgp_asnum('R3', 100)
-        g_phy.set_bgp_asnum('R4', 100)
-
-        g_phy.add_router_edge('R1', 'R2')
-        g_phy.add_router_edge('R1', 'R3')
-        g_phy.add_router_edge('R1', 'R4')
-        g_phy.add_router_edge('R2', 'R1')
-        g_phy.add_router_edge('R2', 'R3')
-        g_phy.add_router_edge('R2', 'R4')
-        g_phy.add_router_edge('R3', 'R1')
-        g_phy.add_router_edge('R3', 'R2')
-        g_phy.add_router_edge('R3', 'R4')
-        g_phy.add_router_edge('R4', 'R1')
-        g_phy.add_router_edge('R4', 'R2')
-        g_phy.add_router_edge('R4', 'R3')
-        g_phy.add_router_edge('R4', 'R4')
-
-        g_phy.add_bgp_neighbor('R1', 'R2')
-        g_phy.add_bgp_neighbor('R1', 'R3')
-        g_phy.add_bgp_neighbor('R1', 'R4')
-        g_phy.add_bgp_neighbor('R2', 'R1')
-        g_phy.add_bgp_neighbor('R2', 'R3')
-        g_phy.add_bgp_neighbor('R2', 'R4')
-        g_phy.add_bgp_neighbor('R3', 'R1')
-        g_phy.add_bgp_neighbor('R3', 'R2')
-        g_phy.add_bgp_neighbor('R3', 'R4')
-        g_phy.add_bgp_neighbor('R4', 'R1')
-        g_phy.add_bgp_neighbor('R4', 'R2')
-        g_phy.add_bgp_neighbor('R4', 'R3')
-        return g_phy
-
     def get_add_one_peer(self, g, nodes, announcements):
         g.add_peer('ATT')
         g.set_bgp_asnum('ATT', 2000)
@@ -110,7 +69,7 @@ class iBGPTest(unittest.TestCase):
 
     def test_grid_one_peer(self):
         anns = self.get_announcements(1, 1)
-        g = self.get_grid()
+        g = gen_mesh(4, 100)
         self.get_add_one_peer(g, ['R2'], anns.values())
 
         ann = anns.values()[0]
@@ -134,7 +93,7 @@ class iBGPTest(unittest.TestCase):
 
     def test_grid_one_peer2(self):
         anns = self.get_announcements(1, 1)
-        g = self.get_grid()
+        g = gen_mesh(4, 100)
         self.get_add_one_peer(g, ['R2', 'R3'], anns.values())
 
         ann = anns.values()[0]

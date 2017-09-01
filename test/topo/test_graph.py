@@ -3,6 +3,8 @@
 import tempfile
 import unittest
 
+from synet.utils.topo_gen import gen_mesh
+
 from synet.topo.graph import EDGETYPE
 from synet.topo.graph import EDGE_TYPE
 from synet.topo.graph import VERTEX_TYPE
@@ -15,24 +17,6 @@ __email__ = "a.hassany@gmail.com"
 
 
 class TestNetworkGraph(unittest.TestCase):
-
-    def get_mesh(self, g_size):
-        # Start with some initial inputs
-        # This input only define routers
-        g_phy = NetworkGraph()
-        for num in range(g_size):
-            node = 'R%d' % (num + 1)
-            g_phy.add_router(node)
-            g_phy.set_bgp_asnum(node, 100)
-
-        for src in g_phy.nodes():
-            for dst in g_phy.nodes():
-                if src == dst:
-                    continue
-                g_phy.add_router_edge(src, dst)
-                g_phy.add_bgp_neighbor(src, dst)
-        return g_phy
-
     def get_add_one_peer(self, g, nodes, announcements):
         g.add_peer('ATT')
         g.set_bgp_asnum('ATT', 2000)
@@ -134,7 +118,7 @@ class TestNetworkGraph(unittest.TestCase):
         self.assertEqual(g[router1][router2][EDGE_TYPE], EDGETYPE.PEER)
 
     def test_write_graphml(self):
-        g = self.get_mesh(4)
+        g = gen_mesh(4, 100)
         self.get_add_one_peer(g, ['R2', 'R3'], [])
         graphml_file = tempfile.NamedTemporaryFile(prefix='synet_test')
         g.write_graphml(graphml_file)
