@@ -1,38 +1,22 @@
 #!/usr/bin/env python
-import time
 import unittest
 
 import z3
-from synet.utils.common import PathReq
-from synet.utils.common import PathProtocols
-from synet.utils.topo_gen import gen_mesh
-from synet.topo.graph import NetworkGraph
+
+from synet.synthesis.propagation import EBGPPropagation
+
 from synet.topo.bgp import Access
-from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
-from synet.topo.bgp import CommunityList
-from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 
-from synet.utils.smt_context import SMTASPathWrapper
-from synet.utils.smt_context import SMTASPathLenWrapper
-from synet.utils.smt_context import SMTContext
-from synet.utils.smt_context import SMTCommunityWrapper
-from synet.utils.smt_context import SMTLocalPrefWrapper
-from synet.utils.smt_context import SMTNexthopWrapper
-from synet.utils.smt_context import SMTOriginWrapper
-from synet.utils.smt_context import SMTPeerWrapper
-from synet.utils.smt_context import SMTPrefixWrapper
-from synet.utils.smt_context import SMTPermittedWrapper
-from synet.utils.smt_context import get_as_path_key
-from synet.utils.smt_context import is_empty
+from synet.utils.common import PathProtocols
+from synet.utils.common import PathReq
 from synet.utils.smt_context import VALUENOTSET
-
-from synet.synthesis.propagation import EBGPPropagation
+from synet.utils.topo_gen import gen_mesh
 
 
 __author__ = "Ahmed El-Hassany"
