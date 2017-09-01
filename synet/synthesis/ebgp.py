@@ -75,7 +75,8 @@ class EBGP(object):
         anns = {}
         ann_map = {}
         exported_names = []
-        selected = self.propagation_graph.node[self.node]['selected']
+        selected = self.propagation_graph.node.get(
+            self.node, {}).get('selected', [])
         for propagated in selected:
             exported_names.append(propagated.ann_name)
         for ann_name in exported_names:
@@ -246,7 +247,8 @@ class EBGP(object):
 
     def compute_best_routes(self):
         """Compute self.ann_name_best and self.prefix_ann_name_peers"""
-        selected_routes = self.propagation_graph.node[self.node].get('selected', [])
+        selected_routes = self.propagation_graph.node.get(
+            self.node, {}).get('selected', [])
         for prop in selected_routes:
             prefix = self.general_ctx.announcements[prop.ann_name].prefix
             self.ann_name_best[prefix] = prop
