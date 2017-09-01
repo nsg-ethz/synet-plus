@@ -246,7 +246,7 @@ class PropagationTest(SMTSetup):
         name = "From_%s_%s" % (node, neighbor)
         rmap = RouteMap(name=name, lines=[line])
         g.add_route_map(node, rmap)
-        g.add_bgp_imoprt_route_map(node, neighbor, rmap.name)
+        g.add_bgp_import_route_map(node, neighbor, rmap.name)
 
     def test_small(self):
         g = self.get_g_two_routers_one_peer()
@@ -320,7 +320,7 @@ class PropagationTest(SMTSetup):
         name = "Import_R2_from_R1"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R2', rmap)
-        g.add_bgp_imoprt_route_map('R2', 'R1', rmap.name)
+        g.add_bgp_import_route_map('R2', 'R1', rmap.name)
 
         reqs = []
         for prefix in prefixs:

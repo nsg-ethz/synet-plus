@@ -154,7 +154,7 @@ class iBGPTest(unittest.TestCase):
         name = "Import_R1_from_R3"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R1', rmap)
-        g.add_bgp_imoprt_route_map('R1', 'R3', rmap.name)
+        g.add_bgp_import_route_map('R1', 'R3', rmap.name)
 
         # R4 Import from R2
         set_pref = ActionSetLocalPref(VALUENOTSET)
@@ -165,7 +165,7 @@ class iBGPTest(unittest.TestCase):
         name = "Import_R4_from_R2"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R4', rmap)
-        g.add_bgp_imoprt_route_map('R4', 'R2', rmap.name)
+        g.add_bgp_import_route_map('R4', 'R2', rmap.name)
 
         p = EBGPPropagation(reqs, g)
         p.synthesize()

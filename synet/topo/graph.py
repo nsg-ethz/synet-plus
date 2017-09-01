@@ -454,7 +454,7 @@ class NetworkGraph(nx.DiGraph):
         lists[community_list.list_id] = community_list
         return community_list
 
-    def add_bgp_imoprt_route_map(self, node, neighbor, route_map_name):
+    def add_bgp_import_route_map(self, node, neighbor, route_map_name):
         """
         Specifies the import route map from the given neighbor
         :param node:

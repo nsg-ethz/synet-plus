@@ -259,7 +259,7 @@ class EBGPTest(SMTSetup):
         name = "From_%s_%s" % (node, neighbor)
         rmap = RouteMap(name=name, lines=[line])
         g.add_route_map(node, rmap)
-        g.add_bgp_imoprt_route_map(node, neighbor, rmap.name)
+        g.add_bgp_import_route_map(node, neighbor, rmap.name)
 
     def test_small(self):
         g = self.get_g_one_router_two_peers()
@@ -382,7 +382,7 @@ class EBGPTest(SMTSetup):
         name = "R1_import_ATT"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R1', rmap)
-        g.add_bgp_imoprt_route_map('R1', 'ATT', rmap.name)
+        g.add_bgp_import_route_map('R1', 'ATT', rmap.name)
 
         # R2 import from R1 route map
         set_pref = ActionSetLocalPref(VALUENOTSET)
@@ -395,7 +395,7 @@ class EBGPTest(SMTSetup):
         name = "R2_import_R1"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R2', rmap)
-        g.add_bgp_imoprt_route_map('R2', 'R1', rmap.name)
+        g.add_bgp_import_route_map('R2', 'R1', rmap.name)
 
         # R2 Import from ATT
         iplist = IpPrefixList(name='L1', access=Access.permit,
@@ -408,7 +408,7 @@ class EBGPTest(SMTSetup):
         name = "R2_import_ATT"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R2', rmap)
-        g.add_bgp_imoprt_route_map('R2', 'ATT', rmap.name)
+        g.add_bgp_import_route_map('R2', 'ATT', rmap.name)
 
         reqs = []
         req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R1', 'R2'], 10)
@@ -509,7 +509,7 @@ class EBGPTest(SMTSetup):
         name = "R2_import_from_R1"
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R2', rmap)
-        g.add_bgp_imoprt_route_map('R2', 'R1', rmap.name)
+        g.add_bgp_import_route_map('R2', 'R1', rmap.name)
 
         reqs = []
         req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R1'], 10)
