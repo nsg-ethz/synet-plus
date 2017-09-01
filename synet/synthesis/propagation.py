@@ -8,7 +8,7 @@ from collections import namedtuple
 import networkx as nx
 import z3
 
-from synet.synthesis.ebgp import EBGP
+from synet.synthesis.bgp import BGP
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.utils.common import PathReq
 from synet.utils.smt_context import SMTASPathLenWrapper
@@ -63,7 +63,7 @@ class EBGPPropagation(object):
         for node in self.network_graph.routers_iter():
             if 'syn' not in self.network_graph.node[node]:
                 self.network_graph.node[node]['syn'] = {}
-            box = EBGP(
+            box = BGP(
                 node, self.network_graph, self.union_graph,
                 self.general_context)
             self.boxes.append(box)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Synthesize configurations for eBGP protocol
+Synthesize configurations for (e/i)BGP protocol
 """
 
 import z3
@@ -22,9 +22,9 @@ __email__ = "a.hassany@gmail.com"
 z3.set_option('unsat-core', True)
 
 
-class EBGP(object):
+class BGP(object):
     """
-    Synthesize eBGP Config for one router
+    Synthesize (e/i)BGP Config for one router
     """
 
     def __init__(self, node, network_graph, propagation_graph, general_ctx):
