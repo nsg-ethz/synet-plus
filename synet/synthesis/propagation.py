@@ -245,8 +245,25 @@ class EBGPPropagation(object):
 
                 # Compute the AS PATH that led to this node
                 curr = [self.network_graph.get_bgp_asnum(src)]
-                as_path = curr + node_as_paths[src]['as_path']
-                as_path_len = 1 + node_as_paths[src]['as_path_len']
+                dst_asnum = self.network_graph.get_bgp_asnum(dst)
+                prev_as_path = node_as_paths[src]['as_path']
+                prev_as_path_len = node_as_paths[src]['as_path_len']
+                # Consider iBGP and eBGP propagation
+                if dst_asnum == prev_as_path[0]:
+                    if len(prev_as_path) == 1:
+                        # This is locally originated route
+                        pass
+                    else:
+                        # An external route can only go through
+                        # one or two local routers
+                        err = "iBGP can only propagate once (without route reflectors)."
+                        err += " Cannot propgated {} from {} to {}".format(prefix, src, dst)
+                        assert dst_asnum != prev_as_path[0], err
+                    as_path = prev_as_path
+                    as_path_len = prev_as_path_len
+                else:
+                    as_path = curr + prev_as_path
+                    as_path_len = 1 + prev_as_path_len
                 propagated = EBGPPropagation.propagatedinfo(
                     egress=path[1], ann_name=ann_name, peer=src,
                     as_path=as_path, as_path_len=as_path_len)
@@ -277,8 +294,23 @@ class EBGPPropagation(object):
                 if not selected:
                     continue
                 curr = [self.network_graph.get_bgp_asnum(src)]
-                as_path = curr + node_as_paths[src]['as_path']
-                as_path_len = 1 + node_as_paths[src]['as_path_len']
+                prev_as_path = node_as_paths[src]['as_path']
+                prev_as_path_len = node_as_paths[src]['as_path_len']
+                # Consider iBGP and eBGP propagation
+                if curr[0] == prev_as_path[0]:
+                    if len(prev_as_path) == 1:
+                        # This is locally originated route
+                        pass
+                    else:
+                        # An external route can only go through
+                        # one or two local routers
+                        continue
+                    as_path = prev_as_path
+                    as_path_len = prev_as_path_len
+                else:
+                    as_path = curr + prev_as_path
+                    as_path_len = 1 + prev_as_path_len
+
                 egress = selected.egress
                 propagated = EBGPPropagation.propagatedinfo(
                     egress=egress, ann_name=selected.ann_name, peer=src,

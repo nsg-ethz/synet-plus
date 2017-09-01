@@ -350,13 +350,15 @@ class EBGP(object):
                         BGP_ATTRS_ORIGIN.EBGP]
                     incomplete_origin = o_ctx.origin_ctx.range_map[
                         BGP_ATTRS_ORIGIN.INCOMPLETE]
-
+                    best_as_num = self.network_graph.get_bgp_asnum(best_peer)
+                    other_as_num = self.network_graph.get_bgp_asnum(peer)
+                    node_as_num = self.network_graph.get_bgp_asnum(self.node)
                     other_permitted = o_ctx.permitted_ctx.get_var(other_ann_var)
                     # The BGP selection process
                     const_selection.append(
                         z3.Or(
                             # 1) Permitted
-                            z3.And(other_permitted == False),
+                            other_permitted == False,
                             # 2) If Permitted, local pref
                             z3.And(other_permitted,
                                    s_localpref > o_localpref),
@@ -378,10 +380,26 @@ class EBGP(object):
                                               o_origin != igp_origin),
                                        # EGP over incomplete
                                        z3.And(s_origin == ebgp_origin,
-                                              o_origin == incomplete_origin)))
-                            # TODO (AH): More selection process
-                            # 5) MED Selection
+                                              o_origin == incomplete_origin))),
+                            # 5) TODO: MED Selection
                             # 6) Prefer eBGP over iBGP paths.
+                            z3.And(
+                                other_permitted,
+                                s_localpref == o_localpref,
+                                z3.Or(
+                                    as_len_enabled == False,
+                                    z3.And(as_len_enabled, s_aslen == o_aslen),
+                                ),
+                                z3.Not(z3.Or(
+                                       # IGP is the lowest
+                                       z3.And(s_origin == igp_origin,
+                                              o_origin != igp_origin),
+                                       # EGP over incomplete
+                                       z3.And(s_origin == ebgp_origin,
+                                              o_origin == incomplete_origin))),
+                                z3.And(node_as_num != best_as_num,
+                                       node_as_num == other_as_num)),
+                            # TODO (AH): More selection process
                             # 7) Path with the lowest IGP metric to the BGP next hop.
                             # 8) Determine if multiple paths
                             #    require installation in the
