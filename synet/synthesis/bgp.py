@@ -201,33 +201,20 @@ class BGP(object):
         :return: SMTContext
         """
         if neighbor not in self.peer_imported_ctx:
+            # The context from the peer
+            exported_ctx = self.get_neighbor_ctx(neighbor)
             # The route map to applied to the exported announcements
             map_name = self.network_graph.get_bgp_import_route_map(self.node, neighbor)
-            if not map_name:
-                rmap = self.get_default_import_map(self.node, neighbor)
-                self.network_graph.add_route_map(self.node, rmap)
-                map_name = rmap.name
-            rmap = self.network_graph.get_route_maps(self.node)[map_name]
-            # The generated context after applying the imported roue maps
-            exported_ctx = self.get_neighbor_ctx(neighbor)
-            smap = SMTRouteMap(name=rmap.name, route_map=rmap, context=exported_ctx)
-            self.peer_route_map[neighbor] = smap
-            imported_ctx = smap.get_new_context()
-            self.peer_imported_ctx[neighbor] = imported_ctx
+            if map_name:
+                rmap = self.network_graph.get_route_maps(self.node)[map_name]
+                smap = SMTRouteMap(name=rmap.name, route_map=rmap, context=exported_ctx)
+                self.peer_route_map[neighbor] = smap
+                # The generated context after applying the imported roue maps
+                imported_ctx = smap.get_new_context()
+                self.peer_imported_ctx[neighbor] = imported_ctx
+            else:
+                self.peer_imported_ctx[neighbor] = exported_ctx
         return self.peer_imported_ctx[neighbor]
-
-    def get_default_import_map(self, node, neighbor):
-        """
-        Get a default import route map, when no import route map is define
-        :param node:
-        :param neighbor:
-        :return:
-        """
-        line = RouteMapLine(matches=None, actions=None,
-                            access=Access.permit, lineno=5)
-        name = "RImport_%s_%s" % (node, neighbor)
-        rmap = RouteMap(name=name, lines=[line])
-        return rmap
 
     def compute_exported_routes(self):
         # Exported
