@@ -6,13 +6,21 @@ Tested with IOS 15.2
 
 from ipaddress import IPv4Interface
 from ipaddress import IPv6Interface
+from ipaddress import IPv4Network
+from ipaddress import IPv6Network
+from ipaddress import ip_network
+from ipaddress import ip_address
+from ipaddress import ip_interface
 
 from synet.topo.graph import NetworkGraph
+from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionString
+from synet.topo.bgp import ActionASPathPrepend
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
+from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import IpPrefixList
@@ -24,9 +32,23 @@ __email__ = "a.hassany@gmail.com"
 
 class CiscoConfigGen(object):
     """Generate Cisco specific configurations"""
-    def __init__(self, g):
+    def __init__(self, g, prefix_map=None):
         assert isinstance(g, NetworkGraph)
         self.g = g
+        self.prefix_map = prefix_map or {}
+        self.nettype = (IPv4Network, IPv6Network)
+        self._next_announced_prefix = int(ip_address(u'128.0.0.0'))
+
+    def prefix_lookup(self, prefix):
+        if isinstance(prefix, self.nettype):
+            return prefix
+        if prefix in self.prefix_map:
+            return self.prefix_map[prefix]
+        ip = ip_address(self._next_announced_prefix)
+        net = ip_network(u"%s/24" % ip)
+        self._next_announced_prefix += 256
+        self.prefix_map[prefix] = net
+        return net
 
     def gen_community_list(self, community_list):
         """
@@ -127,11 +149,12 @@ class CiscoConfigGen(object):
             config += "!\n"
         return config
 
-    def gen_route_map_match(self, match):
+    def gen_route_map_match(self, node, match):
         config = ''
         if isinstance(match, MatchCommunitiesList):
             config += 'match community %d' % match.match.list_id
         elif isinstance(match, MatchIpPrefixListList):
+            assert match.match.name in self.g.get_ip_preflix_lists(node)
             config += 'match ip address prefix-list %s' % match.match.name
         else:
             raise ValueError('Unknow match type %s' % match)
@@ -146,6 +169,8 @@ class CiscoConfigGen(object):
             config += 'set community %s' % comms
             if action.additive == True:
                 config += ' additive'
+        elif isinstance(action, ActionASPathPrepend):
+            config += 'set as-path prepend %s' % ' '.join([str(x) for x in action.value])
         elif isinstance(action, ActionString):
             config = '%s' % action.value
         else:
@@ -161,7 +186,7 @@ class CiscoConfigGen(object):
             access = line.access.value
             config += "route-map %s %s %s\n" % (name, access, no)
             for match in line.matches:
-                config += " %s\n" % self.gen_route_map_match(match)
+                config += " %s\n" % self.gen_route_map_match(node, match)
             for action in line.actions:
                 config += " %s\n" % self.gen_route_map_action(action)
         return config
@@ -263,12 +288,52 @@ class CiscoConfigGen(object):
 
         return config
 
+    def gen_external_announcemetns(self, node):
+        assert self.g.is_peer(node)
+        next_lo = 0
+        ifaces = []
+        lines = []
+        lineno = 5
+        for ann in self.g.get_bgp_advertise(node):
+            net = self.prefix_lookup(ann.prefix)
+            addr = ip_interface(u"%s/%d" % (net.hosts().next(), net.prefixlen))
+            iface = "lo%s" % next_lo
+            desc = "For %s" % ann.prefix
+
+            self.g.set_loopback_addr(node, iface, addr)
+            self.g.set_loopback_description(node, iface, desc)
+
+            iplist = IpPrefixList(name="L_%s" % next_lo, access=Access.permit, networks=[net])
+            self.g.add_ip_prefix_list(node, iplist)
+            match = MatchIpPrefixListList(iplist)
+            action = ActionASPathPrepend(ann.as_path)
+            line = RouteMapLine(matches=[match],
+                                actions=[action],
+                                access=Access.permit,
+                                lineno=lineno)
+            self.g.add_bgp_announces(node, iface)
+            lines.append(line)
+            ifaces.append(iface)
+            lineno += 5
+            next_lo += 1
+
+        rmap = RouteMap(name="Export_%s" % node, lines=lines)
+        self.g.add_route_map(node, rmap)
+        for neighbor in self.g.get_bgp_neighbors(node):
+            err = "External peers cannot have predefined export route-maps (Peer %s)" % node
+            assert not self.g.get_bgp_export_route_map(node, neighbor), err
+            self.g.add_bgp_export_route_map(node, neighbor, rmap.name)
+
+
     def gen_router_config(self, node):
         """
         Get the router configs
         :param node: router
         :return: configs string
         """
+        if self.g.is_peer(node):
+            self.gen_external_announcemetns(node)
+
         preamble = ["version 15.2",
                     "service timestamps debug datetime msec",
                     "service timestamps log datetime msec",
