@@ -418,6 +418,35 @@ class ActionSetNextHop(Action):
         return self.__str__()
 
 
+class ActionASPathPrepend(Action):
+    """Prepend list of AS Paths"""
+
+    def __init__(self, as_paths):
+        assert isinstance(as_paths, Iterable)
+        self._value = as_paths
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "ASPathPrepend(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
 class ActionString(Action):
     def __init__(self, value):
         assert isinstance(value, basestring)
