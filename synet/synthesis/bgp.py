@@ -459,5 +459,14 @@ class BGP(object):
             configs.append(rmap.get_config())
         return configs
 
+    def update_network_graph(self):
+        """Update the network graph with the concrete values"""
+        for name, smap in self.peer_route_map.iteritems():
+            rmap = smap.get_config()
+            self.network_graph.add_route_map(self.node, rmap)
+        for name, smap in self.export_route_map.iteritems():
+            rmap = smap.get_config()
+            self.network_graph.add_route_map(self.node, rmap)
+
     def __str__(self):
         return "EBGPBox(%s)" % self.node

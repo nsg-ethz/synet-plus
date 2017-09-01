@@ -435,6 +435,11 @@ class EBGPPropagation(object):
         for box in self.boxes:
             box.set_model(model)
 
+    def update_network_graph(self):
+        """Update the network graph with the concrete values"""
+        for box in self.boxes:
+            box.update_network_graph()
+
     def synthesize(self):
         for node in self.network_graph.local_routers_iter():
             if 'syn' not in self.network_graph.node[node]:
