@@ -182,8 +182,10 @@ class NetworkGraph(nx.DiGraph):
         :param attr: attributes
         :return: None
         """
-        assert self.is_peer(u) or self.is_peer(v), "One side is not a peer router %s" % u
-        assert self.is_router(u) or self.is_router(v), "One side is not a local router %s" % u
+        err1 = "One side is not a peer router (%s, %s)" % (u, v)
+        assert self.is_peer(u) or self.is_peer(v), err1
+        err2 = "One side is not a local router (%s, %s)" % (u, v)
+        assert self.is_router(u) or self.is_router(v), err2
         if attr_dict is None:
             attr_dict = {}
         attr_dict[EDGE_TYPE] = EDGETYPE.ROUTER
@@ -198,8 +200,10 @@ class NetworkGraph(nx.DiGraph):
         :param attr: attributes
         :return: None
         """
-        assert self.is_router(u) or self.is_router(v), "One side is not a router" % u
-        assert self.is_network(u) or self.is_network(v), "One side is not a router" % u
+        err1 = "One side is not a local router (%s, %s)" % (u, v)
+        assert self.is_router(u) or self.is_router(v), err1
+        err2 = "One side is not a network (%s, %s)" % (u, v)
+        assert self.is_network(u) or self.is_network(v), err2
         if attr_dict is None:
             attr_dict = {}
         attr_dict[EDGE_TYPE] = EDGETYPE.NETWORK
@@ -224,7 +228,8 @@ class NetworkGraph(nx.DiGraph):
         :return: an instance of ipaddress.IPv4Interface or ipaddress.IPv6Interface
         """
         addr = self[src][dst].get('addr', None)
-        assert addr, "IP Address is not assigned for edge '%s'->'%s'" % (src, dst)
+        err = "IP Address is not assigned for edge '%s'->'%s'" % (src, dst)
+        assert addr, err
         return addr
 
     def get_loopback_interfaces(self, node):
@@ -261,7 +266,8 @@ class NetworkGraph(nx.DiGraph):
         :return: an instance of ipaddress.IPv4Interface or ipaddress.IPv6Interface
         """
         addr = self.node[node].get('loopbacks', {}).get(loopback, {}).get('addr', None)
-        assert addr, "IP Address is not assigned for loopback'%s'-'%s'" % (node, loopback)
+        err = "IP Address is not assigned for loopback'%s'-'%s'" % (node, loopback)
+        assert addr, err
         return addr
 
     def set_loopback_description(self, node, loopback, description):
@@ -367,10 +373,14 @@ class NetworkGraph(nx.DiGraph):
         """Returns text description for help about the neighbor"""
         return self.get_bgp_neighbors(node)[neighbor].get('description')
 
+    def assert_valid_neighbor(self, node, neighbor):
+        neighbors = self.get_bgp_neighbors(node)
+        err = "Not not valid BGP neighbor %s->%s" % (node, neighbor)
+        assert neighbor in neighbors, err
+
     def get_bgp_neighbor_remoteas(self, node, neighbor):
         """Get the AS number of a BGP peer (by name)"""
-        neighbors = self.get_bgp_neighbors(node)
-        assert neighbor in neighbors
+        self.assert_valid_neighbor(node, neighbor)
         return self.get_bgp_asnum(neighbor)
 
     def get_bgp_advertise(self, node):
@@ -455,7 +465,7 @@ class NetworkGraph(nx.DiGraph):
         assert route_map_name in self.get_route_maps(node), \
             "Route map is not defiend %s" % route_map_name
         neighbors = self.get_bgp_neighbors(node)
-        assert neighbor in neighbors, "Not not valid BGP neighbors (%s, %s)" % (node, neighbor)
+        self.assert_valid_neighbor(node, neighbor)
         neighbors[neighbor]['import_map'] = route_map_name
 
     def get_bgp_import_route_map(self, node, neighbor):
@@ -466,7 +476,7 @@ class NetworkGraph(nx.DiGraph):
         :return: route_map_name
         """
         neighbors = self.get_bgp_neighbors(node)
-        assert neighbor in neighbors, "Not not valid BGP neighbor"
+        self.assert_valid_neighbor(node, neighbor)
         route_map_name = neighbors[neighbor].get('import_map', None)
         if not route_map_name:
             return None
@@ -485,7 +495,7 @@ class NetworkGraph(nx.DiGraph):
         assert route_map_name in self.get_route_maps(node), \
             "Route map is not defiend %s" % route_map_name
         neighbors = self.get_bgp_neighbors(node)
-        assert neighbor in neighbors, "Not not valid BGP neighbor"
+        self.assert_valid_neighbor(node, neighbor)
         neighbors[neighbor]['export_map'] = route_map_name
 
     def get_bgp_export_route_map(self, node, neighbor):
@@ -496,7 +506,7 @@ class NetworkGraph(nx.DiGraph):
         :return: route_map_name
         """
         neighbors = self.get_bgp_neighbors(node)
-        assert neighbor in neighbors, "Not not valid BGP neighbor"
+        self.assert_valid_neighbor(node, neighbor)
         route_map_name = neighbors[neighbor].get('export_map', None)
         if not route_map_name:
             return None
