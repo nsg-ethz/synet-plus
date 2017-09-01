@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import tempfile
 import unittest
+
 from synet.topo.graph import EDGETYPE
 from synet.topo.graph import EDGE_TYPE
 from synet.topo.graph import VERTEX_TYPE
@@ -13,6 +15,35 @@ __email__ = "a.hassany@gmail.com"
 
 
 class TestNetworkGraph(unittest.TestCase):
+
+    def get_mesh(self, g_size):
+        # Start with some initial inputs
+        # This input only define routers
+        g_phy = NetworkGraph()
+        for num in range(g_size):
+            node = 'R%d' % (num + 1)
+            g_phy.add_router(node)
+            g_phy.set_bgp_asnum(node, 100)
+
+        for src in g_phy.nodes():
+            for dst in g_phy.nodes():
+                if src == dst:
+                    continue
+                g_phy.add_router_edge(src, dst)
+                g_phy.add_bgp_neighbor(src, dst)
+        return g_phy
+
+    def get_add_one_peer(self, g, nodes, announcements):
+        g.add_peer('ATT')
+        g.set_bgp_asnum('ATT', 2000)
+        for node in nodes:
+            g.add_peer_edge(node, 'ATT')
+            g.add_peer_edge('ATT', node)
+            g.add_bgp_neighbor(node, 'ATT')
+        for ann in announcements:
+            g.add_bgp_advertise(ann.peer, ann)
+        return g
+
     def test_add_node(self):
         g = NetworkGraph()
         with self.assertRaises(ValueError):
@@ -87,3 +118,23 @@ class TestNetworkGraph(unittest.TestCase):
         g.add_router_edge(router1, router2)
         # Assert
         self.assertEqual(list(g.edges()), [(router1, router2)])
+        self.assertEqual(g[router1][router2][EDGE_TYPE], EDGETYPE.ROUTER)
+
+    def test_add_peer_link(self):
+        # init
+        g = NetworkGraph()
+        router1 = 'R1'
+        router2 = 'R2'
+        g.add_router(router1)
+        g.add_peer(router2)
+        # Action
+        g.add_peer_edge(router1, router2)
+        # Assert
+        self.assertEqual(list(g.edges()), [(router1, router2)])
+        self.assertEqual(g[router1][router2][EDGE_TYPE], EDGETYPE.PEER)
+
+    def test_write_graphml(self):
+        g = self.get_mesh(4)
+        self.get_add_one_peer(g, ['R2', 'R3'], [])
+        graphml_file = tempfile.NamedTemporaryFile(prefix='synet_test')
+        g.write_graphml(graphml_file)

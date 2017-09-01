@@ -8,7 +8,6 @@ import ipaddress
 import enum
 import networkx as nx
 
-from synet.topo.bgp import Access
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import IpPrefixList
@@ -188,7 +187,7 @@ class NetworkGraph(nx.DiGraph):
         assert self.is_router(u) or self.is_router(v), err2
         if attr_dict is None:
             attr_dict = {}
-        attr_dict[EDGE_TYPE] = EDGETYPE.ROUTER
+        attr_dict[EDGE_TYPE] = EDGETYPE.PEER
         self.add_edge(u, v, attr_dict, **attr)
 
     def add_network_edge(self, u, v, attr_dict=None, **attr):
@@ -338,7 +337,7 @@ class NetworkGraph(nx.DiGraph):
 
     def get_bgp_asnum(self, node):
         """Get the AS number of a given router"""
-        return self.get_bgp_attrs(node)['asnum']
+        return self.get_bgp_attrs(node).get('asnum', None)
 
     def get_bgp_neighbors(self, node):
         """Get a dictionary of BGP peers"""
@@ -559,3 +558,38 @@ class NetworkGraph(nx.DiGraph):
                     self.set_edge_iface_description(src, dst, ''"To {}"''.format(dst))
                 else:
                     raise ValueError('Not valid link %s -> %s' % (src, dst))
+
+    def get_print_graph(self):
+        """
+        Get a plain version of the Network graph
+        Mainly used to help visualizing it
+        :return: networkx.DiGraph
+        """
+        graph = nx.DiGraph()
+        for node, attrs in self.nodes(data=True):
+            graph.add_node(node)
+            vtype = str(attrs[VERTEX_TYPE])
+            label = "%s\\n%s" % (node, vtype.split('.')[-1])
+            asnum = self.get_bgp_asnum(node)
+            if asnum:
+                graph.node[node]['bgp_asnum'] = asnum
+                label += "\nAS Num: %s" % asnum
+            graph.node[node]['label'] = label
+            graph.node[node][VERTEX_TYPE] = vtype
+
+        for src, dst, attrs in self.edges_iter(data=True):
+            etype = str(attrs[EDGE_TYPE])
+            graph.add_edge(src, dst)
+            graph[src][dst]['label'] = etype.split('.')[-1]
+            graph[src][dst][EDGE_TYPE] = etype
+
+        return graph
+
+    def write_dot(self, out_file):
+        """Write .dot file"""
+        from networkx.drawing.nx_agraph import write_dot
+        write_dot(self.get_print_graph(), out_file)
+
+    def write_graphml(self, out_file):
+        """Write graphml file"""
+        nx.write_graphml(self.get_print_graph(), out_file)
