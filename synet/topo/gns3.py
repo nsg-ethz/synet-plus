@@ -1,9 +1,11 @@
 import itertools
 
 from synet.topo.cisco import CiscoConfigGen
+from synet.topo.graph import NetworkGraph
 
 class GNS3Topo(object):
     def __init__(self, graph):
+        assert isinstance(graph, NetworkGraph)
         self.g = graph
         self.local_dynampis = '127.0.0.1:7200',
         self.workingdir = '/home/ahassany/tmp',
@@ -54,8 +56,8 @@ class GNS3Topo(object):
             for k, v in self.g.node[node]['dyn'].iteritems():
                 topo += "\t\t%s = %s\n" % (k, v)
             for neighbor in self.g.neighbors(node):
-                siface = self.g[node][neighbor]['iface']
-                diface = self.g[neighbor][node]['iface']
+                siface = self.g.get_edge_iface(node, neighbor)
+                diface = self.g.get_edge_iface(neighbor, node)
                 topo += "\t\t%s = %s %s\n" % (siface, neighbor, diface)
         return topo
 
