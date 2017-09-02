@@ -111,7 +111,7 @@ class CiscoConfigGen(object):
             iface = self.g.get_edge_iface(node, neighbor)
             #addr = self.g.get_edge_addr(node, neighbor)
             addr = self.g.get_iface_addr(node, iface)
-            desc = self.g.get_edge_iface_description(node, neighbor)
+            desc = self.g.get_iface_description(node, iface)
             config += self.gen_iface_config(iface, addr, desc, False)
 
         # Loop back interface

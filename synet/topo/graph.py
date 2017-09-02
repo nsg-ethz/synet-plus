@@ -291,7 +291,9 @@ class NetworkGraph(nx.DiGraph):
         assert is_bool_or_notset(is_shutdown)
         ifaces = self.get_ifaces(node)
         assert iface_name not in ifaces
-        ifaces[iface_name] = {'shutdown': is_shutdown, 'addr': None}
+        ifaces[iface_name] = {'shutdown': is_shutdown,
+                              'addr': None,
+                              'description': None}
 
     def set_iface_addr(self, node, iface_name, addr):
         """Return set the address of an interface or None"""
@@ -309,6 +311,22 @@ class NetworkGraph(nx.DiGraph):
         err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
         assert iface_name in ifaces, err
         return ifaces[iface_name]['addr']
+
+    def set_iface_description(self, node, iface_name, description):
+        """Assigns some help text to the interface"""
+        assert self.is_router(node)
+        ifaces = self.get_ifaces(node)
+        err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
+        assert iface_name in ifaces, err
+        ifaces[iface_name]['description'] = description
+
+    def get_iface_description(self, node, iface_name):
+        """Get help text to the interface (if exists)"""
+        assert self.is_router(node)
+        ifaces = self.get_ifaces(node)
+        err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
+        assert iface_name in ifaces, err
+        return ifaces[iface_name]['description']
 
     def set_edge_iface(self, src, dst, iface):
         """
@@ -328,25 +346,6 @@ class NetworkGraph(nx.DiGraph):
         :return the name of the the interface
         """
         return self[src][dst].get('iface', None)
-
-    def set_edge_iface_description(self, src, dst, description):
-        """
-        Assigns some help text to the interface
-        :param src: name of the source router (the one that will change)
-        :param dst: name of the destination router
-        :param description: some text
-        :return: None
-        """
-        self[src][dst]['iface_description'] = description
-
-    def get_edge_iface_description(self, src, dst):
-        """
-        Get help text to the interface (if exists)
-        :param src: name of the source router (the one that will change)
-        :param dst: name of the destination router
-        :return some text if exits
-        """
-        return self[src][dst].get('iface_description', None)
 
     def get_bgp_attrs(self, node):
         """Return a dict of all BGP related attrs given to a node"""
@@ -570,19 +569,24 @@ class NetworkGraph(nx.DiGraph):
                    or (self.is_network(x) and self.is_router(y))
 
         for node in sorted(list(self.nodes())):
-            for iface_count, (src, dst) in enumerate(sorted(list(self.out_edges(node)))):
+            iface_count = 0
+            for src, dst in sorted(list(self.out_edges(node))):
                 if self.is_router(src) and self.is_router(dst):
                     if self.get_edge_iface(src, dst):
                         continue
                     iface = "Fa%d/%d" % (iface_count // 2, iface_count % 2)
+                    while iface in self.get_ifaces(src):
+                        iface_count += 1
+                        iface = "Fa%d/%d" % (iface_count // 2, iface_count % 2)
                     self.add_iface(src, iface, is_shutdown=False)
+                    self.set_iface_addr(src, iface, VALUENOTSET)
                     self.set_edge_iface(src, dst, iface)
-                    self.set_edge_iface_description(src, dst, ''"To {}"''.format(dst))
+                    self.set_iface_description(src, iface, ''"To {}"''.format(dst))
                 elif one_is_router(src, dst):
                     iface = '{node}-veth{iface}'.format(node=src, iface=iface_count)
                     self.add_iface(src, iface, is_shutdown=False)
                     self.set_edge_iface(src, dst, iface)
-                    self.set_edge_iface_description(src, dst, ''"To {}"''.format(dst))
+                    self.set_iface_description(src, iface, ''"To {}"''.format(dst))
                 else:
                     raise ValueError('Not valid link %s -> %s' % (src, dst))
 
