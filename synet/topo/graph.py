@@ -328,6 +328,23 @@ class NetworkGraph(nx.DiGraph):
         assert iface_name in ifaces, err
         return ifaces[iface_name]['description']
 
+    def is_iface_shutdown(self, node, iface_name):
+        """Return True if the interface is set to be shutdown"""
+        assert self.is_router(node)
+        ifaces = self.get_ifaces(node)
+        err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
+        assert iface_name in ifaces, err
+        return ifaces[iface_name]['shutdown']
+
+    def set_iface_shutdown(self, node, iface_name, is_shutdown):
+        """Set True if the interface is set to be shutdown"""
+        assert self.is_router(node)
+        assert is_bool_or_notset(is_shutdown)
+        ifaces = self.get_ifaces(node)
+        err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
+        assert iface_name in ifaces, err
+        ifaces[iface_name]['shutdown'] = is_shutdown
+
     def set_edge_iface(self, src, dst, iface):
         """
         Assigns an interface name to the outgoing edge, e.g., f0/0, f1/0, etc..
