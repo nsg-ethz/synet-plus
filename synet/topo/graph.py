@@ -11,6 +11,7 @@ import networkx as nx
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import IpPrefixList
+from synet.utils.smt_context import VALUENOTSET
 
 
 __author__ = "Ahmed El-Hassany"
@@ -19,6 +20,16 @@ __email__ = "a.hassany@gmail.com"
 
 VERTEX_TYPE = 'VERTEX_TYPE'
 EDGE_TYPE = 'EDGE_TYPE'
+
+
+def is_valid_add(addr, allow_not_set=True):
+    """Return True if the address is valid"""
+    if allow_not_set and addr == VALUENOTSET:
+        return True
+    return isinstance(addr, (ipaddress.IPv4Interface, ipaddress.IPv6Interface))
+
+def is_bool_or_notset(value):
+    return value in [True, False, VALUENOTSET]
 
 
 class VERTEXTYPE(enum.Enum):
@@ -208,29 +219,6 @@ class NetworkGraph(nx.DiGraph):
         attr_dict[EDGE_TYPE] = EDGETYPE.NETWORK
         self.add_edge(u, v, attr_dict, **attr)
 
-    def set_edge_addr(self, src, dst, addr):
-        """
-        Assigns an IP address to the outgoing interface
-        :param src: name of the source router (the one that will change)
-        :param dst: name of the destination router
-        :param addr: an instance of ipaddress.IPv4Interface or ipaddress.IPv6Interface
-        :return: None
-        """
-        assert isinstance(addr, (ipaddress.IPv4Interface, ipaddress.IPv6Interface))
-        self[src][dst]['addr'] = addr
-
-    def get_edge_addr(self, src, dst):
-        """
-        Gets the IP address of the outgoing interface
-        :param src: name of the source router
-        :param dst: name of the destination router
-        :return: an instance of ipaddress.IPv4Interface or ipaddress.IPv6Interface
-        """
-        addr = self[src][dst].get('addr', None)
-        err = "IP Address is not assigned for edge '%s'->'%s'" % (src, dst)
-        assert addr, err
-        return addr
-
     def get_loopback_interfaces(self, node):
         """
         Returns the dict of the loopback interfaces
@@ -250,7 +238,7 @@ class NetworkGraph(nx.DiGraph):
         :param addr: an instance of ipaddress.IPv4Interface or ipaddress.IPv6Interface
         :return: None
         """
-        assert isinstance(addr, (ipaddress.IPv4Interface, ipaddress.IPv6Interface))
+        assert is_valid_add(addr)
         loopbacks = self.get_loopback_interfaces(node)
         if loopback not in loopbacks:
             loopbacks[loopback] = {}
@@ -287,6 +275,41 @@ class NetworkGraph(nx.DiGraph):
         """
         return self.node[node]['loopbacks'][loopback].get('description', None)
 
+    def get_ifaces(self, node):
+        if 'ifaces' not in self.node[node]:
+            self.node[node]['ifaces'] = {}
+        return self.node[node]['ifaces']
+
+    def add_iface(self, node, iface_name, is_shutdown=True):
+        """
+        Add an interface to a router
+        :param node: name of the router
+        :param iface_name:
+        :return:
+        """
+        assert self.is_router(node)
+        assert is_bool_or_notset(is_shutdown)
+        ifaces = self.get_ifaces(node)
+        assert iface_name not in ifaces
+        ifaces[iface_name] = {'shutdown': is_shutdown, 'addr': None}
+
+    def set_iface_addr(self, node, iface_name, addr):
+        """Return set the address of an interface or None"""
+        assert self.is_router(node)
+        assert is_valid_add(addr)
+        ifaces = self.get_ifaces(node)
+        err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
+        assert iface_name in ifaces, err
+        ifaces[iface_name]['addr'] = addr
+
+    def get_iface_addr(self, node, iface_name):
+        """Return the address of an interface or None"""
+        assert self.is_router(node)
+        ifaces = self.get_ifaces(node)
+        err = "Undefined iface '%s' in %s" % (iface_name, ifaces.keys())
+        assert iface_name in ifaces, err
+        return ifaces[iface_name]['addr']
+
     def set_edge_iface(self, src, dst, iface):
         """
         Assigns an interface name to the outgoing edge, e.g., f0/0, f1/0, etc..
@@ -304,7 +327,7 @@ class NetworkGraph(nx.DiGraph):
         :param dst: name of the destination router
         :return the name of the the interface
         """
-        return self[src][dst]['iface']
+        return self[src][dst].get('iface', None)
 
     def set_edge_iface_description(self, src, dst, description):
         """
@@ -549,11 +572,15 @@ class NetworkGraph(nx.DiGraph):
         for node in sorted(list(self.nodes())):
             for iface_count, (src, dst) in enumerate(sorted(list(self.out_edges(node)))):
                 if self.is_router(src) and self.is_router(dst):
+                    if self.get_edge_iface(src, dst):
+                        continue
                     iface = "Fa%d/%d" % (iface_count // 2, iface_count % 2)
+                    self.add_iface(src, iface, is_shutdown=False)
                     self.set_edge_iface(src, dst, iface)
                     self.set_edge_iface_description(src, dst, ''"To {}"''.format(dst))
                 elif one_is_router(src, dst):
                     iface = '{node}-veth{iface}'.format(node=src, iface=iface_count)
+                    self.add_iface(src, iface, is_shutdown=False)
                     self.set_edge_iface(src, dst, iface)
                     self.set_edge_iface_description(src, dst, ''"To {}"''.format(dst))
                 else:

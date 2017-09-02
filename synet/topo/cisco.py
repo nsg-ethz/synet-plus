@@ -109,7 +109,8 @@ class CiscoConfigGen(object):
         config = ''
         for neighbor in self.g.neighbors(node):
             iface = self.g.get_edge_iface(node, neighbor)
-            addr = self.g.get_edge_addr(node, neighbor)
+            #addr = self.g.get_edge_addr(node, neighbor)
+            addr = self.g.get_iface_addr(node, iface)
             desc = self.g.get_edge_iface_description(node, neighbor)
             config += self.gen_iface_config(iface, addr, desc, False)
 
@@ -223,7 +224,8 @@ class CiscoConfigGen(object):
                 net = addr.network.network_address
                 mask = addr.netmask
             elif self.g.has_node(ann) and self.g.is_network(ann):
-                addr = self.g.get_edge_addr(node, ann)
+                iface = self.g.get_edge_iface(node, ann)
+                addr = self.g.get_edge_iface(node, iface)
                 net = addr.network.network_address
                 mask = addr.netmask
             route_map = announcements[ann].get('route_map', None)
@@ -234,7 +236,8 @@ class CiscoConfigGen(object):
         for neighbor in sorted(self.g.get_bgp_neighbors(node)):
             if not self.g.is_router(neighbor): continue
             neighbhor_asn = self.g.get_bgp_asnum(neighbor)
-            neighboraddr = self.g.get_edge_addr(neighbor, node)
+            iface = self.g.get_edge_iface(neighbor, node)
+            neighboraddr = self.g.get_iface_addr(neighbor, iface)
             assert neighbhor_asn is not None, 'AS Num is not set for %s' % neighbor
             assert neighboraddr is not None
             config += " neighbor %s remote-as %s\n" % (neighboraddr.ip, neighbhor_asn)
@@ -324,6 +327,13 @@ class CiscoConfigGen(object):
             assert not self.g.get_bgp_export_route_map(node, neighbor), err
             self.g.add_bgp_export_route_map(node, neighbor, rmap.name)
 
+    def gen_all_ospf(self, node):
+        if not self.g.is_local_router(node):
+            return ""
+        config = ""
+        config += "router ospf 100\n"
+        config += " network 0.0.0.0 255.255.255.255 area 0.0.0.0\n"
+        return config
 
     def gen_router_config(self, node):
         """
@@ -365,6 +375,8 @@ class CiscoConfigGen(object):
         config += self.gen_all_route_maps(node)
         config += "!\n"
         config += self.gen_bgp_config(node)
+        config += "!\n"
+        config += self.gen_all_ospf(node)
         config += "!\n"
         config += self.gen_tracker_configs(node)
         config += "!\n"
