@@ -68,7 +68,7 @@ class ConnectedSyn(object):
         """Get the next subnet to be assigned to interfaces"""
         curr_ip = ip_address(self._next_net)
         net = ip_network(u"%s/%d" % (curr_ip, self.prefix_len))
-        self._next_net += ((32 - self.prefix_len) ** 2) - 1
+        self._next_net += ((32 - self.prefix_len) ** 2) + 1
         return net
 
     def reqs_connected_pairs(self):
@@ -107,7 +107,7 @@ class ConnectedSyn(object):
             tmp = set([src, dst])
             if tmp not in ret_val:
                 ret_val.append(tmp)
-        return [tuple(val) for val in ret_val]
+        return [tuple(sorted(list(val))) for val in ret_val]
 
     def is_connnected(self, src, dst):
         """Returns true if the two nodes are properly connected"""
@@ -200,7 +200,7 @@ class ConnectedSyn(object):
         connected_pairs = self._pre_process_connected_pairs(connected_pairs)
         # Assign iface names between edges (if needed)
         self.g.set_iface_names()
-        for src, dst in connected_pairs:
+        for src, dst in sorted(connected_pairs):
             self.synthesize_connection(src, dst)
         edges_to_remove = []
         for src, dst in self.g.edges_iter():
