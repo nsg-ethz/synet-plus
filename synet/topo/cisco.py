@@ -209,6 +209,9 @@ class CiscoConfigGen(object):
         """
         config = ""
         asn = self.g.get_bgp_asnum(node)
+        if not asn:
+            # Router doesn't have BGP configured
+            return ""
         config += "router bgp %d\n" % asn
         config += ' no synchronization\n'
         config += ' bgp log-neighbor-changes\n'
