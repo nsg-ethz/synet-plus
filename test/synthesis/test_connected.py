@@ -1,23 +1,16 @@
 #!/usr/bin/env python
 import unittest
 
-from ipaddress import ip_network
-from ipaddress import ip_address
 from ipaddress import ip_interface
-import z3
 
 from synet.synthesis.connected import InterfaceIsDownError
 from synet.synthesis.connected import DuplicateAddressError
 from synet.synthesis.connected import NotValidSubnetsError
 from synet.synthesis.connected import ConnectedSyn
 
-from synet.topo.bgp import Access
-from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
-from synet.topo.bgp import RouteMap
-from synet.topo.bgp import RouteMapLine
 from synet.topo.graph import NetworkGraph
 
 from synet.utils.common import PathProtocols
