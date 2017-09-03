@@ -370,6 +370,33 @@ class NetworkGraph(nx.DiGraph):
             self.node[node]['bgp'] = {'asnum': None, 'neighbors': {}, 'announces': {}}
         return self.node[node]['bgp']
 
+    def get_static_routes(self, node):
+        """Return a dict of configured static routes or VALUENOTSET"""
+        assert self.is_router(node)
+        if 'static' not in self.node[node]:
+            self.node[node]['static'] = {}
+        return
+
+    def add_static_route(self, node, prefix, next_hop):
+        """
+        Set a static route
+        :param node: Router
+        :param prefix: Prefixed to be routed
+        :param next_hop: Router
+        :return:
+        """
+        attrs = self.get_static_routes(node)
+        if attrs == VALUENOTSET:
+            self.node['static'] = {}
+        self.node['static'][prefix] = next_hop
+
+    def set_static_routes_empty(self, node):
+        """
+        Set static routes to VALUENOTSET allowing the
+        synthesizer to generate as many static routes
+        """
+        self.node['static'] = VALUENOTSET
+
     def set_bgp_asnum(self, node, asnum):
         """Sets the AS number of a given router"""
         self.get_bgp_attrs(node)['asnum'] = asnum
@@ -465,7 +492,6 @@ class NetworkGraph(nx.DiGraph):
         if route_map_name:
             assert route_map_name in self.get_route_maps(node)
             announcements[network]['route_map'] = route_map_name
-
 
     def get_bgp_communities_list(self, node):
         """
