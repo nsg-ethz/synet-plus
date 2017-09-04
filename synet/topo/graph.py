@@ -11,6 +11,7 @@ import networkx as nx
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import IpPrefixList
+from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import VALUENOTSET
 
 
@@ -24,7 +25,7 @@ EDGE_TYPE = 'EDGE_TYPE'
 
 def is_valid_add(addr, allow_not_set=True):
     """Return True if the address is valid"""
-    if allow_not_set and addr == VALUENOTSET:
+    if allow_not_set and is_empty(addr):
         return True
     return isinstance(addr, (ipaddress.IPv4Interface, ipaddress.IPv6Interface))
 
@@ -370,12 +371,6 @@ class NetworkGraph(nx.DiGraph):
         """
         return self[src][dst].get('iface', None)
 
-    def get_bgp_attrs(self, node):
-        """Return a dict of all BGP related attrs given to a node"""
-        if 'bgp' not in self.node[node]:
-            self.node[node]['bgp'] = {'asnum': None, 'neighbors': {}, 'announces': {}}
-        return self.node[node]['bgp']
-
     def get_static_routes(self, node):
         """Return a dict of configured static routes or VALUENOTSET"""
         assert self.is_router(node)
@@ -392,7 +387,7 @@ class NetworkGraph(nx.DiGraph):
         :return:
         """
         attrs = self.get_static_routes(node)
-        if attrs == VALUENOTSET:
+        if is_empty(attrs):
             self.node[node]['static'] = {}
         self.node[node]['static'][prefix] = next_hop
 
@@ -403,8 +398,18 @@ class NetworkGraph(nx.DiGraph):
         """
         self.node[node]['static'] = VALUENOTSET
 
+    def get_bgp_attrs(self, node):
+        """Return a dict of all BGP related attrs given to a node"""
+        assert self.is_router(node), "Node is not a router %s" % node
+        if 'bgp' not in self.node[node]:
+            self.node[node]['bgp'] = {'asnum': None,
+                                      'neighbors': {},
+                                      'announces': {}}
+        return self.node[node]['bgp']
+
     def set_bgp_asnum(self, node, asnum):
         """Sets the AS number of a given router"""
+        assert is_empty(asnum) or isinstance(asnum, int)
         self.get_bgp_attrs(node)['asnum'] = asnum
 
     def get_bgp_asnum(self, node):
