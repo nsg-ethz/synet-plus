@@ -25,6 +25,8 @@ from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import IpPrefixList
 
+from synet.utils.smt_context import is_empty
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -338,6 +340,23 @@ class CiscoConfigGen(object):
         config += " network 0.0.0.0 255.255.255.255 area 0.0.0.0\n"
         return config
 
+    def gen_static_routes(self, node):
+        config = ""
+        static_routes = self.g.get_static_routes(node)
+        if not static_routes or is_empty(static_routes):
+            return config
+        for prefix, next_hop in static_routes.iteritems():
+            net = self.prefix_lookup(prefix)
+            if self.g.is_router(next_hop):
+                iface = self.g.get_edge_iface(next_hop, node)
+                addr = self.g.get_iface_addr(next_hop, iface)
+                nhop_addr = addr.ip
+            else:
+                nhop_addr = next_hop
+            config += "ip route %s %s %s\n" % (net.network_address, net.netmask, nhop_addr)
+        config += "!\n"
+        return config
+
     def gen_router_config(self, node):
         """
         Get the router configs
@@ -380,6 +399,8 @@ class CiscoConfigGen(object):
         config += self.gen_bgp_config(node)
         config += "!\n"
         config += self.gen_all_ospf(node)
+        config += "!\n"
+        config += self.gen_static_routes(node)
         config += "!\n"
         config += self.gen_tracker_configs(node)
         config += "!\n"
