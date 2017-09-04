@@ -288,10 +288,10 @@ class EBGPPropagation(object):
         # However, wont be selected as best paths by neighboring
         # routers
         for src in self.network_graph.routers_iter():
-            for _, neighbour in self.network_graph.out_edges(src):
-                if g.has_edge(src, neighbour) and g[src][neighbour]['best']:
+            for _, neighbor in self.network_graph.out_edges(src):
+                if g.has_edge(src, neighbor) and g[src][neighbor]['best']:
                     continue
-                if g.has_edge(neighbour, src) and g[neighbour][src]['best']:
+                if g.has_edge(neighbor, src) and g[neighbor][src]['best']:
                     continue
                 selected = g.node.get(src, {}).get('selected', None)
                 if not selected:
@@ -322,7 +322,7 @@ class EBGPPropagation(object):
                 label = "nonbest: %s %s" % (
                     propagated.ann_name,
                     ','.join([str(n) for n in propagated.as_path]))
-                g.add_edge(src, neighbour,
+                g.add_edge(src, neighbor,
                            best=None, nonbest=propagated,
                            label=label, style='dashed')
 
