@@ -294,7 +294,8 @@ def gen_mesh(mesh_size, asnum=None):
                 continue
             g_phy.add_router_edge(src, dst)
             if asnum:
-                g_phy.add_bgp_neighbor(src, dst)
+                if dst not in g_phy.get_bgp_neighbors(src):
+                    g_phy.add_bgp_neighbor(src, dst)
     return g_phy
 
 
