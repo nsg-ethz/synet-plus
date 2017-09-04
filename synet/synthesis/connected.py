@@ -135,7 +135,8 @@ class ConnectedSyn(object):
 
     def synthesize_connection(self, src, dst):
         """Synthesize connection between two routers"""
-        assert self.g.has_edge(src, dst)
+        err = "Routers (%s, %s) are not directly connected" % (src, dst)
+        assert self.g.has_edge(src, dst), err
         iface1 = self.g.get_edge_iface(src, dst)
         iface2 = self.g.get_edge_iface(dst, src)
         # Make sure interfaces are up
