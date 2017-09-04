@@ -8,6 +8,7 @@ import time
 import networkx as nx
 import z3
 
+from synet.synthesis.connected import ConnectedSyn
 from synet.synthesis.propagation import EBGPPropagation
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
@@ -54,7 +55,7 @@ def add_peers(graph, num_peers, communities, rand, first_asnum=5000, asnum_inc=1
         graph.set_bgp_asnum(peer, asnum)
         graph.add_peer_edge(node, peer)
         graph.add_peer_edge(peer, node)
-        graph.add_bgp_neighbor(node, peer)
+        graph.add_bgp_neighbor(node, peer, VALUENOTSET, VALUENOTSET)
         asnum += asnum_inc
         # Don't export
         line1 = RouteMapLine(matches=None, actions=[],
@@ -73,7 +74,7 @@ def add_peers(graph, num_peers, communities, rand, first_asnum=5000, asnum_inc=1
         name = "%s_import_from_%s" % (node, peer)
         rmap = RouteMap(name=name, lines=[line1, line2])
         graph.add_route_map(node, rmap)
-        graph.add_bgp_imoprt_route_map(node, peer, rmap.name)
+        graph.add_bgp_import_route_map(node, peer, rmap.name)
         route_maps.append(rmap)
     return peers, route_maps
 
@@ -100,7 +101,7 @@ def assign_setup_bgp(graph, first_asnum, asnum_inc=10):
         if not graph.is_router(dst):
             continue
         # Establish peering
-        graph.add_bgp_neighbor(src, dst)
+        graph.add_bgp_neighbor(src, dst, VALUENOTSET, VALUENOTSET)
 
 
 def set_announcements(graph, num_prefixes, communities):
@@ -162,7 +163,7 @@ def get_shortest_path_reqs(g, peers, communities):
                 name = "%s_import_from_%s" % (router, neighbor)
                 rmap = RouteMap(name=name, lines=lines)
                 g.add_route_map(router, rmap)
-                g.add_bgp_imoprt_route_map(router, neighbor, rmap.name)
+                g.add_bgp_import_route_map(router, neighbor, rmap.name)
                 route_maps.append(rmap)
     return reqs, route_maps
 
@@ -201,6 +202,9 @@ def main():
     set_announcements(g, num_prefixes, communities)
     reqs, inner_route_maps = get_shortest_path_reqs(g, peers, communities)
     print "Inner route maps", len(inner_route_maps), "lines", sum([len(rmap.lines) for rmap in inner_route_maps])
+    print "Connected Synthesizes"
+    connected_syn = ConnectedSyn(reqs, g)
+    connected_syn.synthesize()
     print "STARTING PROPAGATION"
     start = time.time()
     p = EBGPPropagation(reqs, g)

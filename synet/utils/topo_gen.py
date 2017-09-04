@@ -11,6 +11,7 @@ from synet.utils.common import LINK_EDGE
 from synet.utils.common import NETWORK_TYPE
 from synet.utils.common import NODE_TYPE
 from synet.utils.common import VERTEX_TYPE
+from synet.utils.smt_context import VALUENOTSET
 
 from synet.topo.graph import NetworkGraph
 
@@ -295,7 +296,10 @@ def gen_mesh(mesh_size, asnum=None):
             g_phy.add_router_edge(src, dst)
             if asnum:
                 if dst not in g_phy.get_bgp_neighbors(src):
-                    g_phy.add_bgp_neighbor(src, dst)
+                    g_phy.add_bgp_neighbor(router_a=src,
+                                           router_b=dst,
+                                           router_a_iface=VALUENOTSET,
+                                           router_b_iface=VALUENOTSET)
     return g_phy
 
 
