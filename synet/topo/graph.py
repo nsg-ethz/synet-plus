@@ -375,7 +375,7 @@ class NetworkGraph(nx.DiGraph):
         assert self.is_router(node)
         if 'static' not in self.node[node]:
             self.node[node]['static'] = {}
-        return
+        return self.node[node]['static']
 
     def add_static_route(self, node, prefix, next_hop):
         """
@@ -388,14 +388,14 @@ class NetworkGraph(nx.DiGraph):
         attrs = self.get_static_routes(node)
         if attrs == VALUENOTSET:
             self.node['static'] = {}
-        self.node['static'][prefix] = next_hop
+        self.node[node]['static'][prefix] = next_hop
 
     def set_static_routes_empty(self, node):
         """
         Set static routes to VALUENOTSET allowing the
         synthesizer to generate as many static routes
         """
-        self.node['static'] = VALUENOTSET
+        self.node[node]['static'] = VALUENOTSET
 
     def set_bgp_asnum(self, node, asnum):
         """Sets the AS number of a given router"""
