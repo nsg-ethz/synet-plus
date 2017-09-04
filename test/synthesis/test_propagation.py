@@ -31,6 +31,7 @@ from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import VALUENOTSET
 
+from synet.synthesis.connected import ConnectedSyn
 from synet.synthesis.propagation import EBGPPropagation
 
 
@@ -205,8 +206,12 @@ class PropagationTest(SMTSetup):
         g_phy.add_peer_edge('ATT', 'R1')
         g_phy.add_router_edge('R1', 'R2')
         g_phy.add_router_edge('R2', 'R1')
-        g_phy.add_bgp_neighbor('R1', 'ATT')
-        g_phy.add_bgp_neighbor('R1', 'R2')
+        g_phy.add_bgp_neighbor('R1', 'ATT',
+                               router_a_iface=VALUENOTSET,
+                               router_b_iface=VALUENOTSET)
+        g_phy.add_bgp_neighbor('R1', 'R2',
+                               router_a_iface=VALUENOTSET,
+                               router_b_iface=VALUENOTSET)
         for ann in self.anns.values():
             g_phy.add_bgp_advertise(ann.peer, ann)
         return g_phy
@@ -232,9 +237,15 @@ class PropagationTest(SMTSetup):
         g_phy.add_router_edge('R1', 'R2')
         g_phy.add_router_edge('R2', 'R1')
 
-        g_phy.add_bgp_neighbor('R1', 'ATT')
-        g_phy.add_bgp_neighbor('R1', 'R2')
-        g_phy.add_bgp_neighbor('R2', 'DT')
+        g_phy.add_bgp_neighbor('R1', 'ATT',
+                               router_a_iface=VALUENOTSET,
+                               router_b_iface=VALUENOTSET)
+        g_phy.add_bgp_neighbor('R1', 'R2',
+                               router_a_iface=VALUENOTSET,
+                               router_b_iface=VALUENOTSET)
+        g_phy.add_bgp_neighbor('R2', 'DT',
+                               router_a_iface=VALUENOTSET,
+                               router_b_iface=VALUENOTSET)
         for ann in self.anns.values():
             g_phy.add_bgp_advertise(ann.peer, ann)
         return g_phy
@@ -256,6 +267,10 @@ class PropagationTest(SMTSetup):
             youtube_req1,
             google_req1,
         ]
+
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
+
         p = EBGPPropagation(reqs, g)
         r1 = p.network_graph.node['R1']['syn']['box']
         p.synthesize()
@@ -326,6 +341,9 @@ class PropagationTest(SMTSetup):
         for prefix in prefixs:
             req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1', 'R2'], 10)
             reqs.append(req1)
+
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
 
         start = time.time()
         p = EBGPPropagation(reqs, g)

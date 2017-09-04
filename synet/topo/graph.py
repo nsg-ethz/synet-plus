@@ -420,10 +420,17 @@ class NetworkGraph(nx.DiGraph):
         """Get a dictionary of BGP peers"""
         return self.get_bgp_attrs(node).get('neighbors', None)
 
-    def add_bgp_neighbor(self, router_a, router_b, description=None):
+    def add_bgp_neighbor(self, router_a, router_b, router_a_iface, router_b_iface, description=None):
         """
         Add BGP peer
         Peers are added by their name in the graph
+        :param router_a: Router name
+        :param router_b: Router name
+        :param router_a_iface: The peering interface can be
+                        VALUENOTSET, Physical Iface, loop back.
+        :param router_b_iface: The peering interface
+        :param description:
+        :return:
         """
         neighbors_a = self.get_bgp_neighbors(router_a)
         neighbors_b = self.get_bgp_neighbors(router_b)
@@ -431,8 +438,8 @@ class NetworkGraph(nx.DiGraph):
         assert router_b not in neighbors_a, err1
         err2 = "Router %s already has BGP neighbor %s configured" % (router_b, router_a)
         assert router_a not in neighbors_b, err2
-        neighbors_a[router_b] = {}
-        neighbors_b[router_a] = {}
+        neighbors_a[router_b] = {'peering_iface': router_b_iface}
+        neighbors_b[router_a] = {'peering_iface': router_a_iface}
         if not description:
             desc1 = 'To %s' % router_b
             desc2 = 'To %s' % router_a
@@ -441,6 +448,18 @@ class NetworkGraph(nx.DiGraph):
         else:
             self.set_bgp_neighbor_description(router_a, router_b, description)
             self.set_bgp_neighbor_description(router_b, router_a, description)
+
+    def set_bgp_neighbor_iface(self, node, neighbor, iface):
+        """Set the interface to which the peering session to be established"""
+        neighbors = self.get_bgp_neighbors(node)
+        assert neighbor in neighbors
+        neighbors[neighbor]['peering_iface'] = iface
+
+    def get_bgp_neighbor_iface(self, node, neighbor):
+        """Get the interface to which the peering session to be established"""
+        neighbors = self.get_bgp_neighbors(node)
+        assert neighbor in neighbors
+        return neighbors[neighbor]['peering_iface']
 
     def set_bgp_neighbor_description(self, node, neighbor, description):
         """Returns text description for help about the neighbor"""

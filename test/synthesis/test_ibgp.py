@@ -3,6 +3,7 @@ import unittest
 
 import z3
 
+from synet.synthesis.connected import ConnectedSyn
 from synet.synthesis.propagation import EBGPPropagation
 
 from synet.topo.bgp import Access
@@ -46,7 +47,7 @@ class iBGPTest(unittest.TestCase):
         for node in nodes:
             g.add_peer_edge(node, 'ATT')
             g.add_peer_edge('ATT', node)
-            g.add_bgp_neighbor(node, 'ATT')
+            g.add_bgp_neighbor(node, 'ATT', VALUENOTSET, VALUENOTSET)
         for ann in announcements:
             g.add_bgp_advertise(ann.peer, ann)
         return g
@@ -63,6 +64,9 @@ class iBGPTest(unittest.TestCase):
             PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R3'], 10),
             PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], 10),
         ]
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
+
         p = EBGPPropagation(reqs, g)
         p.synthesize()
         solver = z3.Solver()
@@ -109,6 +113,9 @@ class iBGPTest(unittest.TestCase):
         rmap = RouteMap(name=name, lines=[line1, line2])
         g.add_route_map('R4', rmap)
         g.add_bgp_import_route_map('R4', 'R2', rmap.name)
+
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
 
         p = EBGPPropagation(reqs, g)
         p.synthesize()

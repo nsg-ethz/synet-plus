@@ -54,7 +54,7 @@ class ConnectedTest(unittest.TestCase):
         for node in nodes:
             g.add_peer_edge(node, 'ATT')
             g.add_peer_edge('ATT', node)
-            g.add_bgp_neighbor(node, 'ATT')
+            g.add_bgp_neighbor(node, 'ATT', VALUENOTSET, VALUENOTSET)
         for ann in announcements:
             g.add_bgp_advertise(ann.peer, ann)
         return g

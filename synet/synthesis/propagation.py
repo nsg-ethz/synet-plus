@@ -10,6 +10,7 @@ import z3
 
 from synet.synthesis.bgp import BGP
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
+from synet.topo.graph import NetworkGraph
 from synet.utils.common import PathReq
 from synet.utils.smt_context import SMTASPathLenWrapper
 from synet.utils.smt_context import SMTASPathWrapper
@@ -38,6 +39,7 @@ class EBGPPropagation(object):
                                  'as_path', 'as_path_len'])
 
     def __init__(self, reqs, network_graph):
+        assert isinstance(network_graph, NetworkGraph)
         self.network_graph = network_graph
         self.reqs = []
         self.nets_dag = {}
@@ -49,7 +51,9 @@ class EBGPPropagation(object):
         self.next_hop_list = []
         self.communities_list = []
         self.prefix_peers = {}
-
+        # Node -> neighbor -> nexthop
+        self.next_hop_map = {}
+        self.compute_next_hop_map()
         for req in reqs:
             self.add_path_req(req)
         self.assign_announcement_names()
@@ -64,8 +68,12 @@ class EBGPPropagation(object):
             if 'syn' not in self.network_graph.node[node]:
                 self.network_graph.node[node]['syn'] = {}
             box = BGP(
-                node, self.network_graph, self.union_graph,
-                self.general_context)
+                node=node,
+                network_graph=self.network_graph,
+                propagation_graph=self.union_graph,
+                general_ctx=self.general_context,
+                next_hop_map=self.next_hop_map
+            )
             self.boxes.append(box)
             self.network_graph.node[node]['syn']['box'] = box
 
@@ -87,6 +95,26 @@ class EBGPPropagation(object):
                 self.all_anns[name] = ann
                 self.network_graph.node[node]['syn']['anns'][name] = ann
 
+    def compute_next_hop_map(self):
+        """Compute the possible nexthop values in the network"""
+        for node in self.network_graph.routers_iter():
+            if node not in self.next_hop_map:
+                self.next_hop_map[node] = {}
+            if not self.network_graph.get_bgp_asnum(node):
+                # BGP is not configured on this router
+                continue
+            neighbors = self.network_graph.get_bgp_neighbors(node)
+            for neighbor in neighbors:
+                iface = self.network_graph.get_bgp_neighbor_iface(node, neighbor)
+                if is_empty(iface):
+                    # TODO: Synthesie proper next hop
+                    iface = self.network_graph.get_edge_iface(neighbor, node)
+                assert iface, "Synthesize connected first"
+                iface = iface.replace("/", "-")
+                nxt = "%s-%s" % (neighbor, iface)
+                self.next_hop_map[node][neighbor] = nxt
+                self.next_hop_list.append(nxt)
+
     def compute_additional_values(self):
         all_list = self.all_anns.values()
         for _, _, attrs in self.union_graph.edges_iter(data=True):
@@ -97,7 +125,7 @@ class EBGPPropagation(object):
             if as_path not in self.as_path_list:
                 self.as_path_list.append(as_path)
         # TODO better compute next hop and peers
-        self.next_hop_list = list("%sHop" % r for r in self.network_graph.local_routers_iter())
+        #self.next_hop_list = list("%sHop" % r for r in self.network_graph.local_routers_iter())
         self.peer_list = list(self.network_graph.routers_iter())
 
     def get_general_context(self):

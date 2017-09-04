@@ -27,7 +27,7 @@ class BGP(object):
     Synthesize (e/i)BGP Config for one router
     """
 
-    def __init__(self, node, network_graph, propagation_graph, general_ctx):
+    def __init__(self, node, network_graph, propagation_graph, general_ctx, next_hop_map):
         """
         :param node: The router to synthesize configs for
         :param network_graph: NetworkGraph the general network gaph
@@ -38,6 +38,7 @@ class BGP(object):
         self.network_graph = network_graph
         self.general_ctx = general_ctx
         self.propagation_graph = propagation_graph
+        self.next_hop_map = next_hop_map
         # Input route map -> context exported by the neighbor
         self.peer_exported_ctx = {}
         # Input Peer -> context learned from the neighbor
@@ -179,7 +180,8 @@ class BGP(object):
         Return the next hop value to be set
         to the routes exported the neighbor
         """
-        return self.general_ctx.next_hop_ctx.range_map[self.node + 'Hop']
+        next_hop = self.next_hop_map[self.node][neigbor]
+        return self.general_ctx.next_hop_ctx.range_map[next_hop]
 
     def get_neighbor_ctx(self, neighbor):
         """
