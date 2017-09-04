@@ -420,23 +420,27 @@ class NetworkGraph(nx.DiGraph):
         """Get a dictionary of BGP peers"""
         return self.get_bgp_attrs(node).get('neighbors', None)
 
-    def add_bgp_neighbor(self, routerA, routerB, description=None):
+    def add_bgp_neighbor(self, router_a, router_b, description=None):
         """
         Add BGP peer
         Peers are added by their name in the graph
         """
-        neighborsA = self.get_bgp_neighbors(routerA)
-        neighborsB = self.get_bgp_neighbors(routerB)
-        neighborsA[routerB] = {}
-        neighborsB[routerA] = {}
+        neighbors_a = self.get_bgp_neighbors(router_a)
+        neighbors_b = self.get_bgp_neighbors(router_b)
+        err1 = "Router %s already has BGP neighbor %s configured" % (router_a, router_b)
+        assert router_b not in neighbors_a, err1
+        err2 = "Router %s already has BGP neighbor %s configured" % (router_b, router_a)
+        assert router_a not in neighbors_b, err2
+        neighbors_a[router_b] = {}
+        neighbors_b[router_a] = {}
         if not description:
-            desc1 = 'To %s' % routerB
-            desc2 = 'To %s' % routerA
-            self.set_bgp_neighbor_description(routerA, routerB, desc1)
-            self.set_bgp_neighbor_description(routerB, routerA, desc2)
+            desc1 = 'To %s' % router_b
+            desc2 = 'To %s' % router_a
+            self.set_bgp_neighbor_description(router_a, router_b, desc1)
+            self.set_bgp_neighbor_description(router_b, router_a, desc2)
         else:
-            self.set_bgp_neighbor_description(routerA, routerB, description)
-            self.set_bgp_neighbor_description(routerB, routerA, description)
+            self.set_bgp_neighbor_description(router_a, router_b, description)
+            self.set_bgp_neighbor_description(router_b, router_a, description)
 
     def set_bgp_neighbor_description(self, node, neighbor, description):
         """Returns text description for help about the neighbor"""
