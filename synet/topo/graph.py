@@ -102,6 +102,8 @@ class NetworkGraph(nx.DiGraph):
         :param node: node name, must be in G
         :return: True if a node is a peering network
         """
+        if not self.has_node(node):
+            return False
         return self.node[node][VERTEX_TYPE] == VERTEXTYPE.PEER
 
     def is_local_router(self, node):
@@ -111,10 +113,14 @@ class NetworkGraph(nx.DiGraph):
         :param node: node name, must be in G
         :return: True if a node is part of the administrative domain
         """
+        if not self.has_node(node):
+            return False
         return self.node[node][VERTEX_TYPE] == VERTEXTYPE.ROUTER
 
     def is_network(self, node):
         """Node is a just a subnet (not a router)"""
+        if not self.has_node(node):
+            return False
         return self.node[node][VERTEX_TYPE] == VERTEXTYPE.NETWORK
 
     def is_router(self, node):
@@ -387,7 +393,7 @@ class NetworkGraph(nx.DiGraph):
         """
         attrs = self.get_static_routes(node)
         if attrs == VALUENOTSET:
-            self.node['static'] = {}
+            self.node[node]['static'] = {}
         self.node[node]['static'][prefix] = next_hop
 
     def set_static_routes_empty(self, node):
