@@ -400,7 +400,7 @@ class NetworkGraph(nx.DiGraph):
 
     def get_bgp_attrs(self, node):
         """Return a dict of all BGP related attrs given to a node"""
-        assert self.is_router(node), "Node is not a router %s" % node
+        assert self.is_router(node), "Node is not a router {}".format(node)
         if 'bgp' not in self.node[node]:
             self.node[node]['bgp'] = {'asnum': None,
                                       'neighbors': {},
@@ -411,6 +411,10 @@ class NetworkGraph(nx.DiGraph):
         """Sets the AS number of a given router"""
         assert is_empty(asnum) or isinstance(asnum, int)
         self.get_bgp_attrs(node)['asnum'] = asnum
+
+    def is_bgp_enabled(self, node):
+        """Return True if the router has BGP configurations"""
+        return self.get_bgp_asnum(node) is not None
 
     def get_bgp_asnum(self, node):
         """Get the AS number of a given router"""
