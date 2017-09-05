@@ -90,7 +90,8 @@ class CiscoConfigGen(object):
         :param description: optional text description
         :return: string config
         """
-        assert isinstance(addr, (IPv4Interface, IPv6Interface))
+        err = "Not valid address {} for iface {}".format(addr, iface_name)
+        assert isinstance(addr, (IPv4Interface, IPv6Interface)), err
         config = ''
         config += 'interface %s\n' % iface_name
         config += " ip address %s %s\n" % (addr.ip, addr.netmask)
@@ -241,8 +242,11 @@ class CiscoConfigGen(object):
         for neighbor in sorted(self.g.get_bgp_neighbors(node)):
             if not self.g.is_router(neighbor): continue
             neighbhor_asn = self.g.get_bgp_asnum(neighbor)
-            iface = self.g.get_edge_iface(neighbor, node)
-            neighboraddr = self.g.get_iface_addr(neighbor, iface)
+            iface = self.g.get_bgp_neighbor_iface(neighbor, node)
+            if iface in self.g.get_loopback_interfaces(node):
+                neighboraddr = self.g.get_loopback_addr(node, iface)
+            else:
+                neighboraddr = self.g.get_iface_addr(node, iface)
             assert neighbhor_asn is not None, 'AS Num is not set for %s' % neighbor
             assert neighboraddr is not None
             config += " neighbor %s remote-as %s\n" % (neighboraddr.ip, neighbhor_asn)

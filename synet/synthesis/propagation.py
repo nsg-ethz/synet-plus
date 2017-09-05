@@ -3,7 +3,7 @@
 Synthesize configurations for eBGP protocol
 """
 
-from collections import namedtuple
+import copy
 
 import networkx as nx
 import z3
@@ -24,6 +24,7 @@ from synet.utils.smt_context import SMTPermittedWrapper
 from synet.utils.smt_context import SMTPrefixWrapper
 from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
+from synet.utils.smt_context import VALUENOTSET
 
 
 __author__ = "Ahmed El-Hassany"
@@ -33,12 +34,61 @@ __email__ = "a.hassany@gmail.com"
 z3.set_option('unsat-core', True)
 
 
-class EBGPPropagation(object):
-    propagatedinfo = namedtuple('PropagatedInfo',
-                                ['egress', 'ann_name', 'peer',
-                                 'as_path', 'as_path_len'])
+class PropagatedInfo(object):
+    """BGP Information carried in Propagation graph"""
 
-    def __init__(self, reqs, network_graph):
+    def __init__(self, egress, ann_name, peer, as_path, as_path_len, path):
+        """
+        :param egress: The first local router learns the prefix
+        :param ann_name: The name of announcement variable
+        :param peer: the eBGP (or first iBGP) peer propagated the route
+        :param as_path: The AS Path learned till this point
+        :param as_path_len: The length of AS Path
+        :param path: The router path (used in IGP)
+        """
+        self.egress = egress
+        self.ann_name = ann_name
+        self.peer = peer
+        self.as_path = as_path
+        self.as_path_len = as_path_len
+        self.path = path
+
+    def __str__(self):
+        return "Prop<%s, %s, %s, %s, %s, %s" % (
+            self.egress,
+            self.ann_name,
+            self.peer,
+            self.as_path,
+            self.as_path_len,
+            self.path)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        if not self.egress == getattr(other, 'egress'):
+            return False
+        if not self.ann_name == getattr(other, 'ann_name'):
+            return False
+        if not self.peer == getattr(other, 'peer'):
+            return False
+        if not self.as_path == getattr(other, 'as_path'):
+            return False
+        if not self.as_path_len == getattr(other, 'as_path_len'):
+            return False
+        if not self.path == getattr(other, 'path'):
+            return False
+        return True
+
+
+class EBGPPropagation(object):
+    """Computes the BGP route propagation graph"""
+
+    def __init__(self, reqs, network_graph, allow_igp=False):
+        """
+        :param reqs: Path requirements
+        :param network_graph: NetworkGraph
+        """
         assert isinstance(network_graph, NetworkGraph)
         self.network_graph = network_graph
         self.reqs = []
@@ -65,6 +115,8 @@ class EBGPPropagation(object):
         # Prefix -> list of peers that announces it
 
         for node in self.network_graph.routers_iter():
+            #if not self.network_graph.is_bgp_enabled(node):
+            #    continue
             if 'syn' not in self.network_graph.node[node]:
                 self.network_graph.node[node]['syn'] = {}
             box = BGP(
@@ -72,12 +124,14 @@ class EBGPPropagation(object):
                 network_graph=self.network_graph,
                 propagation_graph=self.union_graph,
                 general_ctx=self.general_context,
-                next_hop_map=self.next_hop_map
+                next_hop_map=self.next_hop_map,
+                allow_igp=allow_igp
             )
             self.boxes.append(box)
             self.network_graph.node[node]['syn']['box'] = box
 
     def assign_announcement_names(self):
+        """Assigns variable names for each learned announcement from peers"""
         self.all_anns = {}
         for node in self.network_graph.peers_iter():
             anns = self.network_graph.get_bgp_advertise(node)
@@ -96,7 +150,7 @@ class EBGPPropagation(object):
                 self.network_graph.node[node]['syn']['anns'][name] = ann
 
     def compute_next_hop_map(self):
-        """Compute the possible nexthop values in the network"""
+        """Compute the possible next hop values in the network"""
         for node in self.network_graph.routers_iter():
             if node not in self.next_hop_map:
                 self.next_hop_map[node] = {}
@@ -108,7 +162,18 @@ class EBGPPropagation(object):
                 iface = self.network_graph.get_bgp_neighbor_iface(node, neighbor)
                 if is_empty(iface):
                     # TODO: Synthesie proper next hop
-                    iface = self.network_graph.get_edge_iface(neighbor, node)
+                    asnum1 = self.network_graph.get_bgp_asnum(node)
+                    asnum2 = self.network_graph.get_bgp_asnum(neighbor)
+                    if asnum1 != asnum2 and self.network_graph.has_edge(neighbor, node):
+                        iface = self.network_graph.get_edge_iface(neighbor, node)
+                    else:
+                        loopbacks = self.network_graph.get_loopback_interfaces(neighbor)
+                        if not loopbacks:
+                            iface = 'lo0'
+                            self.network_graph.set_loopback_addr(neighbor, iface, VALUENOTSET)
+                        else:
+                            iface = loopbacks.keys()[0]
+                self.network_graph.set_bgp_neighbor_iface(node, neighbor, iface)
                 assert iface, "Synthesize connected first"
                 iface = iface.replace("/", "-")
                 nxt = "%s-%s" % (neighbor, iface)
@@ -116,6 +181,11 @@ class EBGPPropagation(object):
                 self.next_hop_list.append(nxt)
 
     def compute_additional_values(self):
+        """
+        Fills self.as_path_list with known AS Paths
+        Fills self.peer_list with all known peers
+        :return: None
+        """
         all_list = self.all_anns.values()
         for _, _, attrs in self.union_graph.edges_iter(data=True):
             all_list += attrs.get('best', [])
@@ -124,11 +194,13 @@ class EBGPPropagation(object):
             as_path = item.as_path
             if as_path not in self.as_path_list:
                 self.as_path_list.append(as_path)
-        # TODO better compute next hop and peers
-        #self.next_hop_list = list("%sHop" % r for r in self.network_graph.local_routers_iter())
-        self.peer_list = list(self.network_graph.routers_iter())
+        self.peer_list = list([node for node in self.network_graph.routers_iter()])
 
     def get_general_context(self):
+        """
+        Creates the SMT context that contains all the known announcements
+        :return: SMTContext
+        """
         name = 'general_ctx'
         prefix_list = self.prefix_list
         peer_list = self.peer_list
@@ -200,7 +272,6 @@ class EBGPPropagation(object):
         read_list = all_anns.values()[0].communities.keys()
         communities_list = list(set(communities_list + read_list))
         communities_fun = {}
-        reverse_communities = {}
         for c in communities_list:
             name = 'Has_%s' % c.name
             communities_fun[c] = z3.Function(name, ann_sort, z3.BoolSort())
@@ -216,150 +287,195 @@ class EBGPPropagation(object):
 
     def add_path_req(self, req):
         """
-        Add new requiremenet
+        Add new requirement
         :param req: instance of PathReq
         :return: None
         """
         assert isinstance(req, PathReq)
         self.reqs.append(req)
 
-    def _compute_net_dag(self, prefix, paths):
+    def compute_bfs(self, prefix, ann_as_path, source, best_paths):
+        """
+        Computes BFS for how the announcement will be propagated
+        """
+        def check_path(path, paths):
+            """Check if the reached path is in the requirements"""
+            for tmp in paths:
+                if len(tmp) < len(path):
+                    continue
+                if path == tmp[:len(path)]:
+                    return True
+            return False
+
+        def check_igbp(as_path, new_as):
+            """Check AS Path is valid"""
+            if len(as_path) < 2:
+                return True
+            if as_path[-2:] == [new_as, new_as]:
+                return False
+            return True
+
+        def is_loop(as_path, new_as):
+            """Check AS Path is valid"""
+            # TODO check for AS PATH loops
+            return False
+
+        # This is a modified BFS Search
+        visited = [source]
+        stack = [iter(self.network_graph[source])]
+        # List of Paths that are part of the requirements
+        best = []
+        # List of Paths that are NOT part of the requirements
+        nonbest = []
+        curr_as_path = [ann_as_path, self.network_graph.get_bgp_asnum(source)]
+        while stack:
+            children = stack[-1]
+            child = next(children, None)
+            if child is None:
+                stack.pop()
+                removed = visited.pop()
+                if self.network_graph.get_bgp_asnum(removed):
+                    curr_as_path.pop()
+            else:
+                if child not in visited:
+                    if self.network_graph.is_bgp_enabled(child):
+                        as_num = self.network_graph.get_bgp_asnum(child)
+                        # The next node has BGP enabled
+                        last_as = as_num
+                        if check_path(visited + [child], best_paths):
+                            if not check_igbp(curr_as_path, as_num):
+                                err = "iBGP can only propagate once (without route reflectors)."
+                                err += " Cannot propgated {} from {} to {}". \
+                                    format(prefix, visited[-1], child)
+                                assert False, err
+                            if is_loop(curr_as_path, as_num):
+                                err = "AS Path loop"
+                                assert False, err
+                            visited.append(child)
+                            curr_as_path.append(as_num)
+                            stack.append(iter(self.network_graph[child]))
+                            path = tuple(copy.copy(visited))
+                            if path not in best:
+                                best.append(path)
+                        else:
+                            # Check first if valid iBGP path before
+                            # adding to nonbest list
+                            if check_igbp(curr_as_path, as_num):
+                                path = tuple(copy.copy(visited) + [child])
+                                if path not in nonbest:
+                                    nonbest.append(path)
+                    else:
+                        # IGP Path, keep going
+                        #last_as = None
+                        visited.append(child)
+                        stack.append(iter(self.network_graph[child]))
+        # TODO: Check all requirements are statified
+        return best, nonbest
+
+    def compute_propagated_information(self, dag, path, is_best,
+                                       computed_path, sources, ann_map):
+        """
+        Takes input the requirement path and the computed path from BFS
+        Then figure out how the routes will propagated along the DAG
+        :param dag: The route propagation graph for the given prefix
+        :param path: The requirement path
+        :param is_best: True for best path
+        :param computed_path: Path computed from BFS
+        :param sources: Peer->ann_name for the peers announcing the prefix
+        :param ann_map: Ann_name->Announcement
+        :return:
+        """
+        source = computed_path[0]
+        ann_name = sources[source]
+        ann = ann_map[ann_name]
+        assert self.network_graph.is_bgp_enabled(source)
+        assert self.network_graph.is_bgp_enabled(computed_path[-1])
+
+        asnum0 = self.network_graph.get_bgp_asnum(source)
+        asnum1 = self.network_graph.get_bgp_asnum(computed_path[1])
+        if asnum0 == asnum1:
+            egress = computed_path[0]
+        else:
+            egress = computed_path[1]
+        first = PropagatedInfo(
+            egress=egress, ann_name=ann_name, peer=source,
+            as_path=ann.as_path, as_path_len=ann.as_path_len,
+            path=[])
+        dag.add_node(source, selected=first)
+        prev_path = [source]
+        last_as_neighbor = source
+        previous = {}
+        previous[source] = first
+        for i in range(1, len(path)):
+            src = path[i - 1]
+            node = path[i]
+            prev = previous[src]
+            src_asnum = self.network_graph.get_bgp_asnum(src)
+            node_asnum = self.network_graph.get_bgp_asnum(node)
+            prev_path.append(node)
+            if node_asnum is None:
+                # IGP node
+                new_as_path = prev.as_path
+            else:
+                # Previous node migth be IGP
+                last_as = self.network_graph.get_bgp_asnum(last_as_neighbor)
+                new_as = src_asnum or last_as
+                new_as_path = prev.as_path + [new_as]
+
+            prop = PropagatedInfo(
+                egress=prev.egress, ann_name=prev.ann_name,
+                peer=last_as_neighbor,
+                as_path=new_as_path, as_path_len=len(new_as_path),
+                path=prev_path)
+            previous[node] = prop
+
+            dag.add_node(node)
+
+            if self.network_graph.is_bgp_enabled(node):
+                last_as_neighbor = node
+                prev_path = [node]
+
+            # Add Edge to the propagation graph
+            if is_best:
+                dag.node[node]['selected'] = prop
+                label = "best: %s %s" % (
+                    prop.ann_name, ','.join([str(n) for n in prop.path]))
+                dag.add_edge(src, node, best=prop, nonbest=None, label=label)
+            else:
+                label = "nonbest: %s %s" % (
+                    prop.ann_name, ','.join([str(n) for n in prop.path]))
+                dag.add_edge(src, node, best=None, nonbest=prop, label=label)
+
+    def compute_dag(self, prefix, paths):
         """For a given prefix and list of paths compute the forwarding DAG"""
         # Create propagation DAG for the prefix
-        g = nx.DiGraph()
+        dag = nx.DiGraph()
         # Keep list of sinks in the graph
         # Sinks are from where the routes are originated
-        g.graph['sources'] = []
-        node_as_paths = {}
+        sources = {}
+        all_anns = {}
         # All peers will advertise the prefix
         for peer in self.prefix_peers[prefix]:
-            ann = None
             ann_name = None
+            announcement = None
             # Announcements by the start node in the path
             anns = self.network_graph.node[peer]['syn']['anns']
             for ann_name, announcement in anns.iteritems():
                 if announcement.prefix == prefix and announcement.peer == peer:
-                    ann = announcement
                     break
-            as_path = ann.as_path
-            as_path_len = ann.as_path_len
-            node_as_paths[peer] = dict(best=True, as_path=as_path,
-                                       as_path_len=as_path_len)
-            first = EBGPPropagation.propagatedinfo(
-                egress=peer, ann_name=ann_name, peer=peer,
-                as_path=as_path, as_path_len=as_path_len)
-            g.add_node(peer, selected=first)
+            assert announcement
+            sources[peer] = ann_name
+            all_anns[ann_name] = announcement
 
-        for path in paths:
-            err = "A path that is not started by announcement %s" % path
-            assert g.has_node(path[0]), err
-            source_p = g.node[path[0]]['selected']
-            ann_name = source_p.ann_name
-            ann = self.all_anns[ann_name]
-            as_path = source_p.as_path
-            as_path_len = source_p.as_path_len
-
-            for i in range(len(path) - 1):
-                src = path[i]
-                g.graph['sources'].append(src)
-                dst = path[i + 1]
-                if src == '*':
-                    continue
-                if dst == '*':
-                    # TODO: support wildcards
-                    assert False
-                err = "Reqs has edge (%s, %s) but that doesn't" \
-                      " exist in the topology" % (src, dst)
-                assert self.network_graph.has_edge(src, dst), err
-
-                # Compute the AS PATH that led to this node
-                curr = [self.network_graph.get_bgp_asnum(src)]
-                dst_asnum = self.network_graph.get_bgp_asnum(dst)
-                prev_as_path = node_as_paths[src]['as_path']
-                prev_as_path_len = node_as_paths[src]['as_path_len']
-                # Consider iBGP and eBGP propagation
-                if dst_asnum == prev_as_path[0]:
-                    if len(prev_as_path) == 1:
-                        # This is locally originated route
-                        pass
-                    else:
-                        # An external route can only go through
-                        # one or two local routers
-                        err = "iBGP can only propagate once (without route reflectors)."
-                        err += " Cannot propgated {} from {} to {}".format(prefix, src, dst)
-                        assert dst_asnum != prev_as_path[0], err
-                    as_path = prev_as_path
-                    as_path_len = prev_as_path_len
-                else:
-                    as_path = curr + prev_as_path
-                    as_path_len = 1 + prev_as_path_len
-                propagated = EBGPPropagation.propagatedinfo(
-                    egress=path[1], ann_name=ann_name, peer=src,
-                    as_path=as_path, as_path_len=as_path_len)
-
-                node_as_paths[dst] = dict(best=True,
-                                          as_path=as_path,
-                                          as_path_len=as_path_len)
-                if i < len(path) - 1:
-                    g.add_node(path[i + 1], selected=propagated)
-                # The edge is supposed to be selected as best path
-                # according to the requirements
-                label = "best:%s %s" % (
-                    propagated.ann_name,
-                    ','.join([str(n) for n in propagated.as_path]))
-                g.add_edge(src, dst, best=propagated,
-                           nonbest=None, label=label, style='solid')
-
-        # Till now, we must have a DAG
-        assert nx.is_directed_acyclic_graph(g)
-        # All the other paths, might propagate the route
-        # However, wont be selected as best paths by neighboring
-        # routers
-        for src in self.network_graph.routers_iter():
-            for _, neighbor in self.network_graph.out_edges(src):
-                if g.has_edge(src, neighbor) and g[src][neighbor]['best']:
-                    continue
-                if g.has_edge(neighbor, src) and g[neighbor][src]['best']:
-                    continue
-                selected = g.node.get(src, {}).get('selected', None)
-                if not selected:
-                    continue
-                curr = [self.network_graph.get_bgp_asnum(src)]
-                prev_as_path = node_as_paths[src]['as_path']
-                prev_as_path_len = node_as_paths[src]['as_path_len']
-                # Consider iBGP and eBGP propagation
-                if curr[0] == prev_as_path[0]:
-                    if len(prev_as_path) == 1:
-                        # This is locally originated route
-                        pass
-                    else:
-                        # An external route can only go through
-                        # one or two local routers
-                        continue
-                    as_path = prev_as_path
-                    as_path_len = prev_as_path_len
-                else:
-                    as_path = curr + prev_as_path
-                    as_path_len = 1 + prev_as_path_len
-
-                egress = selected.egress
-                propagated = EBGPPropagation.propagatedinfo(
-                    egress=egress, ann_name=selected.ann_name, peer=src,
-                    as_path=as_path, as_path_len=as_path_len)
-
-                label = "nonbest: %s %s" % (
-                    propagated.ann_name,
-                    ','.join([str(n) for n in propagated.as_path]))
-                g.add_edge(src, neighbor,
-                           best=None, nonbest=propagated,
-                           label=label, style='dashed')
-
-        for node, attrs in g.nodes(True):
-            selected = attrs.get('selected', None)
-            peer = selected.peer if selected else None
-            ann_name = selected.ann_name if selected else None
-            g.node[node]['label'] = "%s\\nBest Peer: %s\\n Ann_name %s" % (node, peer, ann_name)
-        return g
+        for source in sources:
+            ann_name = sources[source]
+            ann = all_anns[ann_name]
+            best, nonbest = self.compute_bfs(prefix, ann.as_path, source, paths)
+            for path in nonbest:
+                self.compute_propagated_information(dag, path, False, path, sources, all_anns)
+            for path in best:
+                self.compute_propagated_information(dag, path, True, path, sources, all_anns)
+        return dag
 
     def compute_dags(self):
         """
@@ -377,7 +493,7 @@ class EBGPPropagation(object):
         # For each prefix compute a route propagation graph
         self.nets_dag = {}
         for net, paths in nets_paths.iteritems():
-            self.nets_dag[net] = self._compute_net_dag(net, paths)
+            self.nets_dag[net] = self.compute_dag(net, paths)
 
         for net, g in self.nets_dag.iteritems():
             import pygraphviz
@@ -413,27 +529,29 @@ class EBGPPropagation(object):
             if not g.has_edge(src, dst):
                 g.add_edge(src, dst, nonbest=[], best=[])
             if best:
-                assert isinstance(best, EBGPPropagation.propagatedinfo), best
-                g[src][dst]['best'].append(best)
+                assert isinstance(best, PropagatedInfo), best
+                if best not in g[src][dst]['best']:
+                    g[src][dst]['best'].append(best)
             if nonbest:
-                assert isinstance(nonbest, EBGPPropagation.propagatedinfo), nonbest
-                g[src][dst]['nonbest'].append(nonbest)
+                assert isinstance(nonbest, PropagatedInfo), nonbest
+                if nonbest not in g[src][dst]['nonbest']:
+                    g[src][dst]['nonbest'].append(nonbest)
         return g
 
     def print_union(self):
-        def pt(as_path):
+        def get_path(as_path):
             return ','.join([str(n) for n in as_path])
         for src, dst, attrs in self.union_graph.edges_iter(data=True):
             best_label = []
             for prop in attrs['best']:
                 tmp = "best %s from %s: %s (len %s)" % (
-                    prop.ann_name, prop.egress, pt(prop.as_path),
+                    prop.ann_name, prop.egress, get_path(prop.as_path),
                     prop.as_path_len)
                 best_label.append(tmp)
             nonbest_label = []
             for prop in attrs['nonbest']:
                 tmp = "nonbest %s from %s: %s (len %s)" % (
-                    prop.ann_name, prop.egress, pt(prop.as_path),
+                    prop.ann_name, prop.egress, get_path(prop.as_path),
                     prop.as_path_len)
                 nonbest_label.append(tmp)
             best_str = "\\n".join(best_label)
@@ -444,22 +562,20 @@ class EBGPPropagation(object):
         write_dot(self.union_graph, '/tmp/composed.dot')
 
     def union_graphs(self):
-        g = nx.DiGraph()
-        for net, propagation in self.nets_dag.iteritems():
-            g = self.add_net_graph(g, propagation)
-        self.union_graph = g
-        for src, dst, attrs in self.union_graph.edges_iter(data=True):
-            if 'syn' not in self.network_graph[src][dst]:
-                self.network_graph[src][dst]['syn'] = {}
-            self.network_graph[src][dst]['syn']['best'] = attrs['best']
-            self.network_graph[src][dst]['syn']['nonbest'] = attrs['nonbest']
+        """Union all the DAG per prefix to one graph"""
+        union_g = nx.DiGraph()
+        for propagation in self.nets_dag.values():
+            union_g = self.add_net_graph(union_g, propagation)
+        self.union_graph = union_g
         self.print_union()
 
     def add_constraints(self, solver, track=True):
+        """Add constraints to the solver"""
         for box in self.boxes:
             box.add_constraints(solver, track)
 
     def set_model(self, model):
+        """Set the Z3 model"""
         for box in self.boxes:
             box.set_model(model)
 
@@ -469,7 +585,8 @@ class EBGPPropagation(object):
             box.update_network_graph()
 
     def synthesize(self):
-        for node in self.network_graph.local_routers_iter():
+        """Synthesize the BGP configs"""
+        for node in sorted(list(self.network_graph.local_routers_iter())):
             if 'syn' not in self.network_graph.node[node]:
                 continue
             box = self.network_graph.node[node]['syn']['box']
@@ -485,6 +602,10 @@ class EBGPPropagation(object):
                        as_path_len_fun,
                        next_hop_fun, next_hop_sort, next_hop_map,
                        local_pref_fun, permitted_fun, communities_fun):
+        """
+        Creates SMTContext
+        :return: SMTContext
+        """
 
         ann_var_map = dict([(announcements_map[ann], announcements[str(ann)])
                             for ann in announcements_map])
