@@ -263,6 +263,61 @@ class EBGPTest(SMTSetup):
             g_phy.add_bgp_advertise(ann.peer, ann)
         return g_phy
 
+    def get_diamond_plus_one(self):
+        g = NetworkGraph()
+        asnum = 100
+        for num in range(5):
+            node = 'R%d' % (num + 1)
+            g.add_router(node)
+            g.set_bgp_asnum(node, asnum)
+            asnum += 100
+
+        g.add_router_edge('R1', 'R2')
+        g.add_router_edge('R1', 'R3')
+        g.add_router_edge('R2', 'R1')
+        g.add_router_edge('R2', 'R4')
+        g.add_router_edge('R3', 'R1')
+        g.add_router_edge('R3', 'R4')
+        g.add_router_edge('R4', 'R2')
+        g.add_router_edge('R4', 'R3')
+        g.add_router_edge('R4', 'R5')
+        g.add_router_edge('R5', 'R4')
+
+        g.add_peer('ATT')
+        g.set_bgp_asnum('ATT', 2000)
+        g.add_peer_edge('R1', 'ATT')
+        g.add_peer_edge('ATT', 'R1')
+
+        g.add_bgp_neighbor(router_a='R1',
+                           router_b='ATT',
+                           router_a_iface=VALUENOTSET,
+                           router_b_iface=VALUENOTSET)
+        g.add_bgp_neighbor(router_a='R1',
+                           router_b='R2',
+                           router_a_iface=VALUENOTSET,
+                           router_b_iface=VALUENOTSET)
+        g.add_bgp_neighbor(router_a='R1',
+                           router_b='R3',
+                           router_a_iface=VALUENOTSET,
+                           router_b_iface=VALUENOTSET)
+        g.add_bgp_neighbor(router_a='R2',
+                           router_b='R4',
+                           router_a_iface=VALUENOTSET,
+                           router_b_iface=VALUENOTSET)
+        g.add_bgp_neighbor(router_a='R3',
+                           router_b='R4',
+                           router_a_iface=VALUENOTSET,
+                           router_b_iface=VALUENOTSET)
+        g.add_bgp_neighbor(router_a='R4',
+                           router_b='R5',
+                           router_a_iface=VALUENOTSET,
+                           router_b_iface=VALUENOTSET)
+
+        for ann in self.anns.values():
+            if g.has_node(ann.peer):
+                g.add_bgp_advertise(ann.peer, ann)
+        return g
+
     def load_import_route_maps(self, g, node, neighbor, value):
         set_localpref = ActionSetLocalPref(value)
         line = RouteMapLine(matches=None, actions=[set_localpref],
@@ -573,3 +628,48 @@ class EBGPTest(SMTSetup):
         r2 = p.network_graph.node['R2']['syn']['box']
         print r1.get_config()
         print r2.get_config()
+
+    def test_diamond_fail(self):
+        self.anns = {'ATT_Google': self.anns['ATT_Google']}
+        g = self.get_diamond_plus_one()
+
+        google_req1 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R2', 'R4', 'R5'], 10)
+        google_req2 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R3', 'R4'], 10)
+        reqs = [
+            google_req1,
+            google_req2,
+        ]
+
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
+
+        p = EBGPPropagation(reqs, g)
+        p.synthesize()
+
+        solver = z3.Solver()
+        p.add_constraints(solver)
+        ret = solver.check()
+        self.assertEquals(ret, z3.unsat)
+
+    def test_diamond_correct(self):
+        self.anns = {'ATT_Google': self.anns['ATT_Google']}
+        g = self.get_diamond_plus_one()
+
+        google_req1 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R2', 'R4', 'R5'], 10)
+        google_req2 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R3'], 10)
+        reqs = [
+            google_req1,
+            google_req2,
+        ]
+        self.load_import_route_maps(g, 'R4', 'R2', 200)
+        self.load_import_route_maps(g, 'R3', 'R1', 200)
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
+
+        p = EBGPPropagation(reqs, g)
+        p.synthesize()
+
+        solver = z3.Solver()
+        p.add_constraints(solver)
+        ret = solver.check()
+        self.assertEquals(ret, z3.sat)
