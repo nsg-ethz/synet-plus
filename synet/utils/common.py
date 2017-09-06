@@ -2,16 +2,19 @@
 Common functions for synthesis
 """
 
-
-import z3
-import networkx as nx
 from abc import ABCMeta
 from abc import abstractmethod
-from enum import Enum
 from collections import namedtuple
-from networkx.drawing import nx_pydot
+from enum import Enum
 from timeit import default_timer as timer
 
+import networkx as nx
+import z3
+from networkx.drawing import nx_pydot
+
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
 
 
 # Keys for annotations used in nx graphs
@@ -28,10 +31,10 @@ OSPFBestRoutesCost = 'OSPFBestRoutesCost'
 FwdRoutes = 'FwdRoutes'
 VERTEX_TYPE = 'vertex_type'
 EDGE_TYPE = 'edge_type'
-ANNOUNCEMENT_EDGE='annoucement_edge'
-ANNOUNCED_NETWORK='announced_network'
-PEER_TYPE="peer"
-ORIGIN_TYPE="as_origin"
+ANNOUNCEMENT_EDGE = 'annoucement_edge'
+ANNOUNCED_NETWORK = 'announced_network'
+PEER_TYPE = "peer"
+ORIGIN_TYPE = "as_origin"
 AS_NUM = 'AS'
 
 
@@ -45,7 +48,7 @@ class PathProtocols(Enum):
 
 
 # Define requirements signature.
-(z3_proto, all_protocols) = z3.EnumSort('Protocols', ['Static',  'OSPF', 'BGP'])
+(z3_proto, all_protocols) = z3.EnumSort('Protocols', ['Static', 'OSPF', 'BGP'])
 z3_static, z3_ospf, z3_bgp = all_protocols
 
 PathReq = namedtuple('PathRequirement', ['protocol', 'dst_net', 'path', 'cost'])
@@ -77,7 +80,7 @@ def generate_second_path(G, path, random_obj):
     """
     new_g = G.copy()
     src = path[0]
-    dst =  path[-1]
+    dst = path[-1]
     counter = 0
     while True:
         edges = zip(path[0::1], path[1::1])
@@ -90,7 +93,7 @@ def generate_second_path(G, path, random_obj):
             if counter > 5:
                 return None
             new_g.add_edge(*candidate)
-    counter= nx.shortest_path(new_g, src, dst, 'test-weight')
+    counter = nx.shortest_path(new_g, src, dst, 'test-weight')
     new_g.add_edge(*candidate)
     return counter
 
@@ -149,180 +152,6 @@ def z3_set_link(vertex):
 def z3_edge(vertex):
     """True is an edge exists between two vertices"""
     return z3.Function('Edge', vertex, vertex, z3.BoolSort())
-
-
-def datatypes_unique(common_type, type_checkers=[]):
-    ret = []
-    v = z3.Const('v', common_type)
-    for check1 in type_checkers:
-        for check2 in type_checkers:
-            if str(check1) == str(check2): continue
-            ret.append(
-                z3.ForAll([v], z3.Not(z3.And(check1(v), check2(v)))))
-    return ret
-
-
-def datatype_route(route, is_network, is_node, vertex_type):
-    """
-    Constrain route data type
-    """
-    v1, v2, v3 = z3.Consts('v1 v2 v3', vertex_type)
-    c = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                route(v1, v2, v3),
-                z3.Or(
-                    z3.Not(is_network(v1)),
-                    z3.Not(is_node(v2)),
-                    z3.Not(is_node(v3))))))
-    c2 = z3.ForAll([v1, v2, v3], z3.Not(z3.And(route(v1, v2, v3), v2 == v3)))
-    return [c, c2]
-
-
-def datatype_route_protocol(route, is_network, is_node, is_protocol, protocol_type, vertex_type):
-    """
-    Constrain route data type
-    """
-    v1, v2, v3 = z3.Consts('v1 v2 v3', vertex_type)
-    v4 = z3.Const('v4', protocol_type)
-    c = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                route(v1, v2, v3, v4),
-                z3.Or(
-                    z3.Not(is_network(v1)),
-                    z3.Not(is_node(v2)),
-                    z3.Not(is_node(v3)),
-                    z3.Not(is_protocol(v4))))))
-    c2 = z3.ForAll([v1, v2, v3], z3.Not(z3.And(route(v1, v2, v3, v4), v2 == v3)))
-    return [c, c2]
-
-
-def datatype_route_cost(route, is_network, is_node, vertex_type):
-    """
-    Constrain route data type
-    """
-    v1, v2, v3 = z3.Consts('v1 v2 v3', vertex_type)
-    v4 = z3.Const('v4', z3.IntSort())
-    c = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                route(v1, v2, v3, v4),
-                z3.Or(
-                    z3.Not(is_network(v1)),
-                    z3.Not(is_node(v2)),
-                    z3.Not(is_node(v3))))))
-    #c2 = z3.ForAll([v1, v2, v3], z3.Not(z3.And(route(v1, v2, v3, v4), v2 == v3)))
-    c2 = z3.ForAll([v1, v2, v3, v4], z3.Implies(v2 == v3, z3.Not(route(v1, v2, v3, v4))))
-    return [c, c2]
-
-
-def datatype_route_bgp(route, is_network, is_node, is_as_path_length, as_path_type, vertex_type):
-    """
-    Constrain route data type
-    """
-    v1, v2, v3 = z3.Consts('v1 v2 v3', vertex_type)
-    v4 = z3.Const('v4', as_path_type)
-    v5 = z3.Const('v5', z3.IntSort())
-    v6 = z3.Const('v6', z3.IntSort())
-    c = z3.ForAll(
-        [v1, v2, v3, v4, v5, v6],
-        z3.Not(
-            z3.And(
-                route(v1, v2, v3, v4, v5, v6),
-                z3.Or(
-                    z3.Not(is_network(v1)),
-                    z3.Not(is_node(v2)),
-                    z3.Not(is_node(v3)),
-                    z3.Not(is_as_path_length(v4, v5))))))
-    c2 = z3.ForAll([v1, v2, v3, v4, v5, v6], z3.Not(z3.And(route(v1, v2, v3, v4, v5, v6), v2 == v3)))
-    return [c2]
-    return [c, c2]
-
-
-def datatype_network_node_interface(func, is_network, is_node, is_interface, vertex_type):
-    """
-    Constrain a function  with (network, node, interface) signature
-    """
-    v1, v2, v3 = z3.Consts('v1 v2 v3', vertex_type)
-    c = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                func(v1, v2, v3),
-                z3.Or(
-                    z3.Not(is_network(v1)),
-                    z3.Not(is_node(v2)),
-                    z3.Not(is_interface(v3))))))
-    return [c]
-
-
-def datatype_network_interface_node(func, is_network, is_node, is_interface, vertex_type):
-    """
-    Constrain a function  with (node, interface) signature
-    """
-    v1, v2, v3 = z3.Consts('v1 v2 v3', vertex_type)
-    c = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                func(v1, v2, v3),
-                z3.Or(
-                    z3.Not(is_network(v1)),
-                    z3.Not(is_interface(v2)),
-                    z3.Not(is_node(v3))))))
-    return [c]
-
-
-def z3_interface_links(vertex, is_interface, edge, bidir=True):
-    v1, v2, v3, v4 = z3.Consts('v1 v2 v3 v4', vertex)
-    # Make sure we don't have more than one outgoing link from each interface
-    # to another interface
-    outgoing = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                is_interface(v1),
-                is_interface(v2),
-                is_interface(v3),
-                z3.Distinct(v1, v2, v3),
-                edge(v1, v2),
-                edge(v1, v3)
-            )))
-
-    # Make sure we don't have more than one incoming link from each interface
-    # to another interface
-    incoming = z3.ForAll(
-        [v1, v2, v3],
-        z3.Not(
-            z3.And(
-                is_interface(v1),
-                is_interface(v2),
-                is_interface(v3),
-                z3.Distinct(v1, v2, v3),
-                edge(v2, v1),
-                edge(v3, v1)
-            )))
-
-    # We're modeling an ethernet network, so we get the second link for free
-    if bidir:
-        bidir_c = z3.ForAll(
-            [v1, v2],
-            z3.Implies(
-                z3.And(
-                    is_interface(v1),
-                    is_interface(v2),
-                    edge(v1, v2)
-                ),
-                edge(v2, v1)
-            ))
-    constraints = [outgoing, incoming]
-    if bidir:
-        constraints.append(bidir_c)
-    return constraints
 
 
 def get_vertices(g):
