@@ -868,14 +868,22 @@ class SMTSetVal(SMTAction):
                 constraint = self._action_fun(ann_var) == val
                 self.constraints[name] = constraint
         else:
-            tmp = z3.Const("%s_tmp" % self.name, self.value_ctx.announcement_sort)
-            constraint = z3.ForAll(
-                [tmp],
+            #tmp = z3.Const("%s_tmp" % self.name, self.value_ctx.announcement_sort)
+            #constraint = z3.ForAll(
+            #    [tmp],
+            #    self._action_fun(tmp) == z3.If(
+            #        self.match.match_fun(tmp) == True,
+            #        self._action_val,
+            #        self.value_ctx.get_var(tmp)
+            #    ))
+
+            check = z3.And([self.match.match_fun(tmp) == True for tmp in self.value_ctx.announcement_var_map])
+            constraint = [
                 self._action_fun(tmp) == z3.If(
-                    self.match.match_fun(tmp) == True,
+                    check == True,
                     self._action_val,
-                    self.value_ctx.get_var(tmp)
-                ))
+                    self.value_ctx.get_var(tmp)) for tmp in self.value_ctx.announcement_var_map]
+
             name = "%s_set_action_val_all"
             self.constraints[name] = constraint
         for name, constraint in self.constraints.iteritems():
@@ -1543,14 +1551,22 @@ class SMTSetPermitted(SMTAction):
                 constraint = self._action_fun(ann_var) == val
                 self.constraints[name] = constraint
         else:
-            tmp = z3.Const("%s_tmp" % self.name, self.value_ctx.announcement_sort)
-            constraint = z3.ForAll(
-                [tmp],
+            #tmp = z3.Const("%s_tmp" % self.name, self.value_ctx.announcement_sort)
+            #constraint = z3.ForAll(
+            #    [tmp],
+            #    self._action_fun(tmp) == z3.If(
+            #        z3.And(self.match.match_fun(tmp) == True, self._action_val == False),
+            #        False,
+            #        self.value_ctx.get_var(tmp)
+            #    ))
+
+            check = z3.And([self.match.match_fun(tmp) == True for tmp in self.value_ctx.announcement_var_map])
+            constraint = [
                 self._action_fun(tmp) == z3.If(
-                    z3.And(self.match.match_fun(tmp) == True, self._action_val == False),
+                    check == True,
                     False,
-                    self.value_ctx.get_var(tmp)
-                ))
+                    self.value_ctx.get_var(tmp)) for tmp in self.value_ctx.announcement_var_map]
+
             name = "%s_set_action_val_all"
             self.constraints[name] = constraint
         for name, constraint in self.constraints.iteritems():
