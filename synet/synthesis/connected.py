@@ -79,9 +79,10 @@ class ConnectedSyn(object):
             if isinstance(req, PathReq):
                 all_paths.append(req.path)
             elif isinstance(req, PathOrderReq):
-                all_paths.extend(req.paths)
+                for sub_req in req.paths:
+                    all_paths.append(sub_req.path)
             else:
-                raise ValueError("Uknown Req type %s" % type(req))
+                raise ValueError("Unknown Req type %s" % type(req))
         for path in all_paths:
             connected_pairs.extend(zip(path[0::1], path[1::1]))
         connected_pairs = list(set(connected_pairs))
