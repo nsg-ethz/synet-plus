@@ -48,9 +48,6 @@ class PathProtocols(Enum):
 
 
 # Define requirements signature.
-(z3_proto, all_protocols) = z3.EnumSort('Protocols', ['Static', 'OSPF', 'BGP'])
-z3_static, z3_ospf, z3_bgp = all_protocols
-
 PathReq = namedtuple('PathRequirement', ['protocol', 'dst_net', 'path', 'cost'])
 PathOrderReq = namedtuple('PathOrderRequirement', ['protocol', 'dst_net', 'paths', 'cost'])
 NotPathReq = namedtuple('NotPathRequirement', ['protocol', 'dst_net', 'path'])
