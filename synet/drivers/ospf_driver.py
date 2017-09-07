@@ -8,7 +8,7 @@ import os
 import networkx as nx
 
 from synet.utils.common import PathReq
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import random_requirement_path
 from synet.utils.common import generate_second_path
 from synet.utils.topo_gen import gen_grid_topo_no_iface
@@ -116,7 +116,7 @@ def main():
     ospf = OSPFSyn([], g, gen_paths=pathsize)
 
     for path in paths:
-        req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+        req = PathReq(Protocols.OSPF, path[-1], path, False)
         ospf.add_path_req(req)
 
     ospf.synthesize(retries_before_rest=10)

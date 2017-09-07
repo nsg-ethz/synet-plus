@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 from synet.utils.topo_gen import gen_mesh
+from synet.utils.smt_context import VALUENOTSET
 
 from synet.topo.graph import EDGETYPE
 from synet.topo.graph import EDGE_TYPE
@@ -23,7 +24,7 @@ class TestNetworkGraph(unittest.TestCase):
         for node in nodes:
             g.add_peer_edge(node, 'ATT')
             g.add_peer_edge('ATT', node)
-            g.add_bgp_neighbor(node, 'ATT')
+            g.add_bgp_neighbor(node, 'ATT', VALUENOTSET, VALUENOTSET)
         for ann in announcements:
             g.add_bgp_advertise(ann.peer, ann)
         return g

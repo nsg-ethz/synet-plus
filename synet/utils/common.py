@@ -4,6 +4,7 @@ Common functions for synthesis
 
 from abc import ABCMeta
 from abc import abstractmethod
+from collections import Iterable
 from collections import namedtuple
 from enum import Enum
 from timeit import default_timer as timer
@@ -38,7 +39,7 @@ ORIGIN_TYPE = "as_origin"
 AS_NUM = 'AS'
 
 
-class PathProtocols(Enum):
+class Protocols(Enum):
     """List all protocols"""
     Forwarding = 1
     Static = 2
@@ -48,19 +49,128 @@ class PathProtocols(Enum):
 
 
 # Define requirements signature.
-PathReq = namedtuple('PathRequirement', ['protocol', 'dst_net', 'path', 'cost'])
-PathOrderReq = namedtuple('PathOrderRequirement', ['protocol', 'dst_net', 'paths', 'cost'])
-NotPathReq = namedtuple('NotPathRequirement', ['protocol', 'dst_net', 'path'])
-ReachabilityReq = namedtuple('ReachabilityRequirement',
-                             ['protocol', 'dst_net', 'src', 'dst',
-                              'min_k', 'max_k'])
-NotReachabilityReq = namedtuple('NotReachabilityRequirement',
-                                ['protocol', 'dst_net', 'src', 'dst',
-                                 'min_k', 'max_k'])
-WayPointReq = namedtuple('WayPointRequirement',
-                         ['protocol', 'dst_net', 'vertices'])
-NotWayPointReq = namedtuple('NotWayPointRequirement',
-                            ['protocol', 'dst_net', 'vertices'])
+class Req(object):
+    """Abstract Requirement"""
+    def __init__(self):
+        raise NotImplementedError()
+
+
+class PathReq(Req):
+    """Specify single path Requirement"""
+
+    def __init__(self, protocol, dst_net, path, strict):
+        """
+
+        :param protocol: instance of Protocols
+        :param dst_net: The destination traffic class
+        :param path: List of ordered routers in the graph
+        :param strict: If True, traffic should be dropped when path is not available
+        """
+        assert isinstance(protocol, Protocols)
+        assert isinstance(strict, bool)
+        assert isinstance(path, Iterable)
+        self.protocol = protocol
+        self.dst_net = dst_net
+        self.path = path
+        self.strict = strict
+
+
+class ECMPPathsReq(Req):
+    """Equal cost paths"""
+
+    def __init__(self, protocol, dst_net, paths, strict):
+        """
+        :param protocol: instance of Protocols
+        :param dst_net: The destination traffic class
+        :param paths: Set of PathReq (must have same dst_net and strict=False)
+        :param strict: If True, traffic should be dropped when path is not available
+        """
+        assert isinstance(protocol, Protocols)
+        assert isinstance(strict, bool)
+        assert isinstance(paths, Iterable)
+        for path in paths:
+            assert isinstance(path, PathReq)
+            assert path.strict == False
+            assert path.dst_net == dst_net
+        self.protocol = protocol
+        self.dst_net = dst_net
+        self.paths = paths
+        self.strict = strict
+
+
+class KConnectedPathsReq(Req):
+    """Connectivity among certain paths with no preference"""
+
+    def __init__(self, protocol, dst_net, paths, strict):
+        """
+        :param protocol: instance of Protocols
+        :param dst_net: The destination traffic class
+        :param paths: Set of PathReq (must have same dst_net and strict=False)
+        :param strict: If True, traffic should be dropped when path is not available
+        """
+        assert isinstance(protocol, Protocols)
+        assert isinstance(strict, bool)
+        assert isinstance(paths, Iterable)
+        for path in paths:
+            assert isinstance(path, PathReq)
+            assert path.strict == False
+            assert path.dst_net == dst_net
+        self.protocol = protocol
+        self.dst_net = dst_net
+        self.paths = paths
+        self.strict = strict
+
+
+class PreferredPathReq(Req):
+    """
+    One path is preferred then when it's not available one of the kconnected
+    will be chosen arbitrary.
+    """
+
+    def __init__(self, protocol, dst_net, preferred, kconnected, strict):
+        """
+        :param protocol: instance of Protocols
+        :param dst_net: The destination traffic class
+        :param preferred: PathReq that is the most preferred
+        :param kconnected: Set of PathReq (must have same dst_net and strict=False)
+        :param strict: If True, traffic should be dropped when path is not available
+        """
+        assert isinstance(protocol, Protocols)
+        assert isinstance(strict, bool)
+        assert isinstance(preferred, PathReq)
+        assert preferred.dst_net == dst_net
+        assert preferred.strict == False
+        assert isinstance(kconnected, KConnectedPathsReq)
+        assert kconnected.dst_net == dst_net
+        assert kconnected.strict == False
+        self.protocol = protocol
+        self.dst_net = dst_net
+        self.preferred = preferred
+        self.kconnected = kconnected
+        self.strict = strict
+
+
+class PathOrderReq(Req):
+    """Strict Path Ordering"""
+
+    def __init__(self, protocol, dst_net, paths, strict):
+        """
+        :param protocol: instance of Protocols
+        :param dst_net: The destination traffic class
+        :param paths: Set of PathReq (must have same dst_net and strict=False)
+        :param strict: If True, traffic should be dropped when path is not available
+        """
+        assert isinstance(protocol, Protocols)
+        assert isinstance(strict, bool)
+        assert isinstance(paths, Iterable)
+        for path in paths:
+            assert isinstance(path, PathReq)
+            assert path.strict == False
+            assert path.dst_net == dst_net
+        self.protocol = protocol
+        self.dst_net = dst_net
+        self.paths = paths
+        self.strict = strict
 
 
 # OSPF Edge cost

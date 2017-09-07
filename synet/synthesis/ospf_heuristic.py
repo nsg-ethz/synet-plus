@@ -15,7 +15,7 @@ from synet.utils.common import NODE_TYPE
 from synet.utils.common import OSPFBestRoutes
 from synet.utils.common import OSPFBestRoutesCost
 from synet.utils.common import PathOrderReq
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.common import SetOSPFEdgeCost
 from synet.utils.common import SynthesisComponent
@@ -264,7 +264,7 @@ class OSPFSyn(SynthesisComponent):
             for node in self.node_names:
                 path = get_shortest(net, node)
                 if not path: continue
-                req = PathReq(PathProtocols.OSPF,
+                req = PathReq(Protocols.OSPF,
                               net,
                               path,
                               self.network_graph.node[node][OSPFBestRoutesCost][net])

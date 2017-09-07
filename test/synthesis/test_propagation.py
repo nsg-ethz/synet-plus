@@ -4,7 +4,7 @@ import unittest
 
 import z3
 from synet.utils.common import PathReq
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.topo.graph import NetworkGraph
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
@@ -261,8 +261,8 @@ class PropagationTest(SMTSetup):
 
     def test_small(self):
         g = self.get_g_two_routers_one_peer()
-        youtube_req1 = PathReq(PathProtocols.BGP, 'YouTube', ['ATT', 'R1', 'R2'], 10)
-        google_req1 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R2'], 10)
+        youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['ATT', 'R1', 'R2'], False)
+        google_req1 = PathReq(Protocols.BGP, 'Google', ['ATT', 'R1', 'R2'], False)
         reqs = [
             youtube_req1,
             google_req1,
@@ -339,7 +339,7 @@ class PropagationTest(SMTSetup):
 
         reqs = []
         for prefix in prefixs:
-            req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1', 'R2'], 10)
+            req1 = PathReq(Protocols.BGP, prefix, ['ATT', 'R1', 'R2'], False)
             reqs.append(req1)
 
         connected_syn = ConnectedSyn(reqs, g)

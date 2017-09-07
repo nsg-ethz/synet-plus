@@ -11,7 +11,7 @@ import synet.synthesis.ospf_heuristic
 import synet.synthesis.ospf
 
 from synet.utils.common import NODE_TYPE
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.common import VERTEX_TYPE
 from synet.utils.common import random_requirement_path
@@ -45,7 +45,7 @@ class TestOSPFGrid(unittest.TestCase):
             paths.append(path)
         reqs = []
         for path in paths:
-            reqs.append(PathReq(PathProtocols.OSPF, path[-1], path, 10))
+            reqs.append(PathReq(Protocols.OSPF, path[-1], path, False))
         return reqs
 
     def test_grid2_1path_no_heurisitc(self):

@@ -12,7 +12,7 @@ from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
 from synet.topo.graph import NetworkGraph
 
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
@@ -34,7 +34,7 @@ class StaticTest(unittest.TestCase):
     def test_two_nodes(self):
         g = self.get_two_nodes()
         prefix = 'P0'
-        reqs = [PathReq(PathProtocols.BGP, prefix, ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, prefix, ['R1', 'R2'], False)]
         g.set_static_routes_empty('R1')
         static_syn = StaticSyn(reqs, g)
         static_syn.synthesize()
@@ -43,7 +43,7 @@ class StaticTest(unittest.TestCase):
     def test_not_empty(self):
         g = self.get_two_nodes()
         prefix = 'P0'
-        reqs = [PathReq(PathProtocols.BGP, prefix, ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, prefix, ['R1', 'R2'], False)]
         static_syn = StaticSyn(reqs, g)
         with self.assertRaises(CannotSynthesizeStaticRoute):
             static_syn.synthesize()
@@ -51,7 +51,7 @@ class StaticTest(unittest.TestCase):
     def test_two_existing(self):
         g = self.get_two_nodes()
         prefix = 'P0'
-        reqs = [PathReq(PathProtocols.BGP, prefix, ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, prefix, ['R1', 'R2'], False)]
         g.add_static_route('R1', prefix, 'R2')
         static_syn = StaticSyn(reqs, g)
         static_syn.synthesize()

@@ -14,7 +14,7 @@ import synet.synthesis.ospf_heuristic
 
 from synet.utils.common import INTERNAL_EDGE
 from synet.utils.common import NODE_TYPE
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 
 __author__ = "Ahmed El-Hassany"
@@ -62,7 +62,7 @@ class TestOSPF(unittest.TestCase):
     @staticmethod
     def get_1path_req():
         p1 = ['R1', 'R2', 'R3', 'R4']
-        req = PathReq(PathProtocols.OSPF, p1[-1], p1, 10)
+        req = PathReq(Protocols.OSPF, p1[-1], p1, False)
         return [req]
 
     @staticmethod
@@ -73,7 +73,7 @@ class TestOSPF(unittest.TestCase):
         paths = [p1, p2, p3]
         reqs = []
         for path in paths:
-            req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+            req = PathReq(Protocols.OSPF, path[-1], path, False)
             reqs.append(req)
         return reqs
 

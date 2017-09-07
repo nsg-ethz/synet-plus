@@ -12,7 +12,7 @@ import sys
 import os
 
 from synet.utils.common import PathReq
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.topo_gen import gen_grid_topo_no_iface
 from synet.utils.topo_gen import read_topology_zoo
 from synet.synthesis.ospf import OSPFSyn
@@ -148,7 +148,7 @@ def main():
     ospf = OSPFSyn([], g, gen_paths=pathsize)
 
     for path in paths:
-        req = PathReq(PathProtocols.OSPF, path[-1], path, 10)
+        req = PathReq(Protocols.OSPF, path[-1], path, False)
         ospf.add_path_req(req)
 
     ospf.solve()

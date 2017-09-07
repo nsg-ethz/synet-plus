@@ -13,7 +13,7 @@ from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
 from synet.topo.graph import NetworkGraph
 
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
@@ -61,7 +61,7 @@ class ConnectedTest(unittest.TestCase):
 
     def test_correct_concrete(self):
         g = self.get_two_nodes()
-        reqs = [PathReq(PathProtocols.BGP, 'Prefix', ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, 'Prefix', ['R1', 'R2'], False)]
 
         addr1 = ip_interface(u"192.168.0.1/24")
         addr2 = ip_interface(u"192.168.0.2/24")
@@ -85,7 +85,7 @@ class ConnectedTest(unittest.TestCase):
 
     def test_wrong_subnets(self):
         g = self.get_two_nodes()
-        reqs = [PathReq(PathProtocols.BGP, 'Prefix', ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, 'Prefix', ['R1', 'R2'], False)]
 
         addr1 = ip_interface(u"192.168.0.1/24")
         addr2 = ip_interface(u"192.168.0.2/25")
@@ -110,7 +110,7 @@ class ConnectedTest(unittest.TestCase):
 
     def test_duplicate_address(self):
         g = self.get_two_nodes()
-        reqs = [PathReq(PathProtocols.BGP, 'Prefix', ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, 'Prefix', ['R1', 'R2'], False)]
 
         addr1 = ip_interface(u"192.168.0.1/24")
         addr2 = ip_interface(u"192.168.0.1/24")
@@ -135,7 +135,7 @@ class ConnectedTest(unittest.TestCase):
 
     def test_shutdown(self):
         g = self.get_two_nodes()
-        reqs = [PathReq(PathProtocols.BGP, 'Prefix', ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, 'Prefix', ['R1', 'R2'], False)]
 
         addr1 = ip_interface(u"192.168.0.1/24")
         addr2 = ip_interface(u"192.168.0.1/24")
@@ -160,7 +160,7 @@ class ConnectedTest(unittest.TestCase):
 
     def test_one_side_concrete(self):
         g = self.get_two_nodes()
-        reqs = [PathReq(PathProtocols.BGP, 'Prefix', ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, 'Prefix', ['R1', 'R2'], False)]
 
         addr1 = ip_interface(u"192.168.0.1/24")
         # Set Iface for R1 to R2
@@ -189,7 +189,7 @@ class ConnectedTest(unittest.TestCase):
         g.add_router_edge('R3', 'R1')
         g.add_router_edge('R3', 'R2')
 
-        reqs = [PathReq(PathProtocols.BGP, 'Prefix', ['R1', 'R2'], 10)]
+        reqs = [PathReq(Protocols.BGP, 'Prefix', ['R1', 'R2'], False)]
 
         # Set Iface for R1 to R3
         iface1 = 'Fa0/0'
@@ -239,10 +239,10 @@ class ConnectedTest(unittest.TestCase):
 
         ann = anns.values()[0]
         reqs = [
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R1'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R3'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], 10),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R1'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R3'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], False),
         ]
 
         # Set Iface for R2 to ATT

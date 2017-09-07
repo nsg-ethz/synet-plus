@@ -3,7 +3,7 @@ import time
 
 import z3
 from synet.utils.common import PathReq
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.topo.graph import NetworkGraph
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionSetCommunity
@@ -329,8 +329,8 @@ class EBGPTest(SMTSetup):
 
     def test_small(self):
         g = self.get_g_one_router_two_peers()
-        youtube_req1 = PathReq(PathProtocols.BGP, 'YouTube', ['ATT', 'R1'], 10)
-        google_req1 = PathReq(PathProtocols.BGP, 'Google', ['DT', 'R1'], 10)
+        youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['ATT', 'R1'], False)
+        google_req1 = PathReq(Protocols.BGP, 'Google', ['DT', 'R1'], False)
 
         reqs = [
             youtube_req1,
@@ -383,8 +383,8 @@ class EBGPTest(SMTSetup):
 
         reqs = []
         for prefix in prefixs:
-            req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1'], 10)
-            req2 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R2'], 10)
+            req1 = PathReq(Protocols.BGP, prefix, ['ATT', 'R1'], False)
+            req2 = PathReq(Protocols.BGP, prefix, ['ATT', 'R2'], False)
             reqs.append(req1)
             reqs.append(req2)
 
@@ -485,12 +485,12 @@ class EBGPTest(SMTSetup):
         g.add_bgp_import_route_map('R2', 'ATT', rmap.name)
 
         reqs = []
-        req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R1', 'R2'], 10)
+        req1 = PathReq(Protocols.BGP, prefixs[0], ['ATT', 'R1', 'R2'], False)
         reqs.append(req1)
 
         for prefix in prefixs[1:]:
-            req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1'], 10)
-            req2 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R2'], 10)
+            req1 = PathReq(Protocols.BGP, prefix, ['ATT', 'R1'], False)
+            req2 = PathReq(Protocols.BGP, prefix, ['ATT', 'R2'], False)
             reqs.append(req1)
             reqs.append(req2)
 
@@ -589,13 +589,13 @@ class EBGPTest(SMTSetup):
         g.add_bgp_import_route_map('R2', 'R1', rmap.name)
 
         reqs = []
-        req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R1'], 10)
+        req1 = PathReq(Protocols.BGP, prefixs[0], ['ATT', 'R1'], False)
         reqs.append(req1)
-        req1 = PathReq(PathProtocols.BGP, prefixs[0], ['ATT', 'R2'], 10)
+        req1 = PathReq(Protocols.BGP, prefixs[0], ['ATT', 'R2'], False)
         reqs.append(req1)
 
         for prefix in prefixs[1:]:
-            req1 = PathReq(PathProtocols.BGP, prefix, ['ATT', 'R1', 'R2'], 10)
+            req1 = PathReq(Protocols.BGP, prefix, ['ATT', 'R1', 'R2'], False)
             reqs.append(req1)
 
         connected_syn = ConnectedSyn(reqs, g)
@@ -633,8 +633,8 @@ class EBGPTest(SMTSetup):
         self.anns = {'ATT_Google': self.anns['ATT_Google']}
         g = self.get_diamond_plus_one()
 
-        google_req1 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R2', 'R4', 'R5'], 10)
-        google_req2 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R3', 'R4'], 10)
+        google_req1 = PathReq(Protocols.BGP, 'Google', ['ATT', 'R1', 'R2', 'R4', 'R5'], False)
+        google_req2 = PathReq(Protocols.BGP, 'Google', ['ATT', 'R1', 'R3', 'R4'], False)
         reqs = [
             google_req1,
             google_req2,
@@ -655,8 +655,8 @@ class EBGPTest(SMTSetup):
         self.anns = {'ATT_Google': self.anns['ATT_Google']}
         g = self.get_diamond_plus_one()
 
-        google_req1 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R2', 'R4', 'R5'], 10)
-        google_req2 = PathReq(PathProtocols.BGP, 'Google', ['ATT', 'R1', 'R3'], 10)
+        google_req1 = PathReq(Protocols.BGP, 'Google', ['ATT', 'R1', 'R2', 'R4', 'R5'], False)
+        google_req2 = PathReq(Protocols.BGP, 'Google', ['ATT', 'R1', 'R3'], False)
         reqs = [
             google_req1,
             google_req2,

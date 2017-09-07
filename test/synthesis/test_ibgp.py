@@ -15,7 +15,7 @@ from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.graph import NetworkGraph
 
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
@@ -84,10 +84,10 @@ class iBGPTest(unittest.TestCase):
 
         ann = anns.values()[0]
         reqs = [
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R1'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R3'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], 10),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R1'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R3'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], False),
         ]
         connected_syn = ConnectedSyn(reqs, g)
         connected_syn.synthesize()
@@ -111,10 +111,10 @@ class iBGPTest(unittest.TestCase):
 
         ann = anns.values()[0]
         reqs = [
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R3'], 10),
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R3', 'R1'], 10),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R2', 'R4'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R3'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R3', 'R1'], False),
         ]
 
         # R1 Import from R3
@@ -163,16 +163,16 @@ class iBGPTest(unittest.TestCase):
         # Just to force synthesizing interfaces
         syn1 = ConnectedSyn(
             [
-                PathReq(PathProtocols.Static, ann.prefix, ['R1', 'R2'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R1', 'R3'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R2', 'R1'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R2', 'R4'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R3', 'R1'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R3', 'R4'], 10),
+                PathReq(Protocols.Static, ann.prefix, ['R1', 'R2'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R1', 'R3'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R2', 'R1'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R2', 'R4'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R3', 'R1'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R3', 'R4'], False),
             ], g)
         syn1.synthesize()
         reqs = [
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R1', 'R2', 'R4'], 10),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R1', 'R2', 'R4'], False),
         ]
         # Actual iBGP
         p = EBGPPropagation(reqs, g, allow_igp=False)
@@ -191,16 +191,16 @@ class iBGPTest(unittest.TestCase):
         # Just to force synthesizing interfaces
         syn1 = ConnectedSyn(
             [
-                PathReq(PathProtocols.Static, ann.prefix, ['R1', 'R2'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R1', 'R3'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R2', 'R1'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R2', 'R4'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R3', 'R1'], 10),
-                PathReq(PathProtocols.Static, ann.prefix, ['R3', 'R4'], 10),
+                PathReq(Protocols.Static, ann.prefix, ['R1', 'R2'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R1', 'R3'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R2', 'R1'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R2', 'R4'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R3', 'R1'], False),
+                PathReq(Protocols.Static, ann.prefix, ['R3', 'R4'], False),
             ], g)
         syn1.synthesize()
         reqs = [
-            PathReq(PathProtocols.BGP, ann.prefix, ['ATT', 'R1', 'R2', 'R4'], 10),
+            PathReq(Protocols.BGP, ann.prefix, ['ATT', 'R1', 'R2', 'R4'], False),
         ]
         # Actual iBGP
         p = EBGPPropagation(reqs, g, allow_igp=True)

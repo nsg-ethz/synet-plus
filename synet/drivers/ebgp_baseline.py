@@ -21,7 +21,7 @@ from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.graph import NetworkGraph
-from synet.utils.common import PathProtocols
+from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import read_topology_zoo_netgraph
@@ -139,7 +139,7 @@ def get_shortest_path_reqs(g, peers, communities):
             path = all_short[0]
             for ann in g.get_bgp_advertise(peer):
                 prefix = ann.prefix
-                req = PathReq(PathProtocols.BGP, prefix, path, 10)
+                req = PathReq(Protocols.BGP, prefix, path, False)
                 reqs.append(req)
             # Add route maps
             if len(all_short) > 1:
