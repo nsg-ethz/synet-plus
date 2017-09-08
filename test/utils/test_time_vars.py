@@ -4,6 +4,7 @@ Test the speed of Z3 has function vs get_id
 """
 
 import unittest
+from nose.plugins.attrib import attr
 import z3
 
 __author__ = "Ahmed El-Hassany"
@@ -13,6 +14,7 @@ __email__ = "a.hassany@gmail.com"
 z3.set_option('unsat-core', True)
 
 
+@attr(speed='slow')
 class TestVars(unittest.TestCase):
     def test_hash(self):
         num = 100

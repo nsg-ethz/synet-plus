@@ -2,7 +2,10 @@
 import time
 import unittest
 
+from nose.plugins.attrib import attr
+
 import z3
+
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 from synet.topo.graph import NetworkGraph
@@ -39,6 +42,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class SMTSetup(unittest.TestCase):
     def _pre_load(self):
         # Communities
@@ -190,6 +194,7 @@ class SMTSetup(unittest.TestCase):
         return ctx
 
 
+@attr(speed='fast')
 class PropagationTest(SMTSetup):
     def get_g_two_routers_one_peer(self):
         # Start with some initial inputs

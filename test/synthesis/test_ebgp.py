@@ -1,4 +1,5 @@
 import unittest
+from nose.plugins.attrib import attr
 import time
 
 import z3
@@ -40,6 +41,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class SMTSetup(unittest.TestCase):
     def _pre_load(self):
         # Communities
@@ -195,6 +197,7 @@ class SMTSetup(unittest.TestCase):
         return ctx
 
 
+@attr(speed='fast')
 class EBGPTest(SMTSetup):
     def get_g_one_router_two_peers(self):
         """
@@ -354,6 +357,7 @@ class EBGPTest(SMTSetup):
         p.set_model(solver.model())
         print r1.get_config()
 
+    @attr(speed='slow')
     def test_triangle(self):
         # Communities
         num_comms = 5

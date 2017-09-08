@@ -1,27 +1,20 @@
 #!/usr/bin/env python
 import unittest
 
-from ipaddress import ip_interface
+from nose.plugins.attrib import attr
 
 from synet.synthesis.static import CannotSynthesizeStaticRoute
 from synet.synthesis.static import StaticSyn
-
-
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
 from synet.topo.graph import NetworkGraph
-
-from synet.utils.common import Protocols
 from synet.utils.common import PathReq
-from synet.utils.smt_context import VALUENOTSET
-from synet.utils.topo_gen import gen_mesh
+from synet.utils.common import Protocols
 
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class StaticTest(unittest.TestCase):
     def get_two_nodes(self):
         g = NetworkGraph()

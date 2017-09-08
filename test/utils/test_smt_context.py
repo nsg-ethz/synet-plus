@@ -1,4 +1,6 @@
+#/usr/bin/env python
 import unittest
+from nose.plugins.attrib import attr
 
 import z3
 
@@ -26,6 +28,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class SMTSetup(unittest.TestCase):
     def _pre_load(self):
         raise NotImplementedError()
@@ -108,6 +111,7 @@ class SMTSetup(unittest.TestCase):
         self._define_types()
 
 
+@attr(speed='fast')
 class TestSMTPrefixWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -244,6 +248,7 @@ class TestSMTPrefixWrapper(SMTSetup):
         self.assertEquals(w2.get_var(ann2), yahoo)
 
 
+@attr(speed='fast')
 class TestSMTPeerWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -377,6 +382,7 @@ class TestSMTPeerWrapper(SMTSetup):
         self.assertEquals(w2.get_var(ann2), dt)
 
 
+@attr(speed='fast')
 class TestSMTOriginWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -552,6 +558,7 @@ class TestSMTOriginWrapper(SMTSetup):
         self.assertEquals(w2.get_var(ann1), ebgp)
 
 
+@attr(speed='fast')
 class TestSMTNexthopWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -860,6 +867,7 @@ class TestSMTNexthopWrapper(SMTSetup):
             self.assertEquals(u.get_var(ann_var), nxt2)
 
 
+@attr(speed='fast')
 class TestSMTLocalPrefWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -991,6 +999,7 @@ class TestSMTLocalPrefWrapper(SMTSetup):
         self.assertEquals(w2.get_var(ann2), 200)
 
 
+@attr(speed='fast')
 class TestSMTCommunityWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1186,6 +1195,7 @@ class TestSMTCommunityWrapper(SMTSetup):
         self.assertFalse(w13.get_var(ann2))
 
 
+@attr(speed='fast')
 class TestSMTASPathWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1323,6 +1333,7 @@ class TestSMTASPathWrapper(SMTSetup):
         self.assertEquals(w1.get_var(ann2), p1)
 
 
+@attr(speed='fast')
 class TestSMTASPathLenWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1437,6 +1448,7 @@ class TestSMTASPathLenWrapper(SMTSetup):
         self.assertEquals(w2.get_var(ann2), 10)
 
 
+@attr(speed='fast')
 class TestSMTPermittedWrapper(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1551,6 +1563,7 @@ class TestSMTPermittedWrapper(SMTSetup):
         self.assertEquals(w2.get_var(ann2), False)
 
 
+@attr(speed='fast')
 class TestSMTContext(SMTSetup):
     def _pre_load(self):
         # Communities

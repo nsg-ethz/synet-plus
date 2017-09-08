@@ -7,6 +7,8 @@ Simple Test cases for OSPF synthesis
 import random
 import unittest
 
+from nose.plugins.attrib import attr
+
 import networkx as nx
 
 import synet.synthesis.ospf
@@ -21,6 +23,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class TestOSPF(unittest.TestCase):
 
     @staticmethod
@@ -100,6 +103,7 @@ class TestOSPF(unittest.TestCase):
         self.assertEqual(len(ospf.reqs), 1)
         self.assertEqual(len(ospf.removed_reqs), 0)
 
+    @attr(speed='slow')
     def test_4nodes_3paths_unstatified_heuristic(self):
         reqs = TestOSPF.get_3path_req()
         ospf = synet.synthesis.ospf_heuristic.OSPFSyn([], self.g)

@@ -1,4 +1,5 @@
 import unittest
+from nose.plugins.attrib import attr
 
 import z3
 
@@ -56,6 +57,7 @@ __email__ = "a.hassany@gmail.com"
 z3.set_option('unsat-core', True)
 
 
+@attr(speed='fast')
 class SMTSetup(unittest.TestCase):
     def _pre_load(self):
         # Communities
@@ -197,6 +199,7 @@ class SMTSetup(unittest.TestCase):
         return ctx
 
 
+@attr(speed='fast')
 class SMTCommunityTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -293,6 +296,7 @@ class SMTCommunityTest(SMTSetup):
         self.assertEquals(c1_match.get_config(), c3)
 
 
+@attr(speed='fast')
 class SMTCommunityListTest(SMTSetup):
     def test_communities_list(self):
         ctx = self.get_context()
@@ -333,6 +337,7 @@ class SMTCommunityListTest(SMTSetup):
         self.assertEquals(set(l2_match.get_value()), set([c1, c3]))
         self.assertEquals(l2_match.get_config(), c1_list)
 
+    @attr(speed='slow')
     def test_stress_partial_comp(self):
         num_communities = 100
         num_anns = 100
@@ -370,6 +375,7 @@ class SMTCommunityListTest(SMTSetup):
         l1_m.set_model(m)
         self.assertEquals(l1_m.get_value(), [c1])
 
+    @attr(speed='slow')
     def test_stress_no_partial_eval(self):
         num_communities = 100
         num_anns = 100
@@ -407,6 +413,7 @@ class SMTCommunityListTest(SMTSetup):
         self.assertEquals(l1_m.get_value(), [c1])
 
 
+@attr(speed='fast')
 class SMTIpPrefixTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -490,6 +497,7 @@ class SMTIpPrefixTest(SMTSetup):
         self.assertEquals(p4_match.get_value(), 'Yahoo')
 
 
+@attr(speed='fast')
 class SMTIpPrefixListTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -554,6 +562,7 @@ class SMTIpPrefixListTest(SMTSetup):
         self.assertEquals(l4_match.get_config(), p2_list)
 
 
+@attr(speed='fast')
 class SMTNextHopTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -634,6 +643,7 @@ class SMTNextHopTest(SMTSetup):
         self.assertEquals(p2_match.get_value(), 'DT')
 
 
+@attr(speed='fast')
 class SMTLocalPrefTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -717,6 +727,7 @@ class SMTLocalPrefTest(SMTSetup):
         self.assertEquals(p4_match.get_value(), 200)
 
 
+@attr(speed='fast')
 class SMTMatchTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -875,6 +886,7 @@ class SMTMatchTest(SMTSetup):
         self.assertEquals(l1_match.get_config(), [l1_m, l2_m])
 
 
+@attr(speed='fast')
 class SMTMatchesTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -941,6 +953,7 @@ class SMTMatchesTest(SMTSetup):
         self.assertTrue(z3.is_true(m.eval(match2)))
 
 
+@attr(speed='fast')
 class SMTSetLocalPrefTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1021,6 +1034,7 @@ class SMTSetLocalPrefTest(SMTSetup):
         self.assertEquals(set2.get_config(), ActionSetLocalPref(200))
 
 
+@attr(speed='fast')
 class SMTSetNextHopTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1071,6 +1085,7 @@ class SMTSetNextHopTest(SMTSetup):
         self.assertEquals(set1.get_config(), ActionSetNextHop('DT'))
 
 
+@attr(speed='fast')
 class SMTSetCommunityTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1204,7 +1219,6 @@ class SMTSetCommunityTest(SMTSetup):
         self.assertTrue(ctx2.communities_ctx[c3].get_value(ann2))
         self.assertEquals(set1.get_config(), ActionSetCommunity([c1, c2]))
 
-
     @unittest.skip
     def test_set_notconcrete_additive(self):
         ctx = self.get_context()
@@ -1268,6 +1282,7 @@ class SMTSetCommunityTest(SMTSetup):
         self.assertEquals(set1.get_config(model), ActionSetCommunity([c1, c2]))
 
 
+@attr(speed='fast')
 class SMTActionsTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1330,6 +1345,7 @@ class SMTActionsTest(SMTSetup):
         self.assertEquals(actions.get_config(), [set_c, set_pref])
 
 
+@attr(speed='fast')
 class SMTSetPermittedTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1465,6 +1481,7 @@ class SMTSetPermittedTest(SMTSetup):
         self.assertEquals(set2.get_config(), Access.permit)
 
 
+@attr(speed='fast')
 class SMTRouteMapLineTest(SMTSetup):
     def _pre_load(self):
         # Communities
@@ -1683,6 +1700,7 @@ class SMTRouteMapLineTest(SMTSetup):
         self.assertEquals(rline.get_config(), new_line)
 
 
+@attr(speed='fast')
 class SMTRouteMapTest(SMTSetup):
     def _pre_load(self):
         # Communities

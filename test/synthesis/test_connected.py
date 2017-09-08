@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import unittest
+from nose.plugins.attrib import attr
 
 from ipaddress import ip_interface
 
@@ -23,6 +24,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class ConnectedTest(unittest.TestCase):
     def get_two_nodes(self):
         g = NetworkGraph()

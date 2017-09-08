@@ -3,6 +3,8 @@
 import tempfile
 import unittest
 
+from nose.plugins.attrib import attr
+
 from synet.utils.topo_gen import gen_mesh
 from synet.utils.smt_context import VALUENOTSET
 
@@ -17,6 +19,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='fast')
 class TestNetworkGraph(unittest.TestCase):
     def get_add_one_peer(self, g, nodes, announcements):
         g.add_peer('ATT')

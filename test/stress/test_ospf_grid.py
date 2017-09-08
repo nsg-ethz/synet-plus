@@ -6,6 +6,7 @@ Test various grid sizes
 
 import random
 import unittest
+from nose.plugins.attrib import attr
 
 import synet.synthesis.ospf_heuristic
 import synet.synthesis.ospf
@@ -22,6 +23,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
+@attr(speed='slow')
 class TestOSPFGrid(unittest.TestCase):
     def setUp(self):
         self.random = random.Random(3010720575261890242)
@@ -48,6 +50,7 @@ class TestOSPFGrid(unittest.TestCase):
             reqs.append(PathReq(Protocols.OSPF, path[-1], path, False))
         return reqs
 
+    @attr(speed='fast')
     def test_grid2_1path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         paths = self.generate_paths(g, 1)
@@ -56,6 +59,7 @@ class TestOSPFGrid(unittest.TestCase):
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
 
+    @attr(speed='fast')
     def test_grid2_1path_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         reqs = self.generate_paths(g, 1)
@@ -66,6 +70,7 @@ class TestOSPFGrid(unittest.TestCase):
         self.assertEqual(len(ospf.reqs), 1)
         self.assertEqual(len(ospf.removed_reqs), 0)
 
+    @attr(speed='fast')
     def test_grid2_2path_no_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         paths = self.generate_paths(g, 2)
@@ -74,6 +79,7 @@ class TestOSPFGrid(unittest.TestCase):
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
 
+    @attr(speed='fast')
     def test_grid2_2path_heurisitc(self):
         g = gen_grid_topo_no_iface(2, 2, 1)
         reqs = self.generate_paths(g, 2)
@@ -145,6 +151,7 @@ class TestOSPFGrid(unittest.TestCase):
         for req in reqs:
             ospf.add_path_req(req)
         self.assertTrue(ospf.solve())
+
 
     def test_grid4_2path_heurisitc(self):
         g = gen_grid_topo_no_iface(4, 4, 1)
