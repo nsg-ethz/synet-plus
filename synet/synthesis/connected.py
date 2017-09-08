@@ -10,8 +10,12 @@ from ipaddress import ip_interface
 from ipaddress import ip_network
 
 from synet.topo.graph import NetworkGraph
+from synet.utils.common import ECMPPathsReq
+from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
+from synet.utils.common import PreferredPathReq
+from synet.utils.common import Req
 from synet.utils.smt_context import VALUENOTSET
 
 
@@ -58,7 +62,7 @@ class ConnectedSyn(object):
         assert isinstance(network_graph, NetworkGraph)
         assert isinstance(reqs, Iterable)
         for req in reqs:
-            assert isinstance(req, (PathReq, PathOrderReq))
+            assert isinstance(req, (Req))
         self.reqs = reqs
         self.g = network_graph
         self.prefix_len = prefix_len
@@ -80,6 +84,16 @@ class ConnectedSyn(object):
                 all_paths.append(req.path)
             elif isinstance(req, PathOrderReq):
                 for sub_req in req.paths:
+                    all_paths.append(sub_req.path)
+            elif isinstance(req, ECMPPathsReq):
+                for sub_req in req.paths:
+                    all_paths.append(sub_req.path)
+            elif isinstance(req, KConnectedPathsReq):
+                for sub_req in req.paths:
+                    all_paths.append(sub_req.path)
+            elif isinstance(req, PreferredPathReq):
+                all_paths.append(req.preferred.path)
+                for sub_req in req.kconnected:
                     all_paths.append(sub_req.path)
             else:
                 raise ValueError("Unknown Req type %s" % type(req))
