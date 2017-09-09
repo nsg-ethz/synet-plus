@@ -20,50 +20,6 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "eahmed@ethz.ch"
 
 
-def gen_grid_topo(m, n, nets_per_router):
-    """
-    Generate 2D m*n routers topology
-    each router is connected to `net_per_router` networks
-    """
-    g = nx.DiGraph()
-    rows = range(1, m + 1)
-    columns = range(1, n + 1)
-    networks = range(1, nets_per_router + 1)
-    for i in rows:
-        for j in columns:
-            node = 'R%d%d' % (i, j)
-            g.add_node(node, **{VERTEX_TYPE: NODE_TYPE})
-            for n in networks:
-                net = 'N%d%d_%d' % (i, j, n)
-                g.add_node(net, **{VERTEX_TYPE: NETWORK_TYPE})
-                g.add_edge(net, node, edge_type=NETWORK_TYPE)
-                g.add_edge(node, net, edge_type=NETWORK_TYPE)
-    for i in rows:
-        for j in columns:
-            for k in range(1, 5):
-                node = 'R%d%d' % (i, j)
-                interface = 'I%d%d_%d' % (i, j, k)
-                g.add_node(interface, **{VERTEX_TYPE: INTERFACE_TYPE})
-                g.add_edge(node, interface, edge_type=INTERNAL_EDGE)
-                g.add_edge(interface, node, edge_type=INTERNAL_EDGE)
-    for i in rows:
-        for j in columns:
-            # Connect rows
-            if j > 1:
-                iface1 = 'I%d%d_%d' % (i, j, 2)
-                iface2 = 'I%d%d_%d' % (i, j - 1, 1)
-                g.add_edge(iface1, iface2, edge_type=LINK_EDGE)
-                g.add_edge(iface2, iface1, edge_type=LINK_EDGE)
-            # Connect columns
-            if i > 1:
-                iface1 = 'I%d%d_%d' % (i, j, 4)
-                iface2 = 'I%d%d_%d' % (i - 1, j, 3)
-                g.add_edge(iface1, iface2, edge_type=LINK_EDGE)
-                g.add_edge(iface2, iface1, edge_type=LINK_EDGE)
-
-    return g
-
-
 def gen_grid_topo_no_iface(m, n, nets_per_router):
     """
     Generate 2D m*n routers topology
@@ -301,17 +257,3 @@ def gen_mesh(mesh_size, asnum=None):
                                            router_a_iface=VALUENOTSET,
                                            router_b_iface=VALUENOTSET)
     return g_phy
-
-
-def main():
-    from common import draw
-    g = gen_grid_topo(3, 3, 1)
-    draw(g, '/tmp/g.dot')
-    g = gen_i2_topology(2)
-    draw(g, '/tmp/i2.dot')
-    g = gen_overview_topology()
-    draw(g, '/tmp/overview.dot')
-
-
-if __name__ == '__main__':
-    main()
