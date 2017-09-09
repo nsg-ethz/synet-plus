@@ -287,7 +287,6 @@ class BGP(object):
         self.log.debug(
             "get_exported_next_hop at router %s: from %s to %s",
             self.node, src_peer, dst_peer)
-        print "MAP", self.next_hop_map
         next_hop = self.next_hop_map[src_peer][dst_peer]
         ret = self.general_ctx.next_hop_ctx.range_map[next_hop]
         self.log.debug(
