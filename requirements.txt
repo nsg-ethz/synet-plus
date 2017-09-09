@@ -1,4 +1,5 @@
-enum
+ipaddress
+enum34
 networkx
 nose
 nose-timer
