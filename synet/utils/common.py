@@ -13,6 +13,8 @@ import networkx as nx
 import z3
 from networkx.drawing import nx_pydot
 
+from synet.topo.graph import NetworkGraph
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -263,27 +265,26 @@ def z3_edge(vertex):
 
 def get_vertices(g):
     """
-    Takes a networkx DiGraph and returns list
+    Takes a NetworkGraph and returns list
     of node_names, interface_names, network_names
     """
-    assert isinstance(g, nx.DiGraph)
+    assert isinstance(g, NetworkGraph)
     node_names = []
     interface_names = []
     network_names = []
     announced_networks = []
 
-    for vertex, attrs in g.nodes(True):
-        v_type = attrs.get(VERTEX_TYPE)
-        if v_type == NODE_TYPE:
+    for vertex in g.nodes():
+        if g.is_router(vertex):
             node_names.append(vertex)
-        elif v_type == INTERFACE_TYPE:
-            interface_names.append(vertex)
-        elif v_type == NETWORK_TYPE:
+        # elif g.is_interface(vertex):
+        #    interface_names.append(vertex)
+        elif g.is_network(vertex):
             network_names.append(vertex)
-        elif v_type == ANNOUNCED_NETWORK:
-            announced_networks.append(vertex)
+        # elif g.is_network(vertex):
+        #    announced_networks.append(vertex)
         else:
-            raise ValueError("Unknown vertex_type '%s for %s'" % (v_type, vertex))
+            raise ValueError("Unknown vertex_type for %s'" % (vertex))
 
     # Avoid duplicates in the inputs
     node_names = list(set(node_names))
@@ -326,7 +327,7 @@ class SynthesisComponent(object):
     valid_inputs = ()
     def __init__(self, initial_configs, network_graph, solver=None):
         if not network_graph:
-            network_graph = nx.DiGraph()
+            network_graph = NetworkGraph()
         if not initial_configs:
             initial_configs = []
 

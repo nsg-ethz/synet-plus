@@ -19,6 +19,9 @@ from synet.utils.common import NODE_TYPE
 from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 
+from synet.topo.graph import NetworkGraph
+
+
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
@@ -30,32 +33,28 @@ class TestOSPF(unittest.TestCase):
     def get_g():
         """
         Get a simple graph of 4 mesh connected graph
-        :return: Networkx Digraph
+        :return: NetworkGraph
         """
         # Start with some initial inputs
         # This input only define routers, interfaces, and networks
-        g_phy = nx.DiGraph()
-        g_phy.add_node('R1', vertex_type=NODE_TYPE)
-        g_phy.add_node('R2', vertex_type=NODE_TYPE)
-        g_phy.add_node('R3', vertex_type=NODE_TYPE)
-        g_phy.add_node('R4', vertex_type=NODE_TYPE)
+        g_phy = NetworkGraph()
+        g_phy.add_router('R1')
+        g_phy.add_router('R2')
+        g_phy.add_router('R3')
+        g_phy.add_router('R4')
 
-        g_phy.add_edge('R1', 'R2', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R1', 'R3', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R1', 'R4', edge_type=INTERNAL_EDGE)
-
-        g_phy.add_edge('R2', 'R1', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R2', 'R3', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R2', 'R4', edge_type=INTERNAL_EDGE)
-
-        g_phy.add_edge('R3', 'R1', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R3', 'R2', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R3', 'R4', edge_type=INTERNAL_EDGE)
-
-        g_phy.add_edge('R4', 'R1', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R4', 'R2', edge_type=INTERNAL_EDGE)
-        g_phy.add_edge('R4', 'R3', edge_type=INTERNAL_EDGE)
-
+        g_phy.add_router_edge('R1', 'R2')
+        g_phy.add_router_edge('R1', 'R3')
+        g_phy.add_router_edge('R1', 'R4')
+        g_phy.add_router_edge('R2', 'R1')
+        g_phy.add_router_edge('R2', 'R3')
+        g_phy.add_router_edge('R2', 'R4')
+        g_phy.add_router_edge('R3', 'R1')
+        g_phy.add_router_edge('R3', 'R2')
+        g_phy.add_router_edge('R3', 'R4')
+        g_phy.add_router_edge('R4', 'R1')
+        g_phy.add_router_edge('R4', 'R2')
+        g_phy.add_router_edge('R4', 'R3')
         return g_phy
 
     def setUp(self):

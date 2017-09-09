@@ -20,40 +20,39 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "eahmed@ethz.ch"
 
 
-def gen_grid_topo_no_iface(m, n, nets_per_router):
+def gen_grid_topology(m, n, nets_per_router):
     """
     Generate 2D m*n routers topology
     each router is connected to `net_per_router` networks
     """
-    g = nx.DiGraph()
+    g = NetworkGraph()
     rows = range(1, m + 1)
     columns = range(1, n + 1)
     networks = range(1, nets_per_router + 1)
     for i in rows:
         for j in columns:
             node = 'R%d%d' % (i, j)
-            g.add_node(node, **{VERTEX_TYPE: NODE_TYPE})
+            g.add_router(node)
             for n in networks:
                 net = 'N%d%d_%d' % (i, j, n)
-                g.add_node(net, **{VERTEX_TYPE: NETWORK_TYPE})
-                g.add_edge(net, node, edge_type=NETWORK_TYPE)
-                g.add_edge(node, net, edge_type=NETWORK_TYPE)
+                g.add_network(net)
+                g.add_network_edge(net, node)
+                g.add_network_edge(node, net)
 
     for i in rows:
         for j in columns:
             # Connect rows
             if j > 1:
-                iface1 = 'R%d%d' % (i, j)
-                iface2 = 'R%d%d' % (i, j - 1)
-                g.add_edge(iface1, iface2, edge_type=LINK_EDGE)
-                g.add_edge(iface2, iface1, edge_type=LINK_EDGE)
+                node1 = 'R%d%d' % (i, j)
+                node2 = 'R%d%d' % (i, j - 1)
+                g.add_router_edge(node1, node2)
+                g.add_router_edge(node2, node1)
             # Connect columns
             if i > 1:
-                iface1 = 'R%d%d' % (i, j)
-                iface2 = 'R%d%d' % (i - 1, j)
-                g.add_edge(iface1, iface2, edge_type=LINK_EDGE)
-                g.add_edge(iface2, iface1, edge_type=LINK_EDGE)
-
+                node1 = 'R%d%d' % (i, j)
+                node2 = 'R%d%d' % (i - 1, j)
+                g.add_router_edge(node1, node2)
+                g.add_router_edge(node2, node1)
     return g
 
 

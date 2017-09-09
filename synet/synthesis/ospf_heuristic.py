@@ -11,7 +11,6 @@ import networkx as nx
 import z3
 
 from synet.utils.common import BestOSPFRoute
-from synet.utils.common import NODE_TYPE
 from synet.utils.common import OSPFBestRoutes
 from synet.utils.common import OSPFBestRoutesCost
 from synet.utils.common import PathOrderReq
@@ -19,7 +18,8 @@ from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.common import SetOSPFEdgeCost
 from synet.utils.common import SynthesisComponent
-from synet.utils.common import VERTEX_TYPE
+
+from synet.topo.graph import NetworkGraph
 
 
 __author__ = "Ahmed El-Hassany"
@@ -39,10 +39,11 @@ class OSPFSyn(SynthesisComponent):
 
     def __init__(self, initial_configs, network_graph,
                  solver=None, gen_paths=1000, random_obj=None):
+        assert isinstance(network_graph, NetworkGraph)
         g = network_graph.copy()
         # Only local routers
-        for node, data in g.nodes(data=True)[:]:
-            if data[VERTEX_TYPE] != NODE_TYPE:
+        for node in g.nodes()[:]:
+            if not g.is_local_router(node):
                 del g.node[node]
         super(OSPFSyn, self).__init__(initial_configs, g, solver)
         self.random_gen = random_obj or random.Random()

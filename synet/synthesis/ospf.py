@@ -9,11 +9,11 @@ from timeit import default_timer as timer
 import networkx as nx
 import z3
 
-from synet.utils.common import NODE_TYPE
+from synet.topo.graph import NetworkGraph
 from synet.utils.common import PathReq
 from synet.utils.common import SetOSPFEdgeCost
 from synet.utils.common import SynthesisComponent
-from synet.utils.common import VERTEX_TYPE
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -58,10 +58,11 @@ class OSPFSyn(SynthesisComponent):
         Read the network graph, OSPF care only about nodes marked as NODE_TYPE
         Other nodes, such as Peers are ignored.
         """
-        g = network_graph.copy() if network_graph else nx.DiGraph()
+        g = network_graph.copy() if network_graph else NetworkGraph()
+        assert isinstance(g, NetworkGraph)
         # Only local routers
         for node, data in list(g.nodes(data=True))[:]:
-            if data[VERTEX_TYPE] != NODE_TYPE:
+            if not g.is_local_router(node):
                 del g.node[node]
         self.network_graph = g
 

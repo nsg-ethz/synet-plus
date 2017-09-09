@@ -11,8 +11,8 @@ from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 from synet.utils.common import random_requirement_path
 from synet.utils.common import generate_second_path
-from synet.utils.topo_gen import gen_grid_topo_no_iface
-from synet.utils.topo_gen import read_topology_zoo
+from synet.utils.topo_gen import gen_grid_topology
+from synet.utils.topo_gen import read_topology_zoo_netgraph
 from synet.synthesis.ospf_heuristic import OSPFSyn
 
 
@@ -58,10 +58,10 @@ def main():
     # If zoo topology file is specified, then read it
     # Otherwise generate a grid topo
     if topology_file:
-        g = read_topology_zoo(topology_file)
+        g = read_topology_zoo_netgraph(topology_file)
         results_name = os.path.basename(topology_file)[:-len('.graphml')]
     else:
-        g = gen_grid_topo_no_iface(gsize, gsize, 0)
+        g = gen_grid_topology(gsize, gsize, 0)
         results_name = "grid%x%s" % (gsize, gsize)
 
     if not topology_file:
