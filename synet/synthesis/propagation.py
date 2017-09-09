@@ -4,6 +4,7 @@ Synthesize configurations for eBGP protocol
 """
 
 import copy
+import multiprocessing
 
 import networkx as nx
 import z3
@@ -84,14 +85,17 @@ class PropagatedInfo(object):
 class EBGPPropagation(object):
     """Computes the BGP route propagation graph"""
 
-    def __init__(self, reqs, network_graph, allow_igp=False):
+    def __init__(self, reqs, network_graph, allow_igp=False, parallel=False):
         """
         :param reqs: Path requirements
         :param network_graph: NetworkGraph
+        :param allow_igp: if True IGP costs are considered
+        :param parallel: if True boxes are synthesized in parallel
         """
         assert isinstance(network_graph, NetworkGraph)
         self.network_graph = network_graph
         self.reqs = []
+        self.parallel = parallel
         self.nets_dag = {}
         self.all_anns = {}
         self.union_graph = None
@@ -586,11 +590,20 @@ class EBGPPropagation(object):
 
     def synthesize(self):
         """Synthesize the BGP configs"""
+        jobs = []
         for node in sorted(list(self.network_graph.local_routers_iter())):
             if 'syn' not in self.network_graph.node[node]:
                 continue
             box = self.network_graph.node[node]['syn']['box']
-            box.synthesize()
+            if self.parallel:
+                process = multiprocessing.Process(name=node, target=box.synthesize)
+                process.start()
+                jobs.append(process)
+            else:
+                box.synthesize()
+        # Wait for processes to finish
+        for job in jobs:
+            job.join()
 
     @staticmethod
     def create_context(name,
