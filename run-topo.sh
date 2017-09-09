@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH_TO_CONFIGS="topos"
+PATH_TO_CONFIGS="topos/topozoo"
 PATH_TO_LOGS="logs"
 SYNET_SCRIPT="synet/ospf_test.py"
 
