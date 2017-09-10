@@ -7,9 +7,47 @@ from ipaddress import IPv6Network
 from ipaddress import ip_address
 from ipaddress import ip_network
 
+from synet.utils.common import ECMPPathsReq
+from synet.utils.common import PathOrderReq
+from synet.utils.common import PathReq
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
+
+
+def gather_networks(reqs, protocols=None):
+    """
+    Gather networks in requirements
+    :param reqs: list of Req
+    :param protocols: list of Protocols to be selected, or None for all
+    :return dict node->list of networks addresses
+    """
+    node_announces = {}
+    #
+    for req in reqs:
+        if protocols:
+            if req.protocol not in protocols:
+                continue
+        dst_nets = AddressRegistry.get_network_addr(req.dst_net, create=True)
+        if isinstance(req, PathReq):
+            sources = [req.path[-1]]
+        elif isinstance(req, (ECMPPathsReq, PathOrderReq)):
+            sources = []
+            for path in req.paths:
+                source = path.path[-1]
+                if source not in sources:
+                    sources.append(source)
+        else:
+            raise ValueError("Unknown requirement type %s" % req)
+
+        for source in sources:
+            if source not in node_announces:
+                node_announces[source] = []
+            for dst_net in dst_nets:
+                if dst_net not in node_announces[source]:
+                    node_announces[source].append(dst_net)
+    return node_announces
 
 
 class AddressRegistry(object):
