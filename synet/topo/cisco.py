@@ -82,7 +82,7 @@ class CiscoConfigGen(object):
             name, (i + 1) * 10, access, str(network.network_address), network.prefixlen)
         return config
 
-    def gen_iface_config(self, iface_name, addr, description=None, isloop=False):
+    def gen_iface_config(self, iface_name, addr, description=None, isloop=False, ospf_cost=None):
         """
         Generate configuration for a given interface
         :param iface_name: the name of the interface, e.g. Fa0/0 or lo0
@@ -95,6 +95,8 @@ class CiscoConfigGen(object):
         config = ''
         config += 'interface %s\n' % iface_name
         config += " ip address %s %s\n" % (addr.ip, addr.netmask)
+        if ospf_cost:
+            config += " ip ospf cost %d\n" % ospf_cost
         if description:
             config += ' description "{}"\n'.format(description)
         if not isloop:
@@ -115,13 +117,14 @@ class CiscoConfigGen(object):
             #addr = self.g.get_edge_addr(node, neighbor)
             addr = self.g.get_iface_addr(node, iface)
             desc = self.g.get_iface_description(node, iface)
-            config += self.gen_iface_config(iface, addr, desc, False)
+            ospf_cost = self.g.get_edge_ospf_cost(node, neighbor)
+            config += self.gen_iface_config(iface, addr, desc, False, ospf_cost)
 
         # Loop back interface
         for lo in sorted(self.g.get_loopback_interfaces(node)):
             addr = self.g.get_loopback_addr(node, lo)
             desc = self.g.get_loopback_description(node, lo)
-            config += self.gen_iface_config(lo, addr, desc, True)
+            config += self.gen_iface_config(lo, addr, desc, True, None)
         return config
 
     def gen_all_communities_lists(self, node):
@@ -337,11 +340,14 @@ class CiscoConfigGen(object):
             self.g.add_bgp_export_route_map(node, neighbor, rmap.name)
 
     def gen_all_ospf(self, node):
-        if not self.g.is_local_router(node):
+        if not self.g.is_ospf_enabled(node):
             return ""
         config = ""
-        config += "router ospf 100\n"
-        config += " network 0.0.0.0 255.255.255.255 area 0.0.0.0\n"
+        process_id = self.g.get_ospf_process_id(node)
+        config += "router ospf %d\n" % process_id
+        for network, area in self.g.get_ospf_networks(node).iteritems():
+            config += "network %s %s area %s\n" % (network.network_address, network.hostmask, area)
+        config += "!\n"
         return config
 
     def gen_static_routes(self, node):
@@ -383,8 +389,6 @@ class CiscoConfigGen(object):
                     "no ip http server",
                     "no ip http secure-server",
                     "ip bgp-community new-format",
-                    "ip community-list expanded PrimList permit 10:*",
-                    "ip community-list expanded SecList permit 20:*"
                     ]
         end = ['!', '!', 'control-plane', '!', '!', 'line con 0', ' stopbits 1',
                'line aux 0', ' stopbits 1', 'line vty 0 4', ' login', '!', 'end']
