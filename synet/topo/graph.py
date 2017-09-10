@@ -190,6 +190,12 @@ class NetworkGraph(nx.DiGraph):
         attr_dict[EDGE_TYPE] = EDGETYPE.ROUTER
         self.add_edge(u, v, attr_dict, **attr)
 
+    def is_local_router_edge(self, src, dst):
+        """Return True if the two local routers are connected"""
+        if not self.has_edge(src, dst):
+            return False
+        return self[src][dst][EDGE_TYPE] == EDGETYPE.ROUTER
+
     def add_peer_edge(self, u, v, attr_dict=None, **attr):
         """
         Add an edge between two routers (one local and the other is a peer)
@@ -397,6 +403,68 @@ class NetworkGraph(nx.DiGraph):
         synthesizer to generate as many static routes
         """
         self.node[node]['static'] = VALUENOTSET
+
+    def enable_ospf(self, node, process_id=100):
+        """
+        Enable OSPF at a given router
+        :param node: local router
+        :param process_id: integer
+        :return: None
+        """
+        assert self.is_local_router(node)
+        self.node[node]['ospf'] = dict(process_id=process_id, networks={})
+
+    def is_ospf_enabled(self, node):
+        """
+        Return True if the node has OSPF process
+        :param node: local router
+        :return: bool
+        """
+        if not self.is_local_router(node):
+            return False
+        return 'ospf' in self.node[node]
+
+    def get_ospf_networks(self, node):
+        """
+        Return a dict of Announced networks in OSPF at the router
+        :param node: local router
+        :return: dict Network->Area
+        """
+        assert self.is_ospf_enabled(node)
+        return self.node[node]['ospf']['networks']
+
+    def add_ospf_network(self, node, network, area):
+        """
+        :param node:
+        :param network:
+        :param area:
+        :return: None
+        """
+        networks = self.get_ospf_networks(node)
+        networks[network] = area
+
+    def set_edge_ospf_cost(self, src, dst, cost):
+        """
+        Set the OSPF cost of an edge
+        :param src: OSPF enabled local router
+        :param dst: OSPF enabled local router
+        :param cost: int or VALUENOTSET
+        :return: None
+        """
+        assert self.is_ospf_enabled(src)
+        assert self.is_ospf_enabled(dst)
+        self[src][dst]['ospf_cost'] = cost
+
+    def get_edge_ospf_cost(self, src, dst):
+        """
+        Get the OSPF cost of an edge
+        :param src: OSPF enabled local router
+        :param dst: OSPF enabled local router
+        :return: None, VALUENOTSET, int
+        """
+        assert self.is_ospf_enabled(src)
+        assert self.is_ospf_enabled(dst)
+        return self[src][dst].get('ospf_cost', None)
 
     def get_bgp_attrs(self, node):
         """Return a dict of all BGP related attrs given to a node"""
