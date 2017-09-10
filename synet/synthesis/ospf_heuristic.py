@@ -5,21 +5,23 @@ CEGIS style synthesis for OSPF
 with heuristic path generator
 """
 
+import logging
 import random
 
 import networkx as nx
 import z3
 
-from synet.utils.common import BestOSPFRoute
-from synet.utils.common import OSPFBestRoutes
-from synet.utils.common import OSPFBestRoutesCost
-from synet.utils.common import PathOrderReq
-from synet.utils.common import Protocols
-from synet.utils.common import PathReq
-from synet.utils.common import SetOSPFEdgeCost
-from synet.utils.common import SynthesisComponent
-
 from synet.topo.graph import NetworkGraph
+from synet.utils.common import ECMPPathsReq
+from synet.utils.common import PathOrderReq
+from synet.utils.common import PathReq
+from synet.utils.common import Protocols
+from synet.utils.common import Req
+from synet.utils.common import SynthesisComponent
+from synet.utils.ospf_utils import extract_ospf_graph
+from synet.utils.ospf_utils import get_output_configs
+from synet.utils.ospf_utils import get_output_network_graph
+from synet.utils.ospf_utils import load_graph_constrains
 
 
 __author__ = "Ahmed El-Hassany"
@@ -29,37 +31,40 @@ __email__ = "a.hassany@gmail.com"
 z3.set_option('unsat-core', True)
 
 
-# For a given path return a tuple of source and dst
-# Useful for storing paths in dicts
-path_key = lambda src, dst: (src, dst)
+def get_path_key(src, dst):
+    """
+    For a given path return a tuple of source and dst
+    Useful for storing paths in dicts
+    """
+    return (src, dst)
+
+
+def get_path_name(path):
+    """Return a string name for the path (to used used in unsat core"""
+    return '_'.join(path)
 
 
 class OSPFSyn(SynthesisComponent):
-    valid_inputs = (SetOSPFEdgeCost, BestOSPFRoute)
 
-    def __init__(self, initial_configs, network_graph,
+    def __init__(self, network_graph,
                  solver=None, gen_paths=1000, random_obj=None):
         assert isinstance(network_graph, NetworkGraph)
-        g = network_graph.copy()
-        # Only local routers
-        for node in g.nodes()[:]:
-            if not g.is_local_router(node):
-                del g.node[node]
-        super(OSPFSyn, self).__init__(initial_configs, g, solver)
+        self.log = logging.getLogger('%s.%s' % (
+            self.__module__, self.__class__.__name__))
+        super(OSPFSyn, self).__init__([], network_graph, solver)
+
         self.random_gen = random_obj or random.Random()
         # Read vertices
-        self._create_vertices('OSPFVertex', self.initial_configs,
-                              self.network_graph, True)
-        # Function declarations
-        # True is an edge exists between two vertices
-        self.edge = z3.Function('EdgePhyOSPF', self.vertex,
-                                self.vertex, z3.BoolSort())
-        # Assign a cost to each edge
-        self.edge_cost = z3.Function('OSPFEdgeCost', self.vertex, self.vertex,
-                                     z3.IntSort())
+        self.ospf_graph = extract_ospf_graph(network_graph, self.log)
+        self.node_names = [name for name in self.ospf_graph.nodes_iter()]
+        (vertex, all_vertices) = z3.EnumSort('Vertex', self.node_names)
+        self.vertex = vertex
+        self.all_vertices = all_vertices
+        self.name_to_vertex = dict((str(v), v) for v in self.all_vertices)
+        self.nodes = [self.get_vertex(name) for name in self.node_names]
+
         # Read input
-        self._read_input_graph()
-        self._add_general_constrains()
+        load_graph_constrains(self.solver, self.ospf_graph)
         # Number of paths to generate at each iterations
         self.gen_paths = gen_paths
         # Keep track of the generators for new random paths for a given req
@@ -72,8 +77,7 @@ class OSPFSyn(SynthesisComponent):
     def reset_solver(self):
         """Reset and clear all caches and create new solver"""
         self.solver = z3.Solver()
-        self._read_input_graph()
-        self._add_general_constrains()
+        load_graph_constrains(self.solver, self.ospf_graph)
         self.saved_path_gen = {}
 
     def random_walk_path(self, source, target):
@@ -82,7 +86,7 @@ class OSPFSyn(SynthesisComponent):
         This uses a random walk across the graph
         it might return None if the random walk hits a dead end
         """
-        G = self.network_graph
+        G = self.ospf_graph
         visited = [source]
         while True:
             children = G[visited[-1]]
@@ -110,11 +114,7 @@ class OSPFSyn(SynthesisComponent):
         then we select the shortest paths based on dijkstra algorithm
         """
         G = nx.DiGraph()
-        for src, dst in self.network_graph.edges():
-            if src not in self.node_names:
-                continue
-            if dst not in self.node_names:
-                continue
+        for src, dst in self.ospf_graph.edges():
             G.add_edge(src, dst)
         for src, dst in G.edges():
             w = self.random_gen.randint(1, max_weight)
@@ -131,7 +131,7 @@ class OSPFSyn(SynthesisComponent):
         counter = 0
         while True:
             # First give a priority to the counter examples (if any)
-            key = path_key(source, target)
+            key = get_path_key(source, target)
             if self.counter_examples.get(key, None):
                 p = self.counter_examples[key].pop()
                 #print "Using counter example for", key, p
@@ -153,175 +153,142 @@ class OSPFSyn(SynthesisComponent):
                 generated_paths.append(p)
                 yield p
 
+    def generate_path_smt(self, path):
+        src, dst = path[0], path[-1]
+        path_cost = self._get_path_cost(path)
+        cuttoff = self.gen_paths
+        count = 0
+        path_key_req = tuple(path)
+        if path_key_req not in self.saved_path_gen:
+            self.saved_path_gen[path_key_req] = self.generate_random_paths(
+                src, dst, 0.6, self.random_gen)
+        elif path_key_req not in self.counter_examples:
+            return
+        path_name = get_path_name(path)
+
+        oo = 1
+        for rand_path in self.saved_path_gen[path_key_req]:
+            # Skip if we generated the same path as the requirement
+            if path == rand_path:
+                continue
+            if rand_path:
+                rand_path_name = '_'.join(rand_path)
+                rand_path_cost = self._get_path_cost(rand_path)
+                track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                if isinstance(rand_path_cost, int) and isinstance(path_cost, int):
+                    t1, t2 = z3.Consts('p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
+                    oo += 1
+                    err = "path cost %d and rand cost %s" % (path_cost, rand_path_cost)
+                    assert path_cost <= rand_path_cost, err
+                    const = z3.And(t1 == path_cost, t2 == rand_path_cost, t1 <= t2)
+                    self.solver.assert_and_track(const, track_name)
+                else:
+                    self.solver.assert_and_track(path_cost < rand_path_cost,
+                                                 track_name)
+            count += 1
+            if count > cuttoff:
+                break
+
+    def generate_ecmp_smt(self, paths):
+        src, dst = paths[0][0], paths[0][-1]
+        path_costs = [self._get_path_cost(path) for path in paths]
+        cuttoff = self.gen_paths
+        count = 0
+        path_key_req = tuple(paths[0])
+        if path_key_req not in self.saved_path_gen:
+            self.saved_path_gen[path_key_req] = self.generate_random_paths(
+                src, dst, 0.6, self.random_gen)
+        elif path_key_req not in self.counter_examples:
+            return
+        path_name = get_path_name(paths[0])
+
+        # Assert ECMP
+        for cost in path_costs[1:]:
+            self.solver.add(path_costs[0] == cost)
+
+        oo = 1
+        for rand_path in self.saved_path_gen[path_key_req]:
+            # Skip if we generated the same path as the requirement
+            if rand_path in paths:
+                continue
+            if rand_path:
+                rand_path_name = '_'.join(rand_path)
+                rand_path_cost = self._get_path_cost(rand_path)
+                track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                if isinstance(rand_path_cost, int) and isinstance(path_costs[0], int):
+                    t1, t2 = z3.Consts('p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
+                    oo += 1
+                    err = "path cost %d and rand cost %s" % (path_costs[0], rand_path_cost)
+                    assert path_costs[0] <= rand_path_cost, err
+                    const = z3.And(t1 == path_costs[0], t2 == rand_path_cost, t1 <= t2)
+                    self.solver.assert_and_track(const, track_name)
+                else:
+                    self.solver.assert_and_track(path_costs[0] < rand_path_cost, track_name)
+            count += 1
+            if count > cuttoff:
+                break
+
+    def generate_path_order_smt(self, paths):
+        src, dst = paths[0][0], paths[0][-1]
+        path_costs = [self._get_path_cost(path) for path in paths]
+        cuttoff = self.gen_paths
+        count = 0
+        path_key_req = tuple(paths[0])
+        if path_key_req not in self.saved_path_gen:
+            self.saved_path_gen[path_key_req] = self.generate_random_paths(
+                src, dst, 0.6, self.random_gen)
+        elif path_key_req not in self.counter_examples:
+            return
+        path_name = get_path_name(paths[0])
+
+        # Assert Ordering
+        for p0, p1 in zip(path_costs[0::1], path_costs[1::1]):
+            print "ADDING", p0 < p1
+            self.solver.add(p0 < p1)
+
+        oo = 1
+        for rand_path in self.saved_path_gen[path_key_req]:
+            # Skip if we generated the same path as the requirement
+            if rand_path in paths:
+                continue
+            if rand_path:
+                rand_path_name = '_'.join(rand_path)
+                rand_path_cost = self._get_path_cost(rand_path)
+                track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                if isinstance(rand_path_cost, int) and isinstance(path_costs[-1], int):
+                    t1, t2 = z3.Consts(
+                        'p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
+                    oo += 1
+                    err = "path cost %d and rand cost %s" % (path_costs[-1], rand_path_cost)
+                    assert path_costs[-1] <= rand_path_cost, err
+                    const = z3.And(t1 == path_costs[-1], t2 == rand_path_cost, t1 <= t2)
+                    self.solver.assert_and_track(const, track_name)
+                else:
+                    self.solver.assert_and_track(
+                        path_costs[-1] < rand_path_cost, track_name)
+            count += 1
+            if count > cuttoff:
+                break
+
     def push_requirements(self):
         self.solver.push()
-        print "Start pushing requirements"
-        oo = 1
+        self.log.debug("Start pushing OSPF requirements")
         for req in self.reqs:
             if isinstance(req, PathReq):
-                path = req.path
-                src = path[0]
-                dst = path[-1]
-                path_cost = self._get_path_cost(path)
-                cuttoff = self.gen_paths
-                count = 0
-                path_key_req = tuple(req.path)
-                if path_key_req not in self.saved_path_gen:
-                    self.saved_path_gen[path_key_req] = self.generate_random_paths(
-                        src, dst, 0.6, self.random_gen)
-                elif path_key_req not in self.counter_examples:
-                    continue
-                path_name = '_'.join(path) # This name is used in tracking unsat core
-
-                for rand_path in self.saved_path_gen[path_key_req]:
-                    # Skip if we generated the same path as the requirement
-                    if path == rand_path:
-                        continue
-                    if rand_path:
-                        rand_path_name = '_'.join(rand_path)
-                        rand_path_cost = self._get_path_cost(rand_path)
-                        track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
-                        if isinstance(rand_path_cost, int) and isinstance(path_cost, int):
-                            t1, t2 = z3.Consts('p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
-                            oo += 1
-                            err = "path cost %d and rand cost %s" % (path_cost, rand_path_cost)
-                            assert path_cost <= rand_path_cost, err
-                            const = z3.And(t1 == path_cost, t2 == rand_path_cost, t1 <= t2)
-                            self.solver.assert_and_track(const, track_name)
-                        else:
-                            self.solver.assert_and_track(path_cost < rand_path_cost,
-                                                         track_name)
-                    count += 1
-                    if count > cuttoff:
-                        break
-                #if cost:
-                #    self.solver.add(path_cost == cost)
+                self.generate_path_smt(req.path)
+            elif isinstance(req, PathOrderReq):
+                paths = [r.path for r in req.paths]
+                self.generate_path_order_smt(paths)
+            elif isinstance(req, ECMPPathsReq):
+                paths = [r.path for r in req.paths]
+                self.generate_ecmp_smt(paths)
         print "Done pushing requirements"
-
-    def _add_general_constrains(self):
-        """
-        Constraints that are defined independent of the inputs.
-        And constraints that are generally defined per destination network
-        """
-        # Free variables to be used later
-        v1, v2 = z3.Consts('v1 v2', self.vertex)
-
-        # Cost must be positive value
-        self.solver.add(
-            z3.ForAll(
-                [v1, v2],
-                z3.Implies(
-                    self.edge(v1, v2),
-                    self.edge_cost(v1, v2) > 0
-                )))
-
-    def _read_input_graph(self):
-        """
-        Reads the inputs and add them as constraints to the solver
-        """
-        for tmp in self.initial_configs:
-            if isinstance(tmp, SetOSPFEdgeCost):
-                self.network_graph.edge[tmp.src][tmp.dst]['cost'] = int(tmp.cost)
-        # Stop the solver from adding a new edges
-        for src in self.network_graph.nodes():
-            if src in self.network_names: continue
-            for dst in self.network_graph.nodes():
-                if dst in self.network_names: continue
-                src_v = self.get_vertex(src)
-                dst_v = self.get_vertex(dst)
-                if self.network_graph.has_edge(src, dst):
-                    cost = self.network_graph.edge[src][dst].get('cost', None)
-                    self.solver.add(self.edge(src_v, dst_v))
-                    if cost:
-                        self.solver.add(self.edge_cost(src_v, dst_v) == cost)
-                    else:
-                        self.solver.add(self.edge_cost(src_v, dst_v) >= 0)
-                else:
-                    self.solver.add(z3.Not(self.edge(src_v, dst_v)))
-        for t in self.initial_configs:
-            if not isinstance(t, BestOSPFRoute): continue
-            assert t.src != t.nxt, t
-            if OSPFBestRoutes not in self.network_graph.node[t.src]:
-                self.network_graph.node[t.src][OSPFBestRoutes] = {}
-            if OSPFBestRoutesCost not in self.network_graph.node[t.src]:
-                self.network_graph.node[t.src][OSPFBestRoutesCost] = {}
-            self.network_graph.node[t.src][OSPFBestRoutes][t.net] = t.nxt
-            self.network_graph.node[t.src][OSPFBestRoutesCost][t.net] = int(t.cost)
-
-        def get_shortest(net, src):
-            if OSPFBestRoutes not in self.network_graph.node[src]:
-                return None
-            nxt = self.network_graph.node[src][OSPFBestRoutes].get(net, None)
-            if not nxt: return None
-            path = nx.shortest_path(self.network_graph, src, nxt)
-            if path[-1] != net:
-                a = get_shortest(net, path[-1])
-                if a:
-                    return path + a[1:]
-                else:
-                    return path
-
-        for net in self.network_names:
-            for node in self.node_names:
-                path = get_shortest(net, node)
-                if not path: continue
-                req = PathReq(Protocols.OSPF,
-                              net,
-                              path,
-                              self.network_graph.node[node][OSPFBestRoutesCost][net])
-                self.add_path_req(req)
-
-    def get_output_network_graph(self):
-        m = self.solver.model()
-        g = nx.DiGraph()
-        check = lambda x: z3.is_true(m.eval(x))
-        for src, src_v in self.name_to_vertex.iteritems():
-            g.add_node(src,
-                       **self._get_vertex_attributes(self.network_graph, src_v))
-            for dst, dst_v in self.name_to_vertex.iteritems():
-                if not g.has_node(dst):
-                    g.add_node(dst,
-                               **self._get_vertex_attributes(self.network_graph,
-                                                             dst_v))
-                if check(self.edge(src_v, dst_v)):
-                    cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
-                    g.add_edge(src, dst, cost=cost,
-                               **self._get_edge_attributes(src_v, dst_v))
-
-        return g
 
     def get_output_routing_graphs(self):
         """
         Returns one graph per each destination network.
         """
-        m = self.solver.model()
-        g_phy = self.get_output_network_graph()
-        graphs = {}
-        for dst_net in self.networks:
-            dst_net_name = self.get_name(dst_net)
-            g = nx.DiGraph()
-            g.graph['dst'] = dst_net_name
-            graphs[dst_net_name] = g
-            for node, _ in self.name_to_vertex.iteritems():
-                if not nx.has_path(g_phy, node, dst_net_name):
-                    continue
-                path = nx.shortest_path(g_phy, node, dst_net_name, 'cost')
-                for i in range(len(path) - 1):
-                    src = path[i]
-                    dst = path[i + 1]
-                    if not g.has_node(src):
-                        g.add_node(src,
-                                   **self._get_vertex_attributes(g_phy, src))
-                    if not g.has_node(dst):
-                        g.add_node(dst,
-                                   **self._get_vertex_attributes(g_phy, dst))
-
-                    cost = m.eval(
-                        self.edge_cost(self.get_vertex(src),
-                                       self.get_vertex(dst))).as_long()
-                    g.add_edge(src, dst, cost=cost,
-                               **self._get_edge_attributes(src, dst))
-        return graphs
+        return self.get_output_network_graph()
 
     def get_output_routing_graph(self):
         """
@@ -330,24 +297,23 @@ class OSPFSyn(SynthesisComponent):
         return self.get_output_network_graph()
 
     def get_output_configs(self):
-        m = self.solver.model()
-        check = lambda x: z3.is_true(m.eval(x))
-        outputs = []
-        for src, src_v in self.name_to_vertex.iteritems():
-            for dst, dst_v in self.name_to_vertex.iteritems():
-                if check(self.edge(src_v, dst_v)):
-                    cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
-                    outputs.append(SetOSPFEdgeCost(src, dst, cost))
-        return outputs
+        """Returns list of (src, dst, cost)"""
+        return get_output_configs(self.solver.model(), self.ospf_graph)
+
+    def get_output_network_graph(self):
+        """Return OSPF graph annotated with synthesized costs"""
+        return get_output_network_graph(self.solver.model(), self.ospf_graph)
+
+    def update_network_graph(self):
+        """Set concrete costs on the network graph"""
+        configs = self.get_output_configs()
+        for src, dst, cost in configs:
+            self.network_graph.set_edge_ospf_cost(src, dst, cost)
 
     def _get_edge_cost(self, src, dst):
         """Shortcut function to get the cost function of an edge"""
-        cost = self.network_graph[src][dst].get('cost', 0)
-        if cost > 0:
-            return cost
-        src = self.get_vertex(src)
-        dst = self.get_vertex(dst)
-        return self.edge_cost(src, dst)
+        cost = self.ospf_graph[src][dst].get('cost')
+        return cost
 
     def _get_path_cost(self, path):
         """Shortcut function to get the cost function of aa given path"""
@@ -358,12 +324,9 @@ class OSPFSyn(SynthesisComponent):
             edge_costs.append(self._get_edge_cost(src, dst))
         return sum(edge_costs)
 
-    def add_path_req(self, req):
-        assert isinstance(req, PathReq)
-        self.reqs.append(req)
-
-    def add_path_order_req(self, req):
-        assert isinstance(req, PathOrderReq)
+    def add_req(self, req):
+        assert isinstance(req, Req)
+        assert req.protocol == Protocols.OSPF
         self.reqs.append(req)
 
     def remove_unsat_paths(self):
@@ -387,6 +350,61 @@ class OSPFSyn(SynthesisComponent):
             break
         self.reset_solver()
         return self.removed_reqs[-1]
+
+    def check_req_satisfied(self, out_graph, req):
+        recompute = False
+        if isinstance(req, PathReq):
+            computed = list(nx.all_shortest_paths(out_graph, req.path[0], req.path[-1], 'cost'))
+            if len(computed) > 1 or computed[0] != req.path:
+                print "#" * 20
+                print "Required shortest path", req.path
+                print "Computed shortest path", computed
+                print "#" * 20
+                recompute = True
+                key = get_path_key(req.path[0], req.path[-1])
+                if key not in self.counter_examples:
+                    self.counter_examples[key] = []
+                for c_path in computed:
+                    print "ADDING COUNTER example", c_path
+                    self.counter_examples[key].append(c_path)
+        elif isinstance(req, ECMPPathsReq):
+            req_paths = [r.path for r in req.paths]
+            computed = list(nx.all_shortest_paths(out_graph, req_paths[0][0], req_paths[0][-1], 'cost'))
+            if computed != req_paths:
+                print "#" * 20
+                print "Required ECMP paths", req_paths
+                print "Computed ECMP paths", computed
+                print "#" * 20
+                recompute = True
+                key = get_path_key(req_paths[0][0], req_paths[0][-1])
+                if key not in self.counter_examples:
+                    self.counter_examples[key] = []
+                for c_path in computed:
+                    print "ADDING ECMP COUNTER example", c_path
+                    self.counter_examples[key].append(c_path)
+        elif isinstance(req, PathOrderReq):
+            req_paths = [r.path for r in req.paths]
+            prev_graph = out_graph.copy()
+            for path in req_paths:
+                computed = list(nx.all_shortest_paths(prev_graph, path[0], path[-1], 'cost'))
+                if len(computed) != 1 and computed != req_paths[0]:
+                    print "#" * 20
+                    print "Required Ordered paths", req_paths
+                    print "Computed Ordered paths", computed
+                    print "#" * 20
+                    recompute = True
+                    key = get_path_key(path[0], path[-1])
+                    if key not in self.counter_examples:
+                        self.counter_examples[key] = []
+                    for c_path in computed:
+                        print "ADDING COUNTER example", c_path
+                        self.counter_examples[key].append(c_path)
+                    break
+                else:
+                    for src, dst in zip(path[0::1], path[1::1]):
+                        prev_graph.remove_edge(src, dst)
+
+        return recompute
 
     def synthesize(self, retries_before_rest=5, gen_path_increment=500):
         """
@@ -413,19 +431,20 @@ class OSPFSyn(SynthesisComponent):
             # Using dijkstra algorithm
             for req in self.reqs:
                 g_ospf = self.get_output_network_graph()
-                computed = list(nx.all_shortest_paths(g_ospf, req.path[0], req.path[-1], 'cost'))
-                if len(computed) > 1 or computed[0] != req.path:
-                    print "#" * 20
-                    print "Required shortest path", req.path
-                    print "Computed shortest path", computed
-                    print "#" * 20
-                    recompute = True
-                    key = path_key(req.path[0], req.path[-1])
-                    if key not in self.counter_examples:
-                        self.counter_examples[key] = []
-                    for c_path in computed:
-                        print "ADDING COUNTER example", c_path
-                        self.counter_examples[key].append(c_path)
+                recompute = self.check_req_satisfied(g_ospf, req)
+                #computed = list(nx.all_shortest_paths(g_ospf, req.path[0], req.path[-1], 'cost'))
+                #if len(computed) > 1 or computed[0] != req.path:
+                #    print "#" * 20
+                #    print "Required shortest path", req.path
+                #    print "Computed shortest path", computed
+                #    print "#" * 20
+                #    recompute = True
+                #    key = get_path_key(req.path[0], req.path[-1])
+                #    if key not in self.counter_examples:
+                #        self.counter_examples[key] = []
+                #    for c_path in computed:
+                #        print "ADDING COUNTER example", c_path
+                #        self.counter_examples[key].append(c_path)
             if not recompute:
                 break
             print "Recomputing ospf costs"
@@ -443,10 +462,6 @@ class OSPFSyn(SynthesisComponent):
                 self.gen_paths = origianl_gen_paths
                 print "#" * 40
 
-        for req in self.reqs:
-            path = req.path
-            computed = nx.shortest_path(g_ospf, path[0], path[-1], 'cost')
-            assert path == computed
         return True
 
     def print_costs(self):

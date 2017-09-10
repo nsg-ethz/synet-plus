@@ -4,15 +4,23 @@
 The slow version of the OSPF synthesizer.
 """
 
+import logging
 from timeit import default_timer as timer
 
 import networkx as nx
 import z3
 
 from synet.topo.graph import NetworkGraph
+from synet.utils.common import ECMPPathsReq
+from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
-from synet.utils.common import SetOSPFEdgeCost
+from synet.utils.common import Protocols
+from synet.utils.common import Req
 from synet.utils.common import SynthesisComponent
+from synet.utils.ospf_utils import extract_ospf_graph
+from synet.utils.ospf_utils import get_output_configs
+from synet.utils.ospf_utils import get_output_network_graph
+from synet.utils.ospf_utils import load_graph_constrains
 
 
 __author__ = "Ahmed El-Hassany"
@@ -28,89 +36,43 @@ class OSPFSyn(SynthesisComponent):
     that makes it a slow but complete version.
     """
 
-    valid_inputs = (SetOSPFEdgeCost,)
-    def __init__(self, initial_configs, network_graph, solver=None):
+    def __init__(self, network_graph, solver=None):
         """
         :param initial_configs: List of SetOSPFEdgeCost, ignores anything else
         :param network_graph: an instance of Networkx.DiGraph
         :param solver: optional instance of Z3 solver, otherwise create an new one
         """
-        super(OSPFSyn, self).__init__(initial_configs, network_graph, solver)
-        self._load_graph(network_graph)
-        self.solver = solver if solver else z3.Solver()
-        self.initial_configs = initial_configs if initial_configs else []
+        assert isinstance(network_graph, NetworkGraph)
+        self.log = logging.getLogger('%s.%s' % (
+            self.__module__, self.__class__.__name__))
+        super(OSPFSyn, self).__init__([], network_graph, solver)
+
         # Read vertices
-        self._create_vertices('OSPFVertex', self.initial_configs,
-                              self.network_graph, True)
-        # True is an edge exists between two vertices
-        self.edge = z3.Function('EdgePhyOSPF', self.vertex,
-                                self.vertex, z3.BoolSort())
-        # Assign a cost to each edge
-        self.edge_cost = z3.Function('OSPFEdgeCost', self.vertex, self.vertex,
-                                     z3.IntSort())
+        self.ospf_graph = extract_ospf_graph(network_graph, self.log)
+        self.node_names = [name for name in self.ospf_graph.nodes_iter()]
+        (vertex, all_vertices) = z3.EnumSort('Vertex', self.node_names)
+        self.vertex = vertex
+        self.all_vertices = all_vertices
+        self.name_to_vertex = dict((str(v), v) for v in self.all_vertices)
+        self.nodes = [self.get_vertex(name) for name in self.node_names]
         # Read input
-        self._read_input_graph()
+        load_graph_constrains(self.solver, self.ospf_graph)
         # Requirements
         self.reqs = []
 
-    def _load_graph(self, network_graph):
-        """
-        Read the network graph, OSPF care only about nodes marked as NODE_TYPE
-        Other nodes, such as Peers are ignored.
-        """
-        g = network_graph.copy() if network_graph else NetworkGraph()
-        assert isinstance(g, NetworkGraph)
-        # Only local routers
-        for node, data in list(g.nodes(data=True))[:]:
-            if not g.is_local_router(node):
-                del g.node[node]
-        self.network_graph = g
-
-    def _read_input_graph(self):
-        """
-        Reads the inputs and add them as constraints to the solver
-        """
-        # First annotate the network graph with any given costs
-        for tmp in self.initial_configs:
-            if isinstance(tmp, SetOSPFEdgeCost):
-                self.network_graph.edge[tmp.src][tmp.dst]['cost'] = int(tmp.cost)
-        # Stop the solver from adding a new edges
-        for src in self.network_graph.nodes():
-            if src in self.network_names:
-                continue
-            for dst in self.network_graph.nodes():
-                if dst in self.network_names:
-                    continue
-                src_v = self.get_vertex(src)
-                dst_v = self.get_vertex(dst)
-                if self.network_graph.has_edge(src, dst):
-                    cost = self.network_graph.edge[src][dst].get('cost', None)
-                    self.solver.add(self.edge(src_v, dst_v))
-                    if cost:
-                        self.solver.add(self.edge_cost(src_v, dst_v) == cost)
-                    else:
-                        self.solver.add(self.edge_cost(src_v, dst_v) >= 0)
-                else:
-                    self.solver.add(z3.Not(self.edge(src_v, dst_v)))
-
-    def add_path_req(self, req):
+    def add_req(self, req):
         """
         Add new path requirement
         :param req: instance of PathReq
         :return: None
         """
-        assert isinstance(req, PathReq)
+        assert isinstance(req, Req)
+        assert req.protocol == Protocols.OSPF
         self.reqs.append(req)
 
     def _get_edge_cost(self, src, dst):
         """Shortcut function to get the cost function of an edge"""
-        cost = self.network_graph[src][dst].get('cost', 0)
-        if cost > 0:
-            return cost
-        else:
-            src = self.get_vertex(src)
-            dst = self.get_vertex(dst)
-            return self.edge_cost(src, dst)
+        return self.ospf_graph[src][dst]['cost']
 
     def _get_path_cost(self, path):
         """Return a sum of all the costs along the path"""
@@ -118,9 +80,49 @@ class OSPFSyn(SynthesisComponent):
         for i in range(len(path) - 1):
             src = path[i]
             dst = path[i + 1]
-            #self.solver.add(self.edge(self.get_vertex(src), self.get_vertex(dst)))
             edge_costs.append(self._get_edge_cost(src, dst))
         return sum(edge_costs)
+
+    def _generate_simple_path(self, req):
+        """Generate SMT for PathReq"""
+        path = req.path
+        src = path[0]
+        dst = path[-1]
+        path_cost = self._get_path_cost(path)
+        # Enumerate all paths
+        for rand_path in nx.all_simple_paths(self.network_graph, src, dst):
+            if path != rand_path:
+                simple_path_cost = self._get_path_cost(rand_path)
+                self.solver.add(path_cost < simple_path_cost)
+
+    def _generate_ecmp_path(self, req):
+        """Generate SMT for ECMPPathsReq"""
+        paths = [p.path for p in req.paths]
+        src = paths[0][0]
+        dst = paths[0][-1]
+        path_cost = self._get_path_cost(paths[0])
+        for path in paths:
+            next_cost = self._get_path_cost(path)
+            self.solver.add(path_cost == next_cost)
+        for rand_path in nx.all_simple_paths(self.network_graph, src, dst):
+            if rand_path not in paths:
+                simple_path_cost = self._get_path_cost(rand_path)
+                self.solver.add(path_cost < simple_path_cost)
+
+    def _generate_ordered_path(self, req):
+        """Generate SMT for PathOrderReq"""
+        paths = [p.path for p in req.paths]
+        src = paths[0][0]
+        dst = paths[0][-1]
+        for path0, path1 in zip(paths[0::1], paths[1::1]):
+            p0_cost = self._get_path_cost(path0)
+            p1_cost = self._get_path_cost(path1)
+            self.solver.add(p0_cost < p1_cost)
+        path_cost = self._get_path_cost(paths[-1])
+        for rand_path in nx.all_simple_paths(self.network_graph, src, dst):
+            if rand_path not in paths:
+                simple_path_cost = self._get_path_cost(rand_path)
+                self.solver.add(path_cost < simple_path_cost)
 
     def push_requirements(self):
         """Push the requirements we care about to the solver"""
@@ -128,78 +130,32 @@ class OSPFSyn(SynthesisComponent):
         start = timer()
         for req in self.reqs:
             if isinstance(req, PathReq):
-                path = req.path
-                src = path[0]
-                dst = path[-1]
-                path_cost = self._get_path_cost(path)
-                # Enumerate all paths
-                for sp in nx.all_simple_paths(self.network_graph, src, dst):
-                    if path != sp:
-                        simple_path_cost = self._get_path_cost(sp)
-                        self.solver.add(path_cost < simple_path_cost)
+                self._generate_simple_path(req)
+            elif isinstance(req, ECMPPathsReq):
+                self._generate_ecmp_path(req)
+            elif isinstance(req, PathOrderReq):
+                self._generate_ordered_path(req)
+            else:
+                raise ValueError("Unrecognized path requirement %s" % req)
         end = timer()
         return end - start
 
     def get_output_configs(self):
-        m = self.solver.model()
-        outputs = []
-        check = lambda x: z3.is_true(m.eval(x))
-        for src, src_v in self.name_to_vertex.iteritems():
-            for dst, dst_v in self.name_to_vertex.iteritems():
-                if not check(self.edge(src_v, dst_v)):
-                    continue
-                cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
-                outputs.append(SetOSPFEdgeCost(src, dst, cost))
-        return outputs
+        """Returns list of (src, dst, cost)"""
+        return get_output_configs(self.solver.model(), self.ospf_graph)
 
     def get_output_network_graph(self):
-        m = self.solver.model()
-        g = nx.DiGraph()
-        check = lambda x: z3.is_true(m.eval(x))
-        for src, src_v in self.name_to_vertex.iteritems():
-            g.add_node(src,
-                       **self._get_vertex_attributes(self.network_graph, src_v))
-            for dst, dst_v in self.name_to_vertex.iteritems():
-                if not g.has_node(dst):
-                    g.add_node(dst,
-                               **self._get_vertex_attributes(self.network_graph,
-                                                             dst_v))
-                if check(self.edge(src_v, dst_v)):
-                    cost = m.eval(self.edge_cost(src_v, dst_v)).as_long()
-                    g.add_edge(src, dst, cost=cost,
-                               **self._get_edge_attributes(src_v, dst_v))
-
-        return g
+        """Return OSPF graph annotated with synthesized costs"""
+        return get_output_network_graph(self.solver.model(), self.ospf_graph)
 
     def get_output_routing_graphs(self):
         """
         Returns one graph per each destination network.
         """
-        m = self.solver.model()
-        g_phy = self.get_output_network_graph()
-        graphs = {}
-        for dst_net in self.networks:
-            dst_net_name = self.get_name(dst_net)
-            g = nx.DiGraph()
-            g.graph['dst'] = dst_net_name
-            graphs[dst_net_name] = g
-            for node, _ in self.name_to_vertex.iteritems():
-                if not nx.has_path(g_phy, node, dst_net_name):
-                    continue
-                path = nx.shortest_path(g_phy, node, dst_net_name, 'cost')
-                for i in range(len(path) - 1):
-                    src = path[i]
-                    dst = path[i + 1]
-                    if not g.has_node(src):
-                        g.add_node(src,
-                                   **self._get_vertex_attributes(g_phy, src))
-                    if not g.has_node(dst):
-                        g.add_node(dst,
-                                   **self._get_vertex_attributes(g_phy, dst))
+        return self.get_output_network_graph()
 
-                    cost = m.eval(
-                        self.edge_cost(self.get_vertex(src),
-                                       self.get_vertex(dst))).as_long()
-                    g.add_edge(src, dst, cost=cost,
-                               **self._get_edge_attributes(src, dst))
-        return graphs
+    def update_network_graph(self):
+        """Set concrete costs on the network graph"""
+        configs = self.get_output_configs()
+        for src, dst, cost in configs:
+            self.network_graph.set_edge_ospf_cost(src, dst, cost)

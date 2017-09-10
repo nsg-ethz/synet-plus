@@ -13,6 +13,7 @@ from synet.utils.common import random_requirement_path
 from synet.utils.common import generate_second_path
 from synet.utils.topo_gen import gen_grid_topology
 from synet.utils.topo_gen import read_topology_zoo_netgraph
+from synet.utils.smt_context import VALUENOTSET
 from synet.synthesis.ospf_heuristic import OSPFSyn
 
 
@@ -64,6 +65,17 @@ def main():
         g = gen_grid_topology(gsize, gsize, 0)
         results_name = "grid%x%s" % (gsize, gsize)
 
+    # Enable OSPF on all local routers
+    for node in g.local_routers_iter():
+        g.enable_ospf(node, 100)
+    # Initially assume all costs are empty
+    for src, dst in g.edges_iter():
+        if not g.is_ospf_enabled(src):
+            continue
+        if not g.is_ospf_enabled(dst):
+            continue
+        g.set_edge_ospf_cost(src, dst, VALUENOTSET)
+
     if not topology_file:
         print "Grid size %dx%d" % (gsize, gsize)
     else:
@@ -91,7 +103,8 @@ def main():
         population = int(round(len(weights) * fixed))
         sampled = ospfRand.sample(weights, population)
         for src, dst, w in sampled:
-            g[src][dst]['cost'] = w
+            # g[src][dst]['cost'] = w
+            g.set_edge_ospf_cost(src, dst, w)
 
     cl = nx.DiGraph()
     for n in g.nodes():
@@ -113,7 +126,7 @@ def main():
         print "Generating counter path for path", candidate
         paths.append(counter_path)
     unsatisfiable_reqs = len(chosen)
-    ospf = OSPFSyn([], g, gen_paths=pathsize)
+    ospf = OSPFSyn(g, gen_paths=pathsize)
 
     for path in paths:
         req = PathReq(Protocols.OSPF, path[-1], path, False)
