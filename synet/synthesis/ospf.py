@@ -49,12 +49,6 @@ class OSPFSyn(SynthesisComponent):
 
         # Read vertices
         self.ospf_graph = extract_ospf_graph(network_graph, self.log)
-        self.node_names = [name for name in self.ospf_graph.nodes_iter()]
-        (vertex, all_vertices) = z3.EnumSort('Vertex', self.node_names)
-        self.vertex = vertex
-        self.all_vertices = all_vertices
-        self.name_to_vertex = dict((str(v), v) for v in self.all_vertices)
-        self.nodes = [self.get_vertex(name) for name in self.node_names]
         # Read input
         load_graph_constrains(self.solver, self.ospf_graph)
         # Requirements

@@ -36,7 +36,7 @@ def get_path_key(src, dst):
     For a given path return a tuple of source and dst
     Useful for storing paths in dicts
     """
-    return (src, dst)
+    return src, dst
 
 
 def get_path_name(path):
@@ -56,12 +56,6 @@ class OSPFSyn(SynthesisComponent):
         self.random_gen = random_obj or random.Random()
         # Read vertices
         self.ospf_graph = extract_ospf_graph(network_graph, self.log)
-        self.node_names = [name for name in self.ospf_graph.nodes_iter()]
-        (vertex, all_vertices) = z3.EnumSort('Vertex', self.node_names)
-        self.vertex = vertex
-        self.all_vertices = all_vertices
-        self.name_to_vertex = dict((str(v), v) for v in self.all_vertices)
-        self.nodes = [self.get_vertex(name) for name in self.node_names]
 
         # Read input
         load_graph_constrains(self.solver, self.ospf_graph)
@@ -92,8 +86,6 @@ class OSPFSyn(SynthesisComponent):
             children = G[visited[-1]]
             none_visited_children = []
             for child in children:
-                if child not in self.node_names:
-                    continue
                 if child not in visited:
                     none_visited_children.append(child)
             # Check if we hit a dead end
@@ -134,7 +126,6 @@ class OSPFSyn(SynthesisComponent):
             key = get_path_key(source, target)
             if self.counter_examples.get(key, None):
                 p = self.counter_examples[key].pop()
-                #print "Using counter example for", key, p
             else:
                 if random_obj.random() < dijsktra_prob:
                     p = self.random_dijkstra_path(source, target)
@@ -409,10 +400,10 @@ class OSPFSyn(SynthesisComponent):
     def synthesize(self, retries_before_rest=5, gen_path_increment=500):
         """
         The main synthesis method
-        :param retries_before_rest: how many time to try before reseting for new instance of
-                                    the SMT sover
+        :param retries_before_rest: how many time to try before resetting
+                                    for new instance of the SMT solver
         :param gen_path_increment: how many paths to generate per iterations
-        :return:
+        :return: bool
         """
         origianl_gen_paths = self.gen_paths
 
@@ -432,26 +423,13 @@ class OSPFSyn(SynthesisComponent):
             for req in self.reqs:
                 g_ospf = self.get_output_network_graph()
                 recompute = self.check_req_satisfied(g_ospf, req)
-                #computed = list(nx.all_shortest_paths(g_ospf, req.path[0], req.path[-1], 'cost'))
-                #if len(computed) > 1 or computed[0] != req.path:
-                #    print "#" * 20
-                #    print "Required shortest path", req.path
-                #    print "Computed shortest path", computed
-                #    print "#" * 20
-                #    recompute = True
-                #    key = get_path_key(req.path[0], req.path[-1])
-                #    if key not in self.counter_examples:
-                #        self.counter_examples[key] = []
-                #    for c_path in computed:
-                #        print "ADDING COUNTER example", c_path
-                #        self.counter_examples[key].append(c_path)
             if not recompute:
                 break
             print "Recomputing ospf costs"
             retries += 1
             if retries > retries_before_rest:
                 self.gen_paths += gen_path_increment
-                print "RESET SOLVER and increaset the number of paths to", self.gen_paths, "#" * 10
+                print "RESET SOLVER and increase the number of paths to", self.gen_paths, "#" * 10
                 self.reset_solver()
             while not self.solve():
                 print "UNSAT"
@@ -461,7 +439,6 @@ class OSPFSyn(SynthesisComponent):
                 print "Removed path from req", removed_path
                 self.gen_paths = origianl_gen_paths
                 print "#" * 40
-
         return True
 
     def print_costs(self):
