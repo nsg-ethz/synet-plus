@@ -10,6 +10,7 @@ import unittest
 
 from nose.plugins.attrib import attr
 
+from synet.synthesis.connected import ConnectedSyn
 import synet.synthesis.ospf
 import synet.synthesis.ospf_heuristic
 
@@ -58,13 +59,14 @@ class TestOSPF(unittest.TestCase):
         g_phy.add_router_edge('R4', 'R1')
         g_phy.add_router_edge('R4', 'R2')
         g_phy.add_router_edge('R4', 'R3')
+        conn_syn = ConnectedSyn([], g_phy, full=True)
+        conn_syn.synthesize()
         return g_phy
 
     def get_triangles(self, fan_out):
         network_graph = NetworkGraph()
         for index in range(0, fan_out + 3):
             node = "R%d" % (index + 1)
-            print "ADD NODE", node
             network_graph.add_router(node)
             network_graph.enable_ospf(node, 100)
 
@@ -72,11 +74,12 @@ class TestOSPF(unittest.TestCase):
             source = 'R1'
             sink = 'R%s' % (fan_out + 3)
             node = "R%d" % (index + 1)
-            print "ADD EDGE", source, node, sink
             network_graph.add_router_edge(source, node)
             network_graph.add_router_edge(node, source)
             network_graph.add_router_edge(sink, node)
             network_graph.add_router_edge(node, sink)
+        conn_syn = ConnectedSyn([], network_graph, full=True)
+        conn_syn.synthesize()
         return network_graph
 
     def setUp(self):

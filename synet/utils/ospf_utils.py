@@ -2,14 +2,22 @@
 Common utilities used in the OSPF boxes
 """
 
+from ipaddress import ip_network
 import networkx as nx
 import z3
 
+from synet.utils.common import Protocols
+from synet.utils.networks import gather_networks
 from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import is_symbolic
 
+
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
+
+
+# Special network that will announce all directly connected works
+ALL_V4_NET = ip_network(u"0.0.0.0/0")
 
 
 def extract_ospf_graph(network_graph, log):
@@ -71,3 +79,27 @@ def get_output_network_graph(model, ospf_graph):
     for src, dst, cost in configs:
         ospf_graph[src][dst]['cost'] = cost
     return ospf_graph
+
+
+def synthesize_ospf_announce(network_graph, ospf_graph, reqs):
+    """
+    This is very simple with mostly add (unless 0.0.0.0 is announced)
+    TODO: More work to consider existing configs and longest prefix matches
+    """
+    # Collect all announced network
+    node_announces = gather_networks(reqs, protocols=[Protocols.OSPF])
+    for node in ospf_graph.nodes_iter():
+        curr_announced = network_graph.get_ospf_networks(node)
+        if ALL_V4_NET in curr_announced:
+            # This node already announced everything, no need
+            continue
+        neighbor_addrs = []
+        for neighbor in ospf_graph.neighbors(node):
+            iface = network_graph.get_edge_iface(node, neighbor)
+            iface_addr = network_graph.get_iface_addr(node, iface)
+            neighbor_addrs.append(iface_addr.network)
+        all_addrs = node_announces.get(node, []) + neighbor_addrs
+        for addr in all_addrs:
+            if addr in curr_announced:
+                continue
+            network_graph.add_ospf_network(node, addr, '0.0.0.0')

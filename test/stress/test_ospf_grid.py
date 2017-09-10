@@ -8,13 +8,12 @@ import random
 import unittest
 from nose.plugins.attrib import attr
 
+from synet.synthesis.connected import ConnectedSyn
 import synet.synthesis.ospf_heuristic
 import synet.synthesis.ospf
 
-from synet.utils.common import NODE_TYPE
 from synet.utils.common import Protocols
 from synet.utils.common import PathReq
-from synet.utils.common import VERTEX_TYPE
 from synet.utils.common import random_requirement_path
 from synet.utils.topo_gen import gen_grid_topology
 
@@ -54,6 +53,8 @@ class TestOSPFGrid(unittest.TestCase):
         grid = gen_grid_topology(n, m, nets)
         for node in grid.local_routers_iter():
             grid.enable_ospf(node, 100)
+        conn_syn = ConnectedSyn([], grid, full=True)
+        conn_syn.synthesize()
         return grid
 
     @attr(speed='fast')

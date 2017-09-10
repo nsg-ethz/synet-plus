@@ -21,6 +21,7 @@ from synet.utils.ospf_utils import extract_ospf_graph
 from synet.utils.ospf_utils import get_output_configs
 from synet.utils.ospf_utils import get_output_network_graph
 from synet.utils.ospf_utils import load_graph_constrains
+from synet.utils.ospf_utils import synthesize_ospf_announce
 
 
 __author__ = "Ahmed El-Hassany"
@@ -153,3 +154,4 @@ class OSPFSyn(SynthesisComponent):
         configs = self.get_output_configs()
         for src, dst, cost in configs:
             self.network_graph.set_edge_ospf_cost(src, dst, cost)
+        synthesize_ospf_announce(self.network_graph, self.ospf_graph, self.reqs)
