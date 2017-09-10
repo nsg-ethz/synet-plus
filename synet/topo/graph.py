@@ -719,10 +719,6 @@ class NetworkGraph(nx.DiGraph):
 
     def set_iface_names(self):
         """Assigns interface IDs (Fa0/0,  Fa0/1, etc..) for each edge"""
-        def one_is_router(x, y):
-            return (self.is_router(x) and self.is_network(y)) \
-                   or (self.is_network(x) and self.is_router(y))
-
         for node in sorted(list(self.nodes())):
             iface_count = 0
             for src, dst in sorted(list(self.out_edges(node))):
@@ -737,11 +733,13 @@ class NetworkGraph(nx.DiGraph):
                     self.set_iface_addr(src, iface, VALUENOTSET)
                     self.set_edge_iface(src, dst, iface)
                     self.set_iface_description(src, iface, ''"To {}"''.format(dst))
-                elif one_is_router(src, dst):
+                elif self.is_router(src) and self.is_network(dst):
                     iface = '{node}-veth{iface}'.format(node=src, iface=iface_count)
                     self.add_iface(src, iface, is_shutdown=False)
                     self.set_edge_iface(src, dst, iface)
                     self.set_iface_description(src, iface, ''"To {}"''.format(dst))
+                elif self.is_network(src) and self.is_router(dst):
+                    continue
                 else:
                     raise ValueError('Not valid link %s -> %s' % (src, dst))
 
