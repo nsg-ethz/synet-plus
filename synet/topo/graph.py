@@ -414,6 +414,11 @@ class NetworkGraph(nx.DiGraph):
         assert self.is_local_router(node)
         self.node[node]['ospf'] = dict(process_id=process_id, networks={})
 
+    def get_ospf_process_id(self, node):
+        """Return the OSPF process ID"""
+        assert self.is_ospf_enabled(node)
+        return self.node[node]['ospf']['process_id']
+
     def is_ospf_enabled(self, node):
         """
         Return True if the node has OSPF process
