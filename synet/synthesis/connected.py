@@ -56,7 +56,7 @@ class DuplicateAddressError(Exception):
 
 
 class ConnectedSyn(object):
-    def __init__(self, reqs, network_graph, start_net=u'10.0.0.0', prefix_len=31):
+    def __init__(self, reqs, network_graph, full=False, start_net=u'10.0.0.0', prefix_len=31):
         if not reqs:
             reqs = []
         assert isinstance(network_graph, NetworkGraph)
@@ -65,6 +65,7 @@ class ConnectedSyn(object):
             assert isinstance(req, (Req))
         self.reqs = reqs
         self.g = network_graph
+        self.full = full
         self.prefix_len = prefix_len
         self._next_net = int(ip_address(start_net))
 
@@ -209,13 +210,22 @@ class ConnectedSyn(object):
         assert iface1
 
     def synthesize(self):
+        # Assign iface names between edges (if needed)
+        self.g.set_iface_names()
+        if self.full:
+            for src, dst in self.g.edges_iter():
+                if not self.g.is_router(src):
+                    continue
+                if not self.g.is_router(dst):
+                    continue
+                self.synthesize_connection(src, dst)
+            return
+
         bgp_connected = self.get_bgp_connected_pairs()
         reqs_connecetd = self.reqs_connected_pairs()
         connected_pairs = bgp_connected + reqs_connecetd
         connected_pairs = list(set(connected_pairs))
         connected_pairs = self._pre_process_connected_pairs(connected_pairs)
-        # Assign iface names between edges (if needed)
-        self.g.set_iface_names()
         for src, dst in sorted(connected_pairs):
             self.synthesize_connection(src, dst)
         edges_to_remove = []
