@@ -54,11 +54,7 @@ class OSPFSyn(SynthesisComponent):
         super(OSPFSyn, self).__init__([], network_graph, solver)
 
         self.random_gen = random_obj or random.Random()
-        # Read vertices
-        self.ospf_graph = extract_ospf_graph(network_graph, self.log)
-
-        # Read input
-        load_graph_constrains(self.solver, self.ospf_graph)
+        self.ospf_graph = None
         # Number of paths to generate at each iterations
         self.gen_paths = gen_paths
         # Keep track of the generators for new random paths for a given req
@@ -405,6 +401,10 @@ class OSPFSyn(SynthesisComponent):
         :param gen_path_increment: how many paths to generate per iterations
         :return: bool
         """
+        # Load Graph
+        self.ospf_graph = extract_ospf_graph(self.network_graph, self.log)
+        load_graph_constrains(self.solver, self.ospf_graph)
+
         origianl_gen_paths = self.gen_paths
 
         # First try to synthesize with all requirements

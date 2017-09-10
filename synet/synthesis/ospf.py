@@ -46,11 +46,7 @@ class OSPFSyn(SynthesisComponent):
         self.log = logging.getLogger('%s.%s' % (
             self.__module__, self.__class__.__name__))
         super(OSPFSyn, self).__init__([], network_graph, solver)
-
-        # Read vertices
-        self.ospf_graph = extract_ospf_graph(network_graph, self.log)
-        # Read input
-        load_graph_constrains(self.solver, self.ospf_graph)
+        self.ospf_graph = None
         # Requirements
         self.reqs = []
 
@@ -120,6 +116,10 @@ class OSPFSyn(SynthesisComponent):
 
     def push_requirements(self):
         """Push the requirements we care about to the solver"""
+        # Load Graph
+        self.ospf_graph = extract_ospf_graph(self.network_graph, self.log)
+        load_graph_constrains(self.solver, self.ospf_graph)
+
         self.solver.push()
         start = timer()
         for req in self.reqs:
