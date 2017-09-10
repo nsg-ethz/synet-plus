@@ -117,7 +117,10 @@ class CiscoConfigGen(object):
             #addr = self.g.get_edge_addr(node, neighbor)
             addr = self.g.get_iface_addr(node, iface)
             desc = self.g.get_iface_description(node, iface)
-            ospf_cost = self.g.get_edge_ospf_cost(node, neighbor)
+            if self.g.is_ospf_enabled(node):
+                ospf_cost = self.g.get_edge_ospf_cost(node, neighbor)
+            else:
+                ospf_cost = None
             config += self.gen_iface_config(iface, addr, desc, False, ospf_cost)
 
         # Loop back interface
