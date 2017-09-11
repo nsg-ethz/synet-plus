@@ -18,6 +18,7 @@ from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.common import ECMPPathsReq
 from synet.utils.common import PathOrderReq
+from synet.utils.topo_gen import get_fanout_topology
 
 from synet.topo.graph import NetworkGraph
 
@@ -63,24 +64,13 @@ class TestOSPF(unittest.TestCase):
         conn_syn.synthesize()
         return g_phy
 
-    def get_triangles(self, fan_out):
-        network_graph = NetworkGraph()
-        for index in range(0, fan_out + 3):
-            node = "R%d" % (index + 1)
-            network_graph.add_router(node)
-            network_graph.enable_ospf(node, 100)
-
-        for index in range(1, fan_out + 1):
-            source = 'R1'
-            sink = 'R%s' % (fan_out + 3)
-            node = "R%d" % (index + 1)
-            network_graph.add_router_edge(source, node)
-            network_graph.add_router_edge(node, source)
-            network_graph.add_router_edge(sink, node)
-            network_graph.add_router_edge(node, sink)
-        conn_syn = ConnectedSyn([], network_graph, full=True)
+    def get_triangles(self, fanout):
+        topo = get_fanout_topology(fanout)
+        for node in topo.local_routers_iter():
+            topo.enable_ospf(node, 100)
+        conn_syn = ConnectedSyn([], topo, full=True)
         conn_syn.synthesize()
-        return network_graph
+        return topo
 
     def setUp(self):
         self.network_graph = TestOSPF.get_g()
@@ -145,10 +135,10 @@ class TestOSPF(unittest.TestCase):
     def test_ecmp_full(self):
         fan_out = 4
         network_graph = self.get_triangles(fan_out)
-        source = 'R1'
-        sink = 'R%s' % (fan_out + 3)
-        p1 = [source, 'R2', sink]
-        p2 = [source, 'R3', sink]
+        source = 'source'
+        sink = 'sink'
+        p1 = [source, 'R1', sink]
+        p2 = [source, 'R2', sink]
         path1 = PathReq(Protocols.OSPF, 'Google', p1, False)
         path2 = PathReq(Protocols.OSPF, 'Google', p2, False)
         ecmp_req = ECMPPathsReq(Protocols.OSPF, 'Google', [path1, path2], False)
@@ -167,10 +157,10 @@ class TestOSPF(unittest.TestCase):
     def test_ecmp_correct(self):
         fan_out = 4
         network_graph = self.get_triangles(fan_out)
-        source = 'R1'
-        sink = 'R%s' % (fan_out + 3)
-        p1 = [source, 'R2', sink]
-        p2 = [source, 'R3', sink]
+        source = 'source'
+        sink = 'sink'
+        p1 = [source, 'R1', sink]
+        p2 = [source, 'R2', sink]
         path1 = PathReq(Protocols.OSPF, 'Google', p1, False)
         path2 = PathReq(Protocols.OSPF, 'Google', p2, False)
         ecmp_req = ECMPPathsReq(Protocols.OSPF, 'Google', [path1, path2], False)
@@ -189,12 +179,12 @@ class TestOSPF(unittest.TestCase):
     def test_ordered_full(self):
         fan_out = 4
         network_graph = self.get_triangles(fan_out)
-        source = 'R1'
-        sink = 'R%s' % (fan_out + 3)
-        p1 = [source, 'R2', sink]
-        p2 = [source, 'R3', sink]
-        p3 = [source, 'R4', sink]
-        p4 = [source, 'R5', sink]
+        source = 'source'
+        sink = 'sink'
+        p1 = [source, 'R1', sink]
+        p2 = [source, 'R2', sink]
+        p3 = [source, 'R3', sink]
+        p4 = [source, 'R4', sink]
         path1 = PathReq(Protocols.OSPF, 'Google', p1, False)
         path2 = PathReq(Protocols.OSPF, 'Google', p2, False)
         path3 = PathReq(Protocols.OSPF, 'Google', p3, False)
@@ -229,12 +219,12 @@ class TestOSPF(unittest.TestCase):
     def test_ordered_correct(self):
         fan_out = 4
         network_graph = self.get_triangles(fan_out)
-        source = 'R1'
-        sink = 'R%s' % (fan_out + 3)
-        p1 = [source, 'R2', sink]
-        p2 = [source, 'R3', sink]
-        p3 = [source, 'R4', sink]
-        p4 = [source, 'R5', sink]
+        source = 'source'
+        sink = 'sink'
+        p1 = [source, 'R1', sink]
+        p2 = [source, 'R2', sink]
+        p3 = [source, 'R3', sink]
+        p4 = [source, 'R4', sink]
         path1 = PathReq(Protocols.OSPF, 'Google', p1, False)
         path2 = PathReq(Protocols.OSPF, 'Google', p2, False)
         path3 = PathReq(Protocols.OSPF, 'Google', p3, False)

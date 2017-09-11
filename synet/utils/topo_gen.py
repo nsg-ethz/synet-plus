@@ -256,3 +256,27 @@ def gen_mesh(mesh_size, asnum=None):
                                            router_a_iface=VALUENOTSET,
                                            router_b_iface=VALUENOTSET)
     return g_phy
+
+
+def get_fanout_topology(fan_out):
+    """
+    Return a topology source and sink and number of fanout
+    routers R1, R2, ... connecting them
+    """
+    network_graph = NetworkGraph()
+    for index in range(0, fan_out):
+        node = "R%d" % (index + 1)
+        network_graph.add_router(node)
+
+    source = 'source'
+    sink = 'sink'
+    network_graph.add_router(source)
+    network_graph.add_router(sink)
+
+    for index in range(0, fan_out):
+        node = "R%d" % (index + 1)
+        network_graph.add_router_edge(source, node)
+        network_graph.add_router_edge(node, source)
+        network_graph.add_router_edge(sink, node)
+        network_graph.add_router_edge(node, sink)
+    return network_graph
