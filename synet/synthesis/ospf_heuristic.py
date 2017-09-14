@@ -7,6 +7,7 @@ with heuristic path generator
 
 import logging
 import random
+from timeit import default_timer as timer
 
 import networkx as nx
 import z3
@@ -260,7 +261,8 @@ class OSPFSyn(SynthesisComponent):
 
     def push_requirements(self):
         self.solver.push()
-        self.log.debug("Start pushing OSPF requirements")
+        self.log.info("Start pushing OSPF requirements")
+        start = timer()
         for req in self.reqs:
             if isinstance(req, PathReq):
                 self.generate_path_smt(req.path)
@@ -270,7 +272,8 @@ class OSPFSyn(SynthesisComponent):
             elif isinstance(req, ECMPPathsReq):
                 paths = [r.path for r in req.paths]
                 self.generate_ecmp_smt(paths)
-        print "Done pushing requirements"
+        end = timer()
+        self.log.info("End pushing OSPF requirements: %s seconds", (end - start))
 
     def get_output_routing_graphs(self):
         """
