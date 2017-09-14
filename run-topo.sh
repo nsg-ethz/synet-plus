@@ -1,22 +1,24 @@
 #!/bin/bash
 
-PATH_TO_CONFIGS="topos/topozoo"
+#PATH_TO_CONFIGS="topos/topozoo"
 PATH_TO_LOGS="logs"
-SYNET_SCRIPT="synet/ospf_test.py"
+SYNET_SCRIPT="synet/drivers/ospf_driver.py"
 
 TOPO=$1
 REQS=$2
-FIXED=$3
-RUN_ID=$4
+RANDPATHS=$3
+FIXED=$4
+SEED=$5
+RUN_ID=$6
 
 BASE=$(basename $TOPO | sed 's/.graphml//')
 
 LOG_FILE="$PATH_TO_LOGS/$BASE-$REQS-$FIXED-$RUN_ID.txt"
 
-echo "Running $BASE $REQS $FIXED $RUN_ID"
+echo "Running topology=$BASE num_reqs=$REQS fixed=$FIXED seed=$SEED run-id=$RUN_ID"
 
 START=$(date +%s)
-stdbuf -oL python $SYNET_SCRIPT -f $TOPO -r $REQS --fixed=$FIXED > $LOG_FILE
+stdbuf -oL python -O $SYNET_SCRIPT -f $TOPO -r $REQS -p $RANDPATHS --fixed=$FIXED --seed=$SEED > $LOG_FILE
 END=$(date +%s)
 
 TIME=$((END-START))
