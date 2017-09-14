@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import logging
 import random
 import sys
 import os
@@ -15,9 +16,30 @@ from synet.utils.topo_gen import gen_grid_topology
 from synet.utils.topo_gen import read_topology_zoo_netgraph
 from synet.utils.smt_context import VALUENOTSET
 from synet.synthesis.ospf_heuristic import OSPFSyn
+from synet.synthesis.connected import ConnectedSyn
+
+
+def setup_logging():
+    # create logger
+    logger = logging.getLogger('synet')
+    logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
 
 
 def main():
+    setup_logging()
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-f', type=str, default='',
                         help='read topology zoo graphml file')
@@ -76,6 +98,9 @@ def main():
             continue
         g.set_edge_ospf_cost(src, dst, VALUENOTSET)
 
+    conn_syn = ConnectedSyn([], g, full=True)
+    conn_syn.synthesize()
+
     if not topology_file:
         print "Grid size %dx%d" % (gsize, gsize)
     else:
@@ -95,7 +120,7 @@ def main():
         assert src != dst
         path = random_requirement_path(g, src, dst, ospfRand, tmp_weight_name)
         paths.append(path)
-
+    print "Done generating random paths for requirements"
     if fixed > 0:
         weights = []
         for src, dst in g.edges_iter():
@@ -103,7 +128,6 @@ def main():
         population = int(round(len(weights) * fixed))
         sampled = ospfRand.sample(weights, population)
         for src, dst, w in sampled:
-            # g[src][dst]['cost'] = w
             g.set_edge_ospf_cost(src, dst, w)
 
     cl = nx.DiGraph()
@@ -130,9 +154,13 @@ def main():
 
     for path in paths:
         req = PathReq(Protocols.OSPF, path[-1], path, False)
-        ospf.add_path_req(req)
+        ospf.add_req(req)
 
     ospf.synthesize(retries_before_rest=10)
+    ospf.update_network_graph()
+    print "OSPF Edge cost"
+    for src, dst in g.edges_iter():
+        print src, dst, g.get_edge_ospf_cost(src, dst)
 
 
 if __name__ == '__main__':
