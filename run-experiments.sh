@@ -11,7 +11,7 @@ PATH_TO_TOPOS="topos/topozoo/"
 
 echo "Running experiments"
 
-find $PATH_TO_TOPOS -type f -name Att*.graphml | sort | while read line; do
+find $PATH_TO_TOPOS -type f -name *.graphml | sort | while read line; do
 	for reqs in 1 2 4 8 16 32;
     do
         for fixed in 0.00 0.25 0.50 0.75 1.00;
