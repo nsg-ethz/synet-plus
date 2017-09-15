@@ -41,6 +41,31 @@ ORIGIN_TYPE = "as_origin"
 AS_NUM = 'AS'
 
 
+def get_propagated_info(propagation_graph, node, prefix=None, from_node=None, unselected=True):
+    all_props = []
+    for net, data in propagation_graph.node[node]['prefixes'].iteritems():
+        if prefix and net != prefix:
+            continue
+        for ecmp in data['prop_ordered']:
+            for prop in ecmp:
+                all_props.append(prop)
+        for prop in data['prop_unordered']:
+            all_props.append(prop)
+        if unselected:
+            for prop in data['prop_unselected']:
+                all_props.append(prop)
+    if not from_node:
+        return all_props
+    ret = []
+    for prop in all_props:
+        if len(prop.path) < 2:
+            continue
+        if prop.path[-2] != from_node:
+            continue
+        ret.append(prop)
+    return ret
+
+
 class Protocols(Enum):
     """List all protocols"""
     Forwarding = 1
@@ -76,6 +101,17 @@ class PathReq(Req):
         self.path = path
         self.strict = strict
 
+    def __eq__(self, other):
+        props = ['protocol', 'dst_net', 'path', 'strict']
+        for prop in props:
+            if getattr(self, prop) != getattr(other, prop, None):
+                return False
+        return True
+
+    def __repr__(self):
+        return "PathReq(%s, '%s', %s, %s)" % (
+            self.protocol, self.dst_net, self.path, self.strict)
+
 
 class ECMPPathsReq(Req):
     """Equal cost paths"""
@@ -99,6 +135,17 @@ class ECMPPathsReq(Req):
         self.paths = paths
         self.strict = strict
 
+    def __eq__(self, other):
+        props = ['protocol', 'dst_net', 'paths', 'strict']
+        for prop in props:
+            if getattr(self, prop) != getattr(other, prop, None):
+                return False
+        return True
+
+    def __repr__(self):
+        return "ECMPPathsReq(%s, '%s', %s, %s)" % (
+            self.protocol, self.dst_net, self.paths, self.strict)
+
 
 class KConnectedPathsReq(Req):
     """Connectivity among certain paths with no preference"""
@@ -121,6 +168,24 @@ class KConnectedPathsReq(Req):
         self.dst_net = dst_net
         self.paths = paths
         self.strict = strict
+
+    def __eq__(self, other):
+        props = ['protocol', 'dst_net', 'paths', 'strict']
+        for prop in props:
+            if getattr(self, prop) != getattr(other, prop, None):
+                return False
+        return True
+
+    def __eq__(self, other):
+        props = ['protocol', 'dst_net', 'paths', 'strict']
+        for prop in props:
+            if getattr(self, prop) != getattr(other, prop, None):
+                return False
+        return True
+
+    def __repr__(self):
+        return "KConnectedPathsReq(%s, '%s', %s, %s)" % (
+            self.protocol, self.dst_net, self.paths, self.strict)
 
 
 class PreferredPathReq(Req):
@@ -151,6 +216,18 @@ class PreferredPathReq(Req):
         self.kconnected = kconnected
         self.strict = strict
 
+    def __eq__(self, other):
+        props = ['protocol', 'dst_net', 'preferred', 'kconnected', 'strict']
+        for prop in props:
+            if getattr(self, prop) != getattr(other, prop, None):
+                return False
+        return True
+
+    def __repr__(self):
+        return "PreferredPathReq(%s, '%s', %s, %s, %s)" % (
+            self.protocol, self.dst_net, self.preferred,
+            self.kconnected, self.strict)
+
 
 class PathOrderReq(Req):
     """Strict Path Ordering"""
@@ -173,6 +250,10 @@ class PathOrderReq(Req):
         self.dst_net = dst_net
         self.paths = paths
         self.strict = strict
+
+    def __repr__(self):
+        return "PathOrderReq(%s, '%s', %s, %s)" % (
+            self.protocol, self.dst_net, self.paths, self.strict)
 
 
 # OSPF Edge cost
