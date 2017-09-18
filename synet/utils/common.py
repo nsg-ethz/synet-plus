@@ -109,7 +109,7 @@ class PathReq(Req):
         return True
 
     def __repr__(self):
-        return "PathReq(%s, '%s', %s, %s)" % (
+        return 'PathReq(%s, "%s", %s, %s)' % (
             self.protocol, self.dst_net, self.path, self.strict)
 
 
