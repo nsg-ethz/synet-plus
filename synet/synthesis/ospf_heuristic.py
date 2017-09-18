@@ -337,6 +337,17 @@ class OSPFSyn(SynthesisComponent):
                         self.reqs.remove(req)
                         path_req = req
                         break
+                elif isinstance(req, ECMPPathsReq):
+                    found = False  # To break outer loop
+                    for p in req.paths:
+                        if path == p.path:
+                            self.reqs.remove(req)
+                            path_req = req
+                            found = True
+                    if found:
+                        break
+                else:
+                    raise ValueError("Cannot remove req %s" % req)
             assert path_req, "Couldn't find path in requirements %s" % path
             self.removed_reqs.append(path_req)
             break
@@ -361,8 +372,11 @@ class OSPFSyn(SynthesisComponent):
                     self.counter_examples[key].append(c_path)
         elif isinstance(req, ECMPPathsReq):
             req_paths = [r.path for r in req.paths]
-            computed = list(nx.all_shortest_paths(out_graph, req_paths[0][0], req_paths[0][-1], 'cost'))
-            if computed != req_paths:
+            computed = set(
+                [tuple(p) for p in
+                 nx.all_shortest_paths(
+                     out_graph, req_paths[0][0], req_paths[0][-1], 'cost')])
+            if computed != set(req_paths):
                 print "#" * 20
                 print "Required ECMP paths", req_paths
                 print "Computed ECMP paths", computed
