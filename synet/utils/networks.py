@@ -8,6 +8,7 @@ from ipaddress import ip_address
 from ipaddress import ip_network
 
 from synet.utils.common import ECMPPathsReq
+from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 
@@ -32,7 +33,7 @@ def gather_networks(reqs, protocols=None):
         dst_nets = AddressRegistry.get_network_addr(req.dst_net, create=True)
         if isinstance(req, PathReq):
             sources = [req.path[-1]]
-        elif isinstance(req, (ECMPPathsReq, PathOrderReq)):
+        elif isinstance(req, (ECMPPathsReq, PathOrderReq, KConnectedPathsReq)):
             sources = []
             for path in req.paths:
                 source = path.path[-1]
