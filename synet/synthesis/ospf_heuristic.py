@@ -405,24 +405,33 @@ class OSPFSyn(SynthesisComponent):
         elif isinstance(req, PathOrderReq):
             req_paths = [r.path for r in req.paths]
             prev_graph = out_graph.copy()
-            for path in req_paths:
-                computed = list(nx.all_shortest_paths(prev_graph, path[0], path[-1], 'cost'))
-                if len(computed) != 1 and computed != req_paths[0]:
+            all_edges = [(None, None)] + list(out_graph.edges_iter())
+            for src, dst in all_edges:
+                if src is not None and dst is not None:
+                    prev_graph.remove_edge(src, dst)
+                curr_path = None
+                for path in req_paths:
+                    if False not in [prev_graph.has_edge(x, y) for x, y in zip(path[0::1], path[1::1])]:
+                        curr_path = path
+                        break
+                if not curr_path:
+                    #print "Curr path doesn't exist afer removing", src, dst, req_paths
+                    continue
+                computed = list(nx.all_shortest_paths(out_graph, curr_path[0], curr_path[-1], 'cost'))
+                if len(computed) > 1 or computed[0] != curr_path:
                     print "#" * 20
-                    print "Required Ordered paths", req_paths
-                    print "Computed Ordered paths", computed
+                    print "Required shortest path", curr_path
+                    print "Computed shortest path", computed[0]
                     print "#" * 20
                     recompute = True
-                    key = get_path_key(path[0], path[-1])
+                    key = get_path_key(req_paths[0][0], req_paths[0][-1])
                     if key not in self.counter_examples:
                         self.counter_examples[key] = []
                     for c_path in computed:
                         print "ADDING COUNTER example", c_path
                         self.counter_examples[key].append(c_path)
-                    break
-                else:
-                    for src, dst in zip(path[0::1], path[1::1]):
-                        prev_graph.remove_edge(src, dst)
+                if src is not None and dst is not None:
+                    prev_graph.add_edge(src, dst)
 
         return recompute
 
