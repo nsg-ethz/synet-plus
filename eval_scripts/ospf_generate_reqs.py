@@ -1,5 +1,5 @@
+#!/usr/bin/env python
 import argparse
-import logging
 import random
 import sys
 import os
@@ -18,7 +18,9 @@ from synet.utils.smt_context import VALUENOTSET
 from synet.synthesis.ospf_heuristic import OSPFSyn
 from synet.synthesis.connected import ConnectedSyn
 
-from networkx.drawing.nx_agraph import write_dot
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
 
 
 def set_levels(graph, node, level):
@@ -197,7 +199,7 @@ from synet.utils.common import KConnectedPathsReq\n
     for node in topo.local_routers_iter():
         topo.enable_ospf(node, 100)
 
-    for reqsize in [1, 2, 4, 8, 16][:1]:
+    for reqsize in [1, 2, 4, 8, 16]:
         simple_reqs = []
         simple_vals = []
         ecmp_reqs = []
