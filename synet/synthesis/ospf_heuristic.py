@@ -65,6 +65,7 @@ class OSPFSyn(SynthesisComponent):
         self.counter_examples = {}
         # Requirements that couldn't be satisfied by ospf
         self.removed_reqs = []
+        self.all_req_paths = None  # Keep track of all paths in the reqs
 
     def reset_solver(self):
         """Reset and clear all caches and create new solver"""
@@ -263,15 +264,28 @@ class OSPFSyn(SynthesisComponent):
         self.solver.push()
         self.log.info("Start pushing OSPF requirements")
         start = timer()
+        self.all_req_paths = []
+        simple_reqs = []
+        ordered_reqs = []
+        ecmp_reqs = []
         for req in self.reqs:
             if isinstance(req, PathReq):
-                self.generate_path_smt(req.path)
+                simple_reqs.append(req.path)
+                self.all_req_paths.append(req.path)
             elif isinstance(req, PathOrderReq):
                 paths = [r.path for r in req.paths]
-                self.generate_path_order_smt(paths)
+                ordered_reqs.append(paths)
+                self.all_req_paths.extend(paths)
             elif isinstance(req, ECMPPathsReq):
                 paths = [r.path for r in req.paths]
-                self.generate_ecmp_smt(paths)
+                ecmp_reqs.append(paths)
+                self.all_req_paths.extend(paths)
+        for path in simple_reqs:
+            self.generate_path_smt(path)
+        for paths in ordered_reqs:
+            self.generate_path_order_smt(paths)
+        for paths in ecmp_reqs:
+            self.generate_ecmp_smt(paths)
         end = timer()
         self.log.info("End pushing OSPF requirements: %s seconds", (end - start))
 
@@ -371,7 +385,7 @@ class OSPFSyn(SynthesisComponent):
                     print "ADDING COUNTER example", c_path
                     self.counter_examples[key].append(c_path)
         elif isinstance(req, ECMPPathsReq):
-            req_paths = [r.path for r in req.paths]
+            req_paths = [tuple(r.path) for r in req.paths]
             computed = set(
                 [tuple(p) for p in
                  nx.all_shortest_paths(
