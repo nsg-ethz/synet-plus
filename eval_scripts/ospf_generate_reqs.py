@@ -145,18 +145,53 @@ def generate_ecmp_reqs(topo, reqsize, ecmp, rand):
     return reqs
 
 
-
 def generate_ordered_reqs(topo, reqsize, ordered, rand):
     """Generate reqsize of PathOrderReq each has ordered paths"""
-    paths = get_reqs(graph=topo, reqsize=reqsize, k=ordered, rand=rand)
-    reqs = []
-    for plist in paths.values():
-        assert len(plist) == ordered
-        req = PathOrderReq(Protocols.OSPF, plist[0][-1],
-                         [PathReq(Protocols.OSPF, path[-1], path, False)
-                          for path in plist], False)
-        reqs.append(req)
-    return reqs
+    graph = nx.DiGraph()
+    for src, dst in topo.edges_iter():
+        graph.add_edge(src, dst)
+
+    computed_paths = {}
+    tmp_cost = 'tmp-cost'
+    for src, dst in graph.edges():
+        graph[src][dst][tmp_cost] = rand.randint(1, sys.maxint)
+
+    for src in graph.nodes():
+        for dst in graph.nodes():
+            if src == dst:
+                continue
+            if (src, dst) not in computed_paths:
+                shortest = nx.shortest_path(graph, src, dst, weight=tmp_cost)
+                computed_paths[(src, dst)] = [shortest]
+
+    edges = list(graph.edges())
+    for src, dst in edges:
+        cost = graph[src][dst][tmp_cost]
+        graph.remove_edge(src, dst)
+        if nx.has_path(graph, src, dst):
+            shortest =  nx.shortest_path(graph, src, dst, weight=tmp_cost)
+            if shortest not in computed_paths[(src, dst)]:
+                computed_paths[(src, dst)].append(shortest)
+        graph.add_edge(src, dst, **{tmp_cost: cost})
+
+    valid = []
+    for (src, dst) in computed_paths:
+        k = len(computed_paths[(src, dst)])
+        if k == ordered:
+            valid.append(computed_paths[(src, dst)])
+
+    if valid >= reqsize:
+        sampled = random.sample(valid, reqsize)
+        reqs = []
+        for plist in sampled:
+            req = PathOrderReq(Protocols.OSPF, plist[0][-1],
+                               [PathReq(Protocols.OSPF, path[-1], path, False)
+                                for path in plist], False)
+            reqs.append(req)
+        return reqs
+    else:
+        print "Regenerating random ordered paths"
+        return generate_ordered_reqs(topo, reqsize, ordered, rand)
 
 
 def get_simple_reqs(topo, reqsize, rand):
@@ -176,9 +211,9 @@ def get_simple_reqs(topo, reqsize, rand):
         ospf = OSPFSyn(topo, gen_paths=100)
         for req in reqs:
             ospf.add_req(req)
-        ospf.synthesize()
-        if ospf.removed_reqs:
-            print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
+        ret = ospf.synthesize()
+        if ospf.removed_reqs or not ret:
+            print "Generated Simple Reqs are unsatifiable for reqsize", reqsize, "Trying again"
             continue
         generated = True
         ospf.update_network_graph()
@@ -214,9 +249,9 @@ def get_ecmp_reqs(topo, reqsize, ecmp, rand):
         ospf = OSPFSyn(topo, gen_paths=100)
         for req in reqs:
             ospf.add_req(req)
-        ospf.synthesize()
-        if ospf.removed_reqs:
-            print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
+        ret = ospf.synthesize()
+        if ospf.removed_reqs or not ret:
+            print "Generated ECMP Reqs are unsatifiable for reqsize", reqsize, "Trying again"
             continue
         generated = True
 
@@ -251,7 +286,7 @@ def get_kconnected(topo, ecmp_reqs, reqsize, k):
     ospf2 = OSPFSyn(topo, gen_paths=100)
     for req in kreqs:
         ospf2.add_req(req)
-        ospf2.synthesize()
+    ospf2.synthesize()
     assert not ospf2.removed_reqs
     ospf2.update_network_graph()
     req_name = "reqs_kconnected_%d_%d" % (reqsize, k)
@@ -287,9 +322,9 @@ def get_path_order(topo, reqsize, pathorder, rand):
             print req
             ospf.add_req(req)
 
-        ospf.synthesize()
-        if ospf.removed_reqs:
-            print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
+        ret = ospf.synthesize()
+        if ospf.removed_reqs or not ret:
+            print "Generated Ordered Reqs are unsatifiable for reqsize", reqsize, "Trying again"
             continue
         generated = True
         ospf.update_network_graph()
@@ -318,12 +353,13 @@ def main():
     args = parser.parse_args()
     topology_file = args.f
     seed = args.seed
+
     assert topology_file
     print "Y" * 50
     print "Generating reqs for:", topology_file
     print "Y" * 50
     if not seed:
-        seed = random.randint(0, sys.maxint)
+        seed = random.randint(0, 2**32 - 1)
         print "Generated new seed", seed
 
     print "Using SEED:", seed
@@ -339,6 +375,7 @@ from synet.utils.common import KConnectedPathsReq\n
     out_file += "seed = %d\n" % seed
 
     rand = random.Random(seed)
+    numpy.random.seed(seed)
 
     topo = read_topology_zoo_netgraph(topology_file)
 
