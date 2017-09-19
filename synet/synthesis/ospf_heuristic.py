@@ -163,7 +163,7 @@ class OSPFSyn(SynthesisComponent):
         if not is_symbolic(path_cost):
             var = z3.Const("%s_cost" % path_name, z3.IntSort())
             self.solver.add(var == path_cost)
-            path_cost = var
+            path_cost_var = var
 
         for rand_path in self.saved_path_gen[path_key_req]:
             # Skip if we generated the same path as the requirement
@@ -173,7 +173,13 @@ class OSPFSyn(SynthesisComponent):
                 rand_path_name = get_path_name(rand_path)
                 rand_path_cost = self._get_path_cost(rand_path)
                 track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
-                self.solver.assert_and_track(path_cost < rand_path_cost, track_name)
+                if is_symbolic(rand_path_cost) or is_symbolic(path_cost):
+                    self.solver.assert_and_track(
+                        path_cost < rand_path_cost, track_name)
+                else:
+                    if not (path_cost < rand_path_cost):
+                        self.solver.assert_and_track(
+                            path_cost_var < rand_path_cost, track_name)
             count += 1
             if count > cuttoff:
                 break
@@ -195,14 +201,18 @@ class OSPFSyn(SynthesisComponent):
         if not is_symbolic(primary_cost):
             var = z3.Const("%s_cost" % path_names[0], z3.IntSort())
             self.solver.add(var == primary_cost)
-            primary_cost = var
+            primary_cost_var = var
 
         # Assert ECMP
         for p_index in range(1, len(paths)):
             path_name = path_names[p_index]
             track_name = '%s_ISEQUAL_%s' % (primary_name, path_name)
             cost = path_costs[p_index]
-            self.solver.assert_and_track(primary_cost == cost, track_name)
+            if is_symbolic(cost) or is_symbolic(primary_cost):
+                self.solver.assert_and_track(primary_cost == cost, track_name)
+            else:
+                if cost != primary_cost:
+                    self.solver.assert_and_track(primary_cost_var == cost, track_name)
 
         for rand_path in self.saved_path_gen[path_key_req]:
             # Skip if we generated the same path as the requirement
@@ -212,7 +222,11 @@ class OSPFSyn(SynthesisComponent):
                 rand_path_name = get_path_name(rand_path)
                 rand_path_cost = self._get_path_cost(rand_path)
                 track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
-                self.solver.assert_and_track(primary_cost < rand_path_cost, track_name)
+                if is_symbolic(rand_path_cost) or is_symbolic(primary_cost):
+                    self.solver.assert_and_track(primary_cost < rand_path_cost, track_name)
+                else:
+                    if not (primary_cost < rand_path_cost):
+                        self.solver.assert_and_track(primary_cost_var < rand_path_cost, track_name)
             count += 1
             if count > cuttoff:
                 break
@@ -239,23 +253,19 @@ class OSPFSyn(SynthesisComponent):
             track_name = '%s_ORDER_%s' % (p0_name, p1_name)
             p0_cost = path_costs[p0]
             p1_cost = path_costs[p1]
-            if is_symbolic(p0_cost):
-                p0_var = p0_cost
+            if is_symbolic(p0_cost) or is_symbolic(p1_cost):
+                self.solver.assert_and_track(p0_cost < p1_cost, track_name)
             else:
-                p0_var = z3.Const("%s_cost" % p0_name, z3.IntSort())
-                self.solver.add(p0_var == p0_cost)
-            if is_symbolic(p1_cost):
-                p1_var = p1_cost
-            else:
-                p1_var = z3.Const("%s_cost" % p1_name, z3.IntSort())
-                self.solver.add(p1_var == p1_cost)
-            self.solver.assert_and_track(p0_var < p1_var, track_name)
+                if not (p0_cost < p1_cost):
+                    p0_var = z3.Const("%s_cost" % p0_name, z3.IntSort())
+                    self.solver.add(p0_var == p0_cost)
+                    self.solver.assert_and_track(p0_var < p1_var, track_name)
 
         least_cost = path_costs[-1]
         if not is_symbolic(least_cost):
-            var = z3.Const("%s_cost" % path_names[-1], z3.IntSort())
+            var = z3.Const("%s_cost2" % path_names[-1], z3.IntSort())
             self.solver.add(var == least_cost)
-            least_cost = var
+            least_cost_var = var
 
         for rand_path in self.saved_path_gen[path_key_req]:
             # Skip if we generated the same path as the requirement
@@ -265,7 +275,13 @@ class OSPFSyn(SynthesisComponent):
                 rand_path_name = get_path_name(rand_path)
                 rand_path_cost = self._get_path_cost(rand_path)
                 track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
-                self.solver.assert_and_track( least_cost < rand_path_cost, track_name)
+                if is_symbolic(least_cost) or is_symbolic(rand_path_cost):
+                    self.solver.assert_and_track(
+                        least_cost < rand_path_cost, track_name)
+                else:
+                    if not (least_cost < rand_path_cost):
+                        self.solver.assert_and_track(
+                            least_cost_var < rand_path_cost, track_name)
             count += 1
             if count > cuttoff:
                 break
@@ -282,13 +298,13 @@ class OSPFSyn(SynthesisComponent):
                 src, dst, 0.6, self.random_gen)
         elif path_key_req not in self.counter_examples:
             return
-
+        path_costs_var = []
         for index, cost in enumerate(path_costs):
             if is_symbolic(cost):
                 continue
             var = z3.Const("%s_cost" % path_names[index], z3.IntSort())
             self.solver.add(var == cost)
-            path_costs[index] = var
+            path_costs.append(var)
 
         for rand_path in self.saved_path_gen[path_key_req]:
             # Skip if we generated the same path as the requirement
@@ -301,7 +317,14 @@ class OSPFSyn(SynthesisComponent):
                     rand_path_name = get_path_name(rand_path)
                     rand_path_cost = self._get_path_cost(rand_path)
                     track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
-                    self.solver.assert_and_track(path_cost < rand_path_cost, track_name)
+                    if is_symbolic(path_cost) or is_symbolic(rand_path_cost):
+                        self.solver.assert_and_track(
+                            path_cost < rand_path_cost, track_name)
+                    else:
+                        if not (path_cost < rand_path_cost):
+                            path_cost_var = path_costs_var[index]
+                            self.solver.assert_and_track(
+                                path_cost_var < rand_path_cost, track_name)
             count += 1
             if count > cuttoff:
                 break
