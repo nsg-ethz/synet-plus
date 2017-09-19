@@ -301,10 +301,11 @@ class OSPFSyn(SynthesisComponent):
         path_costs_var = []
         for index, cost in enumerate(path_costs):
             if is_symbolic(cost):
+                path_costs_var.append(cost)
                 continue
             var = z3.Const("%s_cost" % path_names[index], z3.IntSort())
             self.solver.add(var == cost)
-            path_costs.append(var)
+            path_costs_var.append(var)
 
         for rand_path in self.saved_path_gen[path_key_req]:
             # Skip if we generated the same path as the requirement
