@@ -169,7 +169,7 @@ def generate_ordered_reqs(topo, reqsize, ordered, rand):
         cost = graph[src][dst][tmp_cost]
         graph.remove_edge(src, dst)
         if nx.has_path(graph, src, dst):
-            shortest =  nx.shortest_path(graph, src, dst, weight=tmp_cost)
+            shortest = nx.shortest_path(graph, src, dst, weight=tmp_cost)
             if shortest not in computed_paths[(src, dst)]:
                 computed_paths[(src, dst)].append(shortest)
         graph.add_edge(src, dst, **{tmp_cost: cost})
