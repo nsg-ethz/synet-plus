@@ -159,6 +159,154 @@ def generate_ordered_reqs(topo, reqsize, ordered, rand):
     return reqs
 
 
+def get_simple_reqs(topo, reqsize, rand):
+    """Get simple reqs to be written to out file"""
+    out_file = ""
+    generated = False
+    while not generated:
+        # All OSPF Costs are initially empty
+        for src, dst in topo.edges_iter():
+            if not topo.is_local_router_edge(src, dst):
+                continue
+            topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
+        print "X" * 40
+        print "Generating Simple for reqsize=%d" % (reqsize,)
+        reqs = generate_simple_reqs(topo, reqsize, rand)
+        print "Done Generating Simple"
+        ospf = OSPFSyn(topo, gen_paths=100)
+        for req in reqs:
+            ospf.add_req(req)
+        ospf.synthesize()
+        if ospf.removed_reqs:
+            print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
+            continue
+        generated = True
+        ospf.update_network_graph()
+        req_name = "reqs_simple_%d" % reqsize
+        out_file += "%s = [\n" % (req_name)
+        for req in reqs:
+            out_file += "    %s,\n" % repr(req)
+        out_file += "]\n\n"
+        vals_name = "edges_cost_simple_%d" % reqsize
+        out_file += "%s = [\n" % vals_name
+        for src, dst in topo.edges_iter():
+            out_file += '    ("%s", "%s", %d),\n' % (
+                src, dst, topo.get_edge_ospf_cost(src, dst))
+        out_file += "]\n\n"
+    out_file += "#" * 20
+    out_file += "\n\n"
+    return out_file, reqs, req_name, vals_name
+
+
+def get_ecmp_reqs(topo, reqsize, ecmp, rand):
+    out_file = ""
+    generated = False
+    while not generated:
+        # All OSPF Costs are intially empty
+        for src, dst in topo.edges_iter():
+            if not topo.is_local_router_edge(src, dst):
+                continue
+            topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
+        print "X" * 40
+        print "Generating ECMP for reqsize=%d, ecmp=%d" % (reqsize, ecmp)
+        reqs = generate_ecmp_reqs(topo, reqsize, ecmp, rand)
+        print "Done Generating ECMP"
+        ospf = OSPFSyn(topo, gen_paths=100)
+        for req in reqs:
+            ospf.add_req(req)
+        ospf.synthesize()
+        if ospf.removed_reqs:
+            print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
+            continue
+        generated = True
+
+        ospf.update_network_graph()
+        req_name = "reqs_ecmp_%d_%d" % (reqsize, ecmp)
+
+        out_file += "%s = [\n" % (req_name)
+        for req in reqs:
+            out_file += "    %s,\n" % repr(req)
+        out_file += "]\n\n"
+        vals_name = "edges_cost_ecmp_%d_%d" % (reqsize, ecmp)
+        out_file += "%s = [\n" % vals_name
+        for src, dst in topo.edges_iter():
+            out_file += '    ("%s", "%s", %d),\n' % (
+                src, dst, topo.get_edge_ospf_cost(src, dst))
+        out_file += "]\n\n"
+    return out_file, reqs, req_name, vals_name
+
+
+def get_kconnected(topo, ecmp_reqs, reqsize, k):
+    out_file = ""
+    print "X" * 40
+    print "Generating KConneced for reqsize=%d, k=%d" % (reqsize, k)
+    for src, dst in topo.edges_iter():
+        if not topo.is_local_router_edge(src, dst):
+            continue
+        topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
+    kreqs = []
+    for req in ecmp_reqs:
+        kreqs.append(KConnectedPathsReq(req.protocol, req.dst_net, req.paths, False))
+
+    ospf2 = OSPFSyn(topo, gen_paths=100)
+    for req in kreqs:
+        ospf2.add_req(req)
+        ospf2.synthesize()
+    assert not ospf2.removed_reqs
+    ospf2.update_network_graph()
+    req_name = "reqs_kconnected_%d_%d" % (reqsize, k)
+    out_file += "%s = [\n" % (req_name)
+    for req in kreqs:
+        out_file += "    %s,\n" % repr(req)
+    out_file += "]\n\n"
+    vals_name = "edges_cost_kconnected_%d_%d" % (reqsize, k)
+    out_file += "%s = [\n" % vals_name
+    for src, dst in topo.edges_iter():
+        out_file += '    ("%s", "%s", %d),\n' % (
+            src, dst, topo.get_edge_ospf_cost(src, dst))
+    out_file += "]\n\n"
+    return out_file, kreqs, req_name, vals_name
+
+
+def get_path_order(topo, reqsize, pathorder, rand):
+    out_file = ""
+    generated = False
+    while not generated:
+        # All OSPF Costs are intially empty
+        for src, dst in topo.edges_iter():
+            if not topo.is_local_router_edge(src, dst):
+                continue
+            topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
+        print "X" * 40
+        print "Generating PathOrder for reqsize=%d, ordered paths=%d" % (reqsize, pathorder)
+        reqs = generate_ordered_reqs(topo, reqsize, pathorder, rand)
+        print "Done Generating PathOrdered"
+
+        ospf = OSPFSyn(topo, gen_paths=10)
+        for req in reqs:
+            print req
+            ospf.add_req(req)
+
+        ospf.synthesize()
+        if ospf.removed_reqs:
+            print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
+            continue
+        generated = True
+        ospf.update_network_graph()
+        req_name = "reqs_order_%d_%d" % (reqsize, pathorder)
+        out_file += "%s = [\n" % (req_name)
+        for req in reqs:
+            out_file += "    %s,\n" % repr(req)
+        out_file += "]\n\n"
+        vals_name = "edges_cost_order_%d_%d" % (reqsize, pathorder)
+        out_file += "%s = [\n" % vals_name
+        for src, dst in topo.edges_iter():
+            out_file += '    ("%s", "%s", %d),\n' % (
+                src, dst, topo.get_edge_ospf_cost(src, dst))
+        out_file += "]\n\n"
+    return out_file, reqs, req_name, vals_name
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate OSPF Requiremetns for a given topology.')
@@ -199,165 +347,59 @@ from synet.utils.common import KConnectedPathsReq\n
     for node in topo.local_routers_iter():
         topo.enable_ospf(node, 100)
 
+    simple_reqs = []
+    simple_vals = []
+    ecmp_reqs = []
+    ecmp_vals = []
+    kconnected_reqs = []
+    kconnected_vals = []
+    order_reqs = []
+    order_vals = []
     for reqsize in [1, 2, 4, 8, 16]:
-        simple_reqs = []
-        simple_vals = []
-        ecmp_reqs = []
-        ecmp_vals = []
-        ecmp_generated_reqs = []
-        k_reqs = []
-        k_vals = []
-        order_reqs = []
-        order_vals = []
-        generated = False
-        while not generated:
-            # All OSPF Costs are initially empty
-            for src, dst in topo.edges_iter():
-                if not topo.is_local_router_edge(src, dst):
-                    continue
-                topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
-            print "X" * 40
-            print "Generating Simple for reqsize=%d" % (reqsize,)
-            reqs = generate_simple_reqs(topo, reqsize, rand)
-            print "Done Generating Simple"
-            ospf = OSPFSyn(topo, gen_paths=100)
-            for req in reqs:
-                ospf.add_req(req)
-            ospf.synthesize()
-            if ospf.removed_reqs:
-                print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
-                continue
-            generated = True
-            ospf.update_network_graph()
-            req_name = "reqs_simple_%d" % reqsize
-            simple_reqs.append(req_name)
-            out_file += "%s = [\n" % (req_name)
-            for req in reqs:
-                out_file += "    %s,\n" % repr(req)
-            out_file += "]\n\n"
-            vals_name = "edges_cost_simple_%d" % reqsize
-            simple_vals.append(vals_name)
-            out_file += "%s = [\n" % vals_name
-            for src, dst in topo.edges_iter():
-                out_file += '    ("%s", "%s", %d),\n' % (src, dst, topo.get_edge_ospf_cost(src, dst))
-            out_file += "]\n\n"
-        out_file += "reqs_simple = [%s]\n\n" % ",".join(simple_reqs)
-        out_file += "reqs_simple_vals = [%s]\n\n" % ",".join(simple_vals)
-        out_file += "#" * 20
-        out_file += "\n\n"
+        s_out, s_reqs, s_req_name, s_vals_name = get_simple_reqs(
+            topo, reqsize, rand)
+        out_file += s_out
+        simple_reqs.append(s_req_name)
+        simple_vals.append(s_vals_name)
         for ecmp in [2]:
-            generated = False
-            while not generated:
-                # All OSPF Costs are intially empty
-                for src, dst in topo.edges_iter():
-                    if not topo.is_local_router_edge(src, dst):
-                        continue
-                    topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
-                print "X" * 40
-                print "Generating ECMP for reqsize=%d, ecmp=%d" % (reqsize, ecmp)
-                reqs = generate_ecmp_reqs(topo, reqsize, ecmp, rand)
-                print "Done Generating ECMP"
-                ospf = OSPFSyn(topo, gen_paths=100)
-                for req in reqs:
-                    ospf.add_req(req)
-                ospf.synthesize()
-                if ospf.removed_reqs:
-                    print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
-                    continue
-                generated = True
-                ecmp_generated_reqs.append(reqs)
-                ospf.update_network_graph()
-                req_name = "reqs_ecmp_%d_%d" % (reqsize, ecmp)
-                ecmp_reqs.append(req_name)
-                out_file += "%s = [\n" % (req_name)
-                for req in reqs:
-                    out_file += "    %s,\n" % repr(req)
-                out_file += "]\n\n"
-                vals_name = "edges_cost_ecmp_%d_%d" % (reqsize, ecmp)
-                ecmp_vals.append(vals_name)
-                out_file += "%s = [\n" % vals_name
-                for src, dst in topo.edges_iter():
-                    out_file += '    ("%s", "%s", %d),\n' %(src, dst, topo.get_edge_ospf_cost(src, dst))
-                out_file += "]\n\n"
-        out_file += "reqs_ecmp = [%s]\n\n" % ",".join(ecmp_reqs)
-        out_file += "reqs_ecmp_vals = [%s]\n\n" % ",".join(ecmp_vals)
-        out_file += "#" * 20
-        out_file += "\n\n"
-        for ecmp_reqs in ecmp_generated_reqs:
-            print "X" * 40
-            print "Generating Kconneced for reqsize=%d, k=%d" % (reqsize, len(ecmp_reqs))
-            for src, dst in topo.edges_iter():
-                if not topo.is_local_router_edge(src, dst):
-                    continue
-                topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
-
-            kreqs = []
-            for req in ecmp_reqs:
-                kreqs.append(KConnectedPathsReq(req.protocol, req.dst_net, req.paths, False))
-
-            ospf2 = OSPFSyn(topo, gen_paths=100)
-            for req in kreqs:
-                ospf2.add_req(req)
-                ospf2.synthesize()
-            assert not ospf2.removed_reqs
-            ospf2.update_network_graph()
-            req_name = "reqs_kconnected_%d_%d" % (reqsize, ecmp)
-            k_reqs.append(req_name)
-            out_file += "%s = [\n" % (req_name)
-            for req in kreqs:
-                out_file += "    %s,\n" % repr(req)
-            out_file += "]\n\n"
-            vals_name = "edges_cost_kconnected_%d_%d" % (reqsize, ecmp)
-            k_vals.append(vals_name)
-            out_file += "%s = [\n" % vals_name
-            for src, dst in topo.edges_iter():
-                out_file += '    ("%s", "%s", %d),\n' % (src, dst, topo.get_edge_ospf_cost(src, dst))
-            out_file += "]\n\n"
-
-        out_file += "reqs_kconnected = [%s]\n\n" % ",".join(k_reqs)
-        out_file += "reqs_kconnected_vals = [%s]\n\n" % ",".join(k_vals)
-        out_file += "#" * 20
-        out_file += "\n\n"
-        continue
+            e_out, e_reqs, e_req_name, e_vals_name = get_ecmp_reqs(
+                topo, reqsize, ecmp, rand)
+            out_file += e_out
+            ecmp_reqs.append(e_req_name)
+            ecmp_vals.append(e_vals_name)
+            # We can use the ECMP to generate kconnected
+            print "ECMP reqs", e_reqs
+            k_out, k_reqs, k_req_name, k_vals_name = get_kconnected(
+                topo, e_reqs, reqsize, ecmp)
+            out_file += k_out
+            print "APPENDING", k_req_name
+            kconnected_reqs.append(k_req_name)
+            kconnected_vals.append(k_vals_name)
         for pathorder in [2]:
-            generated = False
-            while not generated:
-                # All OSPF Costs are intially empty
-                for src, dst in topo.edges_iter():
-                    if not topo.is_local_router_edge(src, dst):
-                        continue
-                    topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
-                print "X" * 40
-                print "Generating PathOrder for reqsize=%d, ordered paths=%d" % (reqsize, pathorder)
-                reqs = generate_ordered_reqs(topo, reqsize, pathorder, rand)
-                print "Done Generating PathOrdered"
+            o_out, o_reqs, o_req_name, o_vals_name = get_path_order(
+                topo, reqsize, pathorder, rand)
+            out_file += o_out
+            order_reqs.append(o_req_name)
+            order_vals.append(o_vals_name)
+    out_file += "#" * 20
+    out_file += "\n\n"
+    out_file += "reqs_simple = [%s]\n\n" % ",".join(simple_reqs)
+    out_file += "reqs_simple_vals = [%s]\n\n" % ",".join(simple_vals)
+    out_file += "#" * 20
+    out_file += "\n\n"
+    out_file += "reqs_ecmp = [%s]\n\n" % ",".join(ecmp_reqs)
+    out_file += "reqs_ecmp_vals = [%s]\n\n" % ",".join(ecmp_vals)
+    out_file += "#" * 20
+    out_file += "\n\n"
 
-                ospf = OSPFSyn(topo, gen_paths=100)
-                for req in reqs:
-                    ospf.add_req(req)
-
-                ospf.synthesize()
-                if ospf.removed_reqs:
-                    print "Generating Reqs are unsatifiable for reqsize", reqsize, "Trying again"
-                    continue
-                generated = True
-                ospf.update_network_graph()
-                req_name = "reqs_order_%d_%d" % (reqsize, pathorder)
-                order_reqs.append(req_name)
-                out_file += "%s = [\n" % (req_name)
-                for req in reqs:
-                    out_file += "    %s,\n" % repr(req)
-                out_file += "]\n\n"
-                vals_name = "edges_cost_order_%d_%d" % (reqsize, pathorder)
-                order_vals.append(vals_name)
-                out_file += "%s = [\n" % vals_name
-                for src, dst in topo.edges_iter():
-                    out_file += '    ("%s", "%s", %d),\n' %(src, dst, topo.get_edge_ospf_cost(src, dst))
-                out_file += "]\n\n"
-        out_file += "reqs_order = [%s]\n\n" % ",".join(order_reqs)
-        out_file += "reqs_order_vals = [%s]\n\n" % ",".join(order_vals)
-        out_file += "#" * 20
-        out_file += "\n\n"
+    out_file += "reqs_kconnected = [%s]\n\n" % ",".join(kconnected_reqs)
+    out_file += "reqs_kconnected_vals = [%s]\n\n" % ",".join(kconnected_vals)
+    out_file += "#" * 20
+    out_file += "\n\n"
+    out_file += "reqs_order = [%s]\n\n" % ", ".join(order_reqs)
+    out_file += "reqs_order_vals = [%s]\n\n" % ", ".join(order_vals)
+    out_file += "#" * 20
+    out_file += "\n\n"
 
     dirname = os.path.dirname(topology_file)
     topo_name = os.path.basename(topology_file).split('.graphml')[0]
