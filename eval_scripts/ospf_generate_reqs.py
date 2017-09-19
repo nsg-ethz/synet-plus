@@ -208,7 +208,7 @@ def get_simple_reqs(topo, reqsize, rand):
         print "Generating Simple for reqsize=%d" % (reqsize,)
         reqs = generate_simple_reqs(topo, reqsize, rand)
         print "Done Generating Simple"
-        ospf = OSPFSyn(topo, gen_paths=100)
+        ospf = OSPFSyn(topo, gen_paths=100, random_obj=rand)
         for req in reqs:
             ospf.add_req(req)
         ret = ospf.synthesize()
@@ -246,7 +246,7 @@ def get_ecmp_reqs(topo, reqsize, ecmp, rand):
         print "Generating ECMP for reqsize=%d, ecmp=%d" % (reqsize, ecmp)
         reqs = generate_ecmp_reqs(topo, reqsize, ecmp, rand)
         print "Done Generating ECMP"
-        ospf = OSPFSyn(topo, gen_paths=100)
+        ospf = OSPFSyn(topo, gen_paths=100, random_obj=rand)
         for req in reqs:
             ospf.add_req(req)
         ret = ospf.synthesize()
@@ -271,7 +271,7 @@ def get_ecmp_reqs(topo, reqsize, ecmp, rand):
     return out_file, reqs, req_name, vals_name
 
 
-def get_kconnected(topo, ecmp_reqs, reqsize, k):
+def get_kconnected(topo, ecmp_reqs, reqsize, k, rand):
     out_file = ""
     print "X" * 40
     print "Generating KConneced for reqsize=%d, k=%d" % (reqsize, k)
@@ -283,7 +283,7 @@ def get_kconnected(topo, ecmp_reqs, reqsize, k):
     for req in ecmp_reqs:
         kreqs.append(KConnectedPathsReq(req.protocol, req.dst_net, req.paths, False))
 
-    ospf2 = OSPFSyn(topo, gen_paths=100)
+    ospf2 = OSPFSyn(topo, gen_paths=100, random_obj=rand)
     for req in kreqs:
         ospf2.add_req(req)
     ospf2.synthesize()
@@ -317,7 +317,7 @@ def get_path_order(topo, reqsize, pathorder, rand):
         reqs = generate_ordered_reqs(topo, reqsize, pathorder, rand)
         print "Done Generating PathOrdered"
 
-        ospf = OSPFSyn(topo, gen_paths=10)
+        ospf = OSPFSyn(topo, gen_paths=100, random_obj=rand)
         for req in reqs:
             print req
             ospf.add_req(req)
@@ -345,7 +345,7 @@ def get_path_order(topo, reqsize, pathorder, rand):
 def main():
     parser = argparse.ArgumentParser(
         description='Generate OSPF Requiremetns for a given topology.')
-    parser.add_argument('-f', type=str, default=None,
+    parser.add_argument('-f', type=str, required=True, default=None,
                         help='read topology zoo graphml file')
     parser.add_argument('--seed', type=int, default=0,
                         help='The seed of the random generator')
@@ -409,7 +409,7 @@ from synet.utils.common import KConnectedPathsReq\n
             # We can use the ECMP to generate kconnected
             print "ECMP reqs", e_reqs
             k_out, k_reqs, k_req_name, k_vals_name = get_kconnected(
-                topo, e_reqs, reqsize, ecmp)
+                topo, e_reqs, reqsize, ecmp, rand)
             out_file += k_out
             print "APPENDING", k_req_name
             kconnected_reqs.append(k_req_name)
