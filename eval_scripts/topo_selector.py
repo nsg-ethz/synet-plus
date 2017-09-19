@@ -27,6 +27,7 @@ def select_topologies():
     bad_topos = ['fiber', 'Fiber', 'Telcove', 'DialtelecomCz',
                  'GtsSlovakia', 'GtsPoland', 'GtsCzechRepublic',
                  'GtsRomania', ' GtsHungary', 'Renater2006',
+                 'Syringa', 'Globenet'
                  ]
     for file in glob.glob("topos/topozoo/*.graphml"):
         topo = read_topology_zoo_netgraph(file)
