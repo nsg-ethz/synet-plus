@@ -235,7 +235,6 @@ class OSPFSyn(SynthesisComponent):
 
         # Assert Ordering
         for p0, p1 in zip(path_costs[0::1], path_costs[1::1]):
-            print "ADDING", p0 < p1
             self.solver.add(p0 < p1)
 
         oo = 1
