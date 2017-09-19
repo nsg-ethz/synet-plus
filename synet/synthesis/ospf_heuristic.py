@@ -236,7 +236,7 @@ class OSPFSyn(SynthesisComponent):
         for p0, p1 in zip(range(len(paths))[0::1],range(len(paths))[1::1]):
             p0_name = get_path_name(paths[p0])
             p1_name = get_path_name(paths[p1])
-            track_name = '%s_ISLESS_%s' % (p0_name, p1_name)
+            track_name = '%s_ORDER_%s' % (p0_name, p1_name)
             p0_cost = path_costs[p0]
             p1_cost = path_costs[p1]
             if is_symbolic(p0_cost):
