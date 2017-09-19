@@ -261,6 +261,45 @@ class OSPFSyn(SynthesisComponent):
             if count > cuttoff:
                 break
 
+    def generate_kconnected_smt(self, paths):
+        src, dst = paths[0][0], paths[0][-1]
+        path_costs = [self._get_path_cost(path) for path in paths]
+        path_names = [get_path_name(path) for path in paths]
+        cuttoff = self.gen_paths
+        count = 0
+        path_key_req = tuple(paths[0])
+        if path_key_req not in self.saved_path_gen:
+            self.saved_path_gen[path_key_req] = self.generate_random_paths(
+                src, dst, 0.6, self.random_gen)
+        elif path_key_req not in self.counter_examples:
+            return
+        oo = 1
+        for rand_path in self.saved_path_gen[path_key_req]:
+            # Skip if we generated the same path as the requirement
+            if rand_path in paths:
+                continue
+            if rand_path:
+                for index, path in enumerate(paths):
+                    path_name = path_names[index]
+                    path_cost = path_costs[index]
+                    rand_path_name = '_'.join(rand_path)
+                    rand_path_cost = self._get_path_cost(rand_path)
+                    track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                    if isinstance(rand_path_cost, int) and isinstance(path_cost, int):
+                        t1, t2 = z3.Consts(
+                            'p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
+                        oo += 1
+                        const = z3.And(
+                            t1 == path_cost, t2 == rand_path_cost,
+                            t1 <= t2, path_cost  <= rand_path_cost)
+                        self.solver.assert_and_track(const, track_name)
+                    else:
+                        self.solver.assert_and_track(
+                            path_cost < rand_path_cost, track_name)
+            count += 1
+            if count > cuttoff:
+                break
+
     def push_requirements(self):
         self.solver.push()
         self.log.info("Start pushing OSPF requirements")
@@ -269,6 +308,7 @@ class OSPFSyn(SynthesisComponent):
         simple_reqs = []
         ordered_reqs = []
         ecmp_reqs = []
+        kconnected_reqs = []
         for req in self.reqs:
             if isinstance(req, PathReq):
                 simple_reqs.append(req.path)
@@ -281,12 +321,20 @@ class OSPFSyn(SynthesisComponent):
                 paths = [r.path for r in req.paths]
                 ecmp_reqs.append(paths)
                 self.all_req_paths.extend(paths)
+            elif isinstance(req, KConnectedPathsReq):
+                paths = [r.path for r in req.paths]
+                kconnected_reqs.append(paths)
+                self.all_req_paths.extend(paths)
+            else:
+                raise ValueError("Not supported req: %s", req)
         for path in simple_reqs:
             self.generate_path_smt(path)
         for paths in ordered_reqs:
             self.generate_path_order_smt(paths)
         for paths in ecmp_reqs:
             self.generate_ecmp_smt(paths)
+        for paths in kconnected_reqs:
+            self.generate_kconnected_smt(paths)
         end = timer()
         self.log.info("End pushing OSPF requirements: %s seconds", (end - start))
 
@@ -352,7 +400,7 @@ class OSPFSyn(SynthesisComponent):
                         self.reqs.remove(req)
                         path_req = req
                         break
-                elif isinstance(req, ECMPPathsReq):
+                elif isinstance(req, (ECMPPathsReq, PathOrderReq, KConnectedPathsReq)):
                     found = False  # To break outer loop
                     for p in req.paths:
                         if path == p.path:
@@ -458,8 +506,8 @@ class OSPFSyn(SynthesisComponent):
             computed = list(shortest)
             if len(computed) > 1 or computed[0] != curr_path:
                 print "#" * 20
-                print "Required shortest path", curr_path
-                print "Computed shortest path", computed
+                print "Required Order shortest path", curr_path
+                print "Computed Order shortest path", computed
                 print "#" * 20
                 sat = False
                 key = get_path_key(primary[0], primary[-1])
@@ -505,16 +553,15 @@ class OSPFSyn(SynthesisComponent):
                     break
             if not_valid_path:
                 print "#" * 20
-                print "Required shortest path", curr_reqs
-                print "Computed shortest path", not_valid_path
+                print "Required KConnected shortest path", curr_reqs
+                print "Computed KConnected shortest path", not_valid_path
                 print "#" * 20
                 sat = False
                 key = get_path_key(primary[0], primary[-1])
                 if key not in self.counter_examples:
                     self.counter_examples[key] = []
-                for c_path in computed:
-                    self.log.debug("ADDING COUNTER KConnected example: %s", c_path)
-                    self.counter_examples[key].append(c_path)
+                self.log.debug("ADDING COUNTER KConnected example: %s", not_valid_path)
+                self.counter_examples[key].append(not_valid_path)
                 break
         return sat
 
@@ -548,7 +595,7 @@ class OSPFSyn(SynthesisComponent):
 
         # First try to synthesize with all requirements
         while not self.solve():
-            # At this point any unsat is dirctly caused by the requirements
+            # At this point any unsat is directly caused by the requirements
             # So remove one of them
             print self.solver.unsat_core()
             self.remove_unsat_paths()
