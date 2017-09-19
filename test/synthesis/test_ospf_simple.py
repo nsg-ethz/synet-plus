@@ -110,7 +110,7 @@ class TestOSPF(unittest.TestCase):
 
     def test_4nodes_1paths_heuristic(self):
         reqs = TestOSPF.get_1path_req()
-        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(self.network_graph)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(self.network_graph, gen_paths=10)
         for req in reqs:
             ospf.add_req(req)
         ret = ospf.synthesize()
@@ -122,7 +122,7 @@ class TestOSPF(unittest.TestCase):
     @attr(speed='slow')
     def test_4nodes_3paths_unstatified_heuristic(self):
         reqs = TestOSPF.get_3path_req()
-        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(self.network_graph)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(self.network_graph, gen_paths=10)
         for req in reqs:
             ospf.add_req(req)
         ret = ospf.synthesize()
@@ -164,7 +164,7 @@ class TestOSPF(unittest.TestCase):
         path1 = PathReq(Protocols.OSPF, 'Google', p1, False)
         path2 = PathReq(Protocols.OSPF, 'Google', p2, False)
         ecmp_req = ECMPPathsReq(Protocols.OSPF, 'Google', [path1, path2], False)
-        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(network_graph)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(network_graph, gen_paths=10)
         ospf.add_req(ecmp_req)
         ret = ospf.synthesize()
         self.assertTrue(ret)
@@ -230,7 +230,7 @@ class TestOSPF(unittest.TestCase):
         path3 = PathReq(Protocols.OSPF, 'Google', p3, False)
         paths = [path1, path2, path3]
         order_req = PathOrderReq(Protocols.OSPF, 'Google', paths, False)
-        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(network_graph)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(network_graph, gen_paths=10)
         ospf.add_req(order_req)
         ret = ospf.synthesize()
         self.assertTrue(ret)
@@ -254,3 +254,24 @@ class TestOSPF(unittest.TestCase):
         self.assertLessEqual(p1_cost, p2_cost)
         self.assertLessEqual(p2_cost, p3_cost)
         self.assertLessEqual(p3_cost, p4_cost)
+
+    @attr(speed='fast')
+    def test_ordered_notvalid(self):
+        fan_out = 4
+        network_graph = self.get_triangles(fan_out)
+        source = 'source'
+        sink = 'sink'
+        p1 = [source, 'R1', sink]
+        p2 = [source, 'R2', sink]
+        p3 = [source, 'R3', sink]
+        path1 = PathReq(Protocols.OSPF, 'Google', p1, False)
+        path2 = PathReq(Protocols.OSPF, 'Google', p2, False)
+        path3 = PathReq(Protocols.OSPF, 'Google', p3, False)
+        paths = [path1, path2, path3]
+        order_req1 = PathOrderReq(Protocols.OSPF, 'Google', paths, False)
+        order_req2 = PathOrderReq(Protocols.OSPF, 'Google', [path3, path2, path1], False)
+        ospf = synet.synthesis.ospf_heuristic.OSPFSyn(network_graph, gen_paths=10)
+        ospf.add_req(order_req1)
+        ospf.add_req(order_req2)
+        ret = ospf.synthesize()
+        self.assertFalse(ret)
