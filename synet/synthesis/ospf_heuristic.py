@@ -223,6 +223,7 @@ class OSPFSyn(SynthesisComponent):
     def generate_path_order_smt(self, paths):
         src, dst = paths[0][0], paths[0][-1]
         path_costs = [self._get_path_cost(path) for path in paths]
+        path_names = [get_path_name(path) for path in paths]
         cuttoff = self.gen_paths
         count = 0
         path_key_req = tuple(paths[0])
@@ -231,11 +232,15 @@ class OSPFSyn(SynthesisComponent):
                 src, dst, 0.6, self.random_gen)
         elif path_key_req not in self.counter_examples:
             return
-        path_name = get_path_name(paths[0])
+        path_name = path_names[0]
 
         # Assert Ordering
-        for p0, p1 in zip(path_costs[0::1], path_costs[1::1]):
-            self.solver.add(p0 < p1)
+
+        for p0, p1 in zip(range(len(paths))[0::1],range(len(paths))[1::1]):
+            track_name = '%s_ISLESS_%s' % (path_names[p0], path_names[p1])
+            p0_cost = path_costs[p0]
+            p1_cost = path_costs[p1]
+            self.solver.assert_and_track(p0_cost < p1_cost, track_name)
 
         oo = 1
         for rand_path in self.saved_path_gen[path_key_req]:
@@ -250,9 +255,10 @@ class OSPFSyn(SynthesisComponent):
                     t1, t2 = z3.Consts(
                         'p1_cost_%d, p2_cost_%d' % (oo, oo), z3.IntSort())
                     oo += 1
-                    err = "path cost %d and rand cost %s" % (path_costs[-1], rand_path_cost)
-                    assert path_costs[-1] <= rand_path_cost, err
-                    const = z3.And(t1 == path_costs[-1], t2 == rand_path_cost, t1 <= t2)
+                    const = z3.And(t1 == path_costs[-1],
+                                   t2 == rand_path_cost,
+                                   t1 <= t2,
+                                   path_costs[-1] <= rand_path_cost)
                     self.solver.assert_and_track(const, track_name)
                 else:
                     self.solver.assert_and_track(
