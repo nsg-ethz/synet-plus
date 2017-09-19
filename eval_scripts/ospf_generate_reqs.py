@@ -319,7 +319,9 @@ def main():
     topology_file = args.f
     seed = args.seed
     assert topology_file
-
+    print "Y" * 50
+    print "Generating reqs for:", topology_file
+    print "Y" * 50
     if not seed:
         seed = random.randint(0, sys.maxint)
         print "Generated new seed", seed
