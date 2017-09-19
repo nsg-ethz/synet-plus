@@ -24,9 +24,17 @@ LARGE_DIR = 'topos/large'
 
 def select_topologies():
     topos = {}
+    bad_topos = ['fiber', 'Telcove', 'DialtelecomCz']
     for file in glob.glob("topos/topozoo/*.graphml"):
         topo = read_topology_zoo_netgraph(file)
         if len(topo.nodes()) < 32 or len(topo.nodes()) > 200:
+            continue
+        bad = False
+        for tmp in bad_topos:
+            if tmp in file:
+                bad = True
+                break
+        if bad:
             continue
         topos[file] = topo
 
