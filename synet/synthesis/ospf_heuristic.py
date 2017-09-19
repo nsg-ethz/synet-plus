@@ -234,7 +234,6 @@ class OSPFSyn(SynthesisComponent):
     def generate_path_order_smt(self, paths):
         src, dst = paths[0][0], paths[0][-1]
         path_costs = [self._get_path_cost(path) for path in paths]
-
         path_names = [get_path_name(path) for path in paths]
         cuttoff = self.gen_paths
         count = 0
@@ -244,7 +243,15 @@ class OSPFSyn(SynthesisComponent):
                 src, dst, 0.6, self.random_gen)
         elif path_key_req not in self.counter_examples:
             return
-        path_name = path_names[0]
+
+        path_costs_var = []
+        for index, cost in enumerate(path_costs):
+            if is_symbolic(cost):
+                path_costs_var.append(cost)
+                continue
+            var = z3.Const("%s_cost" % path_names[index], z3.IntSort())
+            self.solver.add(var == cost)
+            path_costs_var.append(var)
 
         # Assert Ordering
         for p0, p1 in zip(range(len(paths))[0::1],range(len(paths))[1::1]):
@@ -257,31 +264,29 @@ class OSPFSyn(SynthesisComponent):
                 self.solver.assert_and_track(p0_cost < p1_cost, track_name)
             else:
                 if not (p0_cost < p1_cost):
-                    p0_var = z3.Const("%s_cost" % p0_name, z3.IntSort())
+                    p0_var = z3.Const("%s_cost2" % p0_name, z3.IntSort())
                     self.solver.add(p0_var == p0_cost)
-                    self.solver.assert_and_track(p0_var < p1_var, track_name)
-
-        least_cost = path_costs[-1]
-        if not is_symbolic(least_cost):
-            var = z3.Const("%s_cost2" % path_names[-1], z3.IntSort())
-            self.solver.add(var == least_cost)
-            least_cost_var = var
+                    self.solver.assert_and_track(p0_var < p1_cost, track_name)
 
         for rand_path in self.saved_path_gen[path_key_req]:
             # Skip if we generated the same path as the requirement
             if rand_path in paths:
                 continue
             if rand_path:
-                rand_path_name = get_path_name(rand_path)
-                rand_path_cost = self._get_path_cost(rand_path)
-                track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
-                if is_symbolic(least_cost) or is_symbolic(rand_path_cost):
-                    self.solver.assert_and_track(
-                        least_cost < rand_path_cost, track_name)
-                else:
-                    if not (least_cost < rand_path_cost):
+                for index in range(len(paths)):
+                    rand_path_name = get_path_name(rand_path)
+                    rand_path_cost = self._get_path_cost(rand_path)
+                    path_cost = path_costs[index]
+                    path_name = path_names[index]
+                    track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                    if is_symbolic(path_cost) or is_symbolic(rand_path_cost):
                         self.solver.assert_and_track(
-                            least_cost_var < rand_path_cost, track_name)
+                            path_cost < rand_path_cost, track_name)
+                    else:
+                        path_cost_var = path_costs_var[index]
+                        if not (path_cost < rand_path_cost):
+                            self.solver.assert_and_track(
+                                path_cost_var < rand_path_cost, track_name)
             count += 1
             if count > cuttoff:
                 break
@@ -643,7 +648,8 @@ class OSPFSyn(SynthesisComponent):
             # Using dijkstra algorithm
             for req in self.reqs:
                 g_ospf = self.get_output_network_graph()
-                recompute = not self.check_req_satisfied(g_ospf, req)
+                if not self.check_req_satisfied(g_ospf, req):
+                    recompute = True
             if not recompute:
                 break
             print "Recomputing ospf costs"
@@ -655,9 +661,10 @@ class OSPFSyn(SynthesisComponent):
             while not self.solve():
                 print "UNSAT"
                 print self.solver.unsat_core()
-                removed_path = self.remove_unsat_paths()
+                #removed_path = self.remove_unsat_paths()
                 print "#" * 40
-                print "Removed path from req", removed_path
+                #print "Removed path from req", removed_path
+                #assert not removed_path
                 self.gen_paths = origianl_gen_paths
                 print "#" * 40
         return True
