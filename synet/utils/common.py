@@ -41,6 +41,11 @@ ORIGIN_TYPE = "as_origin"
 AS_NUM = 'AS'
 
 
+def path_exists(path, graph):
+    """Return True if the path exists in the graph"""
+    return False not in [graph.has_edge(x, y) for x, y in zip(path[0::1], path[1::1])]
+
+
 def get_propagated_info(propagation_graph, node, prefix=None, from_node=None, unselected=True):
     all_props = []
     for net, data in propagation_graph.node[node]['prefixes'].iteritems():

@@ -20,6 +20,7 @@ from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 from synet.utils.common import Req
 from synet.utils.common import SynthesisComponent
+from synet.utils.common import path_exists
 from synet.utils.ospf_utils import extract_ospf_graph
 from synet.utils.ospf_utils import get_output_configs
 from synet.utils.ospf_utils import get_output_network_graph
@@ -369,107 +370,168 @@ class OSPFSyn(SynthesisComponent):
         self.reset_solver()
         return self.removed_reqs[-1]
 
-    def check_req_satisfied(self, out_graph, req):
-        recompute = False
-        if isinstance(req, PathReq):
-            computed = list(nx.all_shortest_paths(out_graph, req.path[0], req.path[-1], 'cost'))
-            if len(computed) > 1 or computed[0] != req.path:
+    def _check_simple_path_req(self, out_graph, req):
+        """
+        Check if a PathReq is satisfied
+        :param out_graph: the current ospf graph
+        :param req: PathReq
+        :return: True if satisfied
+        """
+        sat = True
+        path = req.path
+        try:
+            spath = nx.all_shortest_paths(out_graph, path[0], path[-1], 'cost')
+            computed = list(spath)
+        except nx.NetworkXNoPath:
+            sat = False
+            return sat
+
+        if len(computed) > 1 or computed[0] != path:
+            print "#" * 20
+            print "Required Simple shortest path", path
+            print "Computed Simple shortest path", computed
+            print "#" * 20
+            sat = False
+            key = get_path_key(path[0], path[-1])
+            if key not in self.counter_examples:
+                self.counter_examples[key] = []
+            for c_path in computed:
+                self.log.debug("ADDING COUNTER Simple example: %s", c_path)
+                self.counter_examples[key].append(c_path)
+        return sat
+
+    def _check_ecmp_path_req(self, out_graph, req):
+        """
+        Check if a ECMPPathsReq is satisfied
+        :param out_graph: the current ospf graph
+        :param req: ECMPPathsReq
+        :return: True if satisfied
+        """
+        sat = True
+        req_paths = [tuple(r.path) for r in req.paths]
+        primary = req_paths[0]
+        try:
+            shortest = nx.all_shortest_paths(
+                out_graph, primary[0], primary[-1], 'cost')
+            computed = set([tuple(p) for p in shortest])
+        except nx.NetworkXNoPath:
+            sat = False
+            return sat
+        if computed != set(req_paths):
+            print "#" * 20
+            print "Required ECMP paths", req_paths
+            print "Computed ECMP paths", computed
+            print "#" * 20
+            sat = False
+            key = get_path_key(primary[0], primary[-1])
+            if key not in self.counter_examples:
+                self.counter_examples[key] = []
+            for c_path in computed:
+                self.log.debug("ADDING COUNTER ECMP example: %s", c_path)
+                self.counter_examples[key].append(c_path)
+        return sat
+
+    def _check_order_path_req(self, out_graph, req):
+        """
+        Check if a PathOrder is satisfied
+        :param out_graph: the current ospf graph
+        :param req: PathOrder
+        :return: True if satisfied
+        """
+        sat = True
+        req_paths = [r.path for r in req.paths]
+        all_edges = [(None, None)] + list(out_graph.edges_iter())
+        primary = req_paths[0]
+        for src, dst in all_edges:
+            out_copy = out_graph.copy()
+            if src is not None and dst is not None:
+                out_copy.remove_edge(src, dst)
+            curr_path = None
+            for path in req_paths:
+                if path_exists(path, out_copy):
+                    curr_path = path
+                    break
+            if not curr_path:
+                # None of the requirements paths exists anymore
+                continue
+            shortest = nx.all_shortest_paths(
+                out_copy, curr_path[0], curr_path[-1], 'cost')
+            computed = list(shortest)
+            if len(computed) > 1 or computed[0] != curr_path:
                 print "#" * 20
-                print "Required shortest path", req.path
+                print "Required shortest path", curr_path
                 print "Computed shortest path", computed
                 print "#" * 20
-                recompute = True
-                key = get_path_key(req.path[0], req.path[-1])
+                sat = False
+                key = get_path_key(primary[0], primary[-1])
                 if key not in self.counter_examples:
                     self.counter_examples[key] = []
                 for c_path in computed:
-                    print "ADDING COUNTER example", c_path
+                    self.log.debug("ADDING COUNTER PathOrder example: %s", c_path)
                     self.counter_examples[key].append(c_path)
+                break
+        return sat
+
+    def _check_kconnected_req(self, out_graph, req):
+        """
+        Check if a KConnected is satisfied
+        :param out_graph: the current ospf graph
+        :param req: KConnected
+        :return: True if satisfied
+        """
+        sat = True
+        req_paths = [r.path for r in req.paths]
+        all_edges = [(None, None)] + list(out_graph.edges_iter())
+        primary = req_paths[0]
+        for src, dst in all_edges:
+            out_copy = out_graph.copy()
+            if src is not None and dst is not None:
+                out_copy.remove_edge(src, dst)
+            try:
+                shortest = nx.all_shortest_paths(
+                    out_copy, primary[0], primary[-1], 'cost')
+                computed = list(shortest)
+            except nx.NetworkXNoPath:
+                continue
+            curr_reqs = []
+            for path in req_paths:
+                if path_exists(path, out_copy):
+                    curr_reqs.append(path)
+            if not curr_reqs:
+                continue
+            not_valid_path = None
+            for p in computed:
+                if p not in curr_reqs:
+                    not_valid_path = p
+                    break
+            if not_valid_path:
+                print "#" * 20
+                print "Required shortest path", curr_reqs
+                print "Computed shortest path", not_valid_path
+                print "#" * 20
+                sat = False
+                key = get_path_key(primary[0], primary[-1])
+                if key not in self.counter_examples:
+                    self.counter_examples[key] = []
+                for c_path in computed:
+                    self.log.debug("ADDING COUNTER KConnected example: %s", c_path)
+                    self.counter_examples[key].append(c_path)
+                break
+        return sat
+
+    def check_req_satisfied(self, out_graph, req):
+        sat = True
+        if isinstance(req, PathReq):
+            sat = self._check_simple_path_req(out_graph, req)
         elif isinstance(req, ECMPPathsReq):
-            req_paths = [tuple(r.path) for r in req.paths]
-            computed = set(
-                [tuple(p) for p in
-                 nx.all_shortest_paths(
-                     out_graph, req_paths[0][0], req_paths[0][-1], 'cost')])
-            if computed != set(req_paths):
-                print "#" * 20
-                print "Required ECMP paths", req_paths
-                print "Computed ECMP paths", computed
-                print "#" * 20
-                recompute = True
-                key = get_path_key(req_paths[0][0], req_paths[0][-1])
-                if key not in self.counter_examples:
-                    self.counter_examples[key] = []
-                for c_path in computed:
-                    print "ADDING ECMP COUNTER example", c_path
-                    self.counter_examples[key].append(c_path)
+            sat = self._check_ecmp_path_req(out_graph, req)
         elif isinstance(req, PathOrderReq):
-            req_paths = [r.path for r in req.paths]
-            all_edges = [(None, None)] + list(out_graph.edges_iter())
-            for src, dst in all_edges:
-                out_copy = out_graph.copy()
-                if src is not None and dst is not None:
-                    out_copy.remove_edge(src, dst)
-                curr_path = None
-                for path in req_paths:
-                    if False not in [out_copy.has_edge(x, y) for x, y in zip(path[0::1], path[1::1])]:
-                        curr_path = path
-                        break
-                if not curr_path:
-                    # None of the requirements paths exists anymore
-                    continue
-                computed = list(nx.all_shortest_paths(out_copy, curr_path[0], curr_path[-1], 'cost'))
-                if len(computed) > 1 or computed[0] != curr_path:
-                    print "#" * 20
-                    print "Required shortest path", curr_path
-                    print "Computed shortest path", computed
-                    print "#" * 20
-                    recompute = True
-                    break
-                    key = get_path_key(req_paths[0][0], req_paths[0][-1])
-                    if key not in self.counter_examples:
-                        self.counter_examples[key] = []
-                    for c_path in computed:
-                        print "ADDING COUNTER example", c_path
-                        self.counter_examples[key].append(c_path)
+            sat = self._check_order_path_req(out_graph, req)
         elif isinstance(req, KConnectedPathsReq):
-            req_paths = [r.path for r in req.paths]
-            all_edges = [(None, None)] + list(out_graph.edges_iter())
-            for src, dst in all_edges:
-                out_copy = out_graph.copy()
-                if src is not None and dst is not None:
-                    out_copy.remove_edge(src, dst)
-                try:
-                    computed = list(nx.all_shortest_paths(out_copy, req_paths[0][0], req_paths[0][-1], 'cost'))
-                except nx.NetworkXNoPath:
-                    continue
-                curr_reqs = []
-                for path in req_paths:
-                    if False not in [out_copy.has_edge(x, y) for x, y in zip(path[0::1], path[1::1])]:
-                        curr_reqs.append(path)
-                if not curr_reqs:
-                    continue
-                not_valid_path = None
-                for p in computed:
-                    if p not in curr_reqs:
-                        not_valid_path = p
-                        break
-                if not_valid_path:
-                    print "#" * 20
-                    print "Required shortest path", curr_reqs
-                    print "Computed shortest path", not_valid_path
-                    print "#" * 20
-                    recompute = True
-                    break
-                    key = get_path_key(req_paths[0][0], req_paths[0][-1])
-                    if key not in self.counter_examples:
-                        self.counter_examples[key] = []
-                    for c_path in computed:
-                        print "ADDING COUNTER example", c_path
-                        self.counter_examples[key].append(c_path)
+            sat = self._check_kconnected_req(out_graph, req)
         else:
             raise ValueError("Cannot check req for %s", req)
-        return recompute
+        return sat
 
     def synthesize(self, retries_before_rest=5, gen_path_increment=500):
         """
@@ -500,7 +562,7 @@ class OSPFSyn(SynthesisComponent):
             # Using dijkstra algorithm
             for req in self.reqs:
                 g_ospf = self.get_output_network_graph()
-                recompute = self.check_req_satisfied(g_ospf, req)
+                recompute = not self.check_req_satisfied(g_ospf, req)
             if not recompute:
                 break
             print "Recomputing ospf costs"
