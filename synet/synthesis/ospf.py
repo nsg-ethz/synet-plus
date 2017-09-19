@@ -109,11 +109,12 @@ class OSPFSyn(SynthesisComponent):
             p0_cost = self._get_path_cost(path0)
             p1_cost = self._get_path_cost(path1)
             self.solver.add(p0_cost < p1_cost)
-        path_cost = self._get_path_cost(paths[-1])
         for rand_path in nx.all_simple_paths(self.network_graph, src, dst):
             if rand_path not in paths:
-                simple_path_cost = self._get_path_cost(rand_path)
-                self.solver.add(path_cost < simple_path_cost)
+                for path in paths:
+                    path_cost = self._get_path_cost(path)
+                    simple_path_cost = self._get_path_cost(rand_path)
+                    self.solver.add(path_cost < simple_path_cost)
 
     def push_requirements(self):
         """Push the requirements we care about to the solver"""
