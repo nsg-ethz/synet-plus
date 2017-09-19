@@ -14,6 +14,7 @@ import z3
 
 from synet.topo.graph import NetworkGraph
 from synet.utils.common import ECMPPathsReq
+from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
@@ -431,7 +432,43 @@ class OSPFSyn(SynthesisComponent):
                     for c_path in computed:
                         print "ADDING COUNTER example", c_path
                         self.counter_examples[key].append(c_path)
-
+        elif isinstance(req, KConnectedPathsReq):
+            req_paths = [r.path for r in req.paths]
+            all_edges = [(None, None)] + list(out_graph.edges_iter())
+            for src, dst in all_edges:
+                out_copy = out_graph.copy()
+                if src is not None and dst is not None:
+                    out_copy.remove_edge(src, dst)
+                try:
+                    computed = list(nx.all_shortest_paths(out_copy, req_paths[0][0], req_paths[0][-1], 'cost'))
+                except nx.NetworkXNoPath:
+                    continue
+                curr_reqs = []
+                for path in req_paths:
+                    if False not in [out_copy.has_edge(x, y) for x, y in zip(path[0::1], path[1::1])]:
+                        curr_reqs.append(path)
+                if not curr_reqs:
+                    continue
+                not_valid_path = None
+                for p in computed:
+                    if p not in curr_reqs:
+                        not_valid_path = p
+                        break
+                if not_valid_path:
+                    print "#" * 20
+                    print "Required shortest path", curr_reqs
+                    print "Computed shortest path", not_valid_path
+                    print "#" * 20
+                    recompute = True
+                    break
+                    key = get_path_key(req_paths[0][0], req_paths[0][-1])
+                    if key not in self.counter_examples:
+                        self.counter_examples[key] = []
+                    for c_path in computed:
+                        print "ADDING COUNTER example", c_path
+                        self.counter_examples[key].append(c_path)
+        else:
+            raise ValueError("Cannot check req for %s", req)
         return recompute
 
     def synthesize(self, retries_before_rest=5, gen_path_increment=500):
