@@ -76,9 +76,10 @@ def get_output_configs(model, ospf_graph):
 def get_output_network_graph(model, ospf_graph):
     """Return OSPF graph annotated with synthesized costs"""
     configs = get_output_configs(model, ospf_graph)
+    out_graph = ospf_graph.copy()
     for src, dst, cost in configs:
-        ospf_graph[src][dst]['cost'] = cost
-    return ospf_graph
+        out_graph[src][dst]['cost'] = cost
+    return out_graph
 
 
 def synthesize_ospf_announce(network_graph, ospf_graph, reqs):
