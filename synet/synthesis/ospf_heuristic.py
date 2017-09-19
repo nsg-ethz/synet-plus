@@ -606,8 +606,10 @@ class OSPFSyn(SynthesisComponent):
         while not self.solve():
             # At this point any unsat is directly caused by the requirements
             # So remove one of them
+            print "Reqs directly are unsatisfiable"
             print self.solver.unsat_core()
-            self.remove_unsat_paths()
+            #self.remove_unsat_paths()
+            return False
 
         # Now the actual synthesis
         retries = 0
