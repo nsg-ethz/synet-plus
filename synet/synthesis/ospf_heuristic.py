@@ -73,6 +73,7 @@ class OSPFSyn(SynthesisComponent):
     def reset_solver(self):
         """Reset and clear all caches and create new solver"""
         self.solver = z3.Solver()
+        self.ospf_graph = extract_ospf_graph(self.network_graph, self.log)
         load_graph_constrains(self.solver, self.ospf_graph)
         self.saved_path_gen = {}
 
