@@ -165,7 +165,7 @@ edges_cost_simple_1 = [
 ####################
 
 reqs_ecmp_1_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Kapsede', 'Liepaja', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Kapsede', 'Liepaja', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
 ]
 
 edges_cost_ecmp_1_2 = [
@@ -320,7 +320,7 @@ edges_cost_ecmp_1_2 = [
 ]
 
 reqs_kconnected_1_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Kapsede', 'Liepaja', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Kapsede', 'Liepaja', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
 ]
 
 edges_cost_kconnected_1_2 = [
@@ -475,7 +475,7 @@ edges_cost_kconnected_1_2 = [
 ]
 
 reqs_order_1_2 = [
-    PathOrderReq(Protocols.OSPF, 'Mazsalaca', [PathReq(Protocols.OSPF, "Mazsalaca", ['Aloja', 'Mazsalaca'], False), PathReq(Protocols.OSPF, "Mazsalaca", ['Aloja', 'Limbazi', 'Riga', 'Rujiena', 'Mazsalaca'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Riga', 'Rezekne', 'Daugapils'], False)], False),
 ]
 
 edges_cost_order_1_2 = [
@@ -545,7 +545,7 @@ edges_cost_order_1_2 = [
     ("Riga", "Balvi", 1),
     ("Riga", "Limbazi", 1),
     ("Riga", "Talsi", 1),
-    ("Riga", "Preili", 1),
+    ("Riga", "Preili", 2),
     ("Riga", "Saldus", 1),
     ("Riga", "Skriveri", 1),
     ("Riga", "Carnikava", 1),
@@ -630,8 +630,8 @@ edges_cost_order_1_2 = [
 ]
 
 reqs_simple_2 = [
-    PathReq(Protocols.OSPF, "Skriveri", ['Kraslava', 'Riga', 'Skriveri'], False),
-    PathReq(Protocols.OSPF, "Broceni", ['Kraslava', 'Riga', 'Saldus', 'Broceni'], False),
+    PathReq(Protocols.OSPF, "Livani", ['Vilani', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils', 'Livani'], False),
+    PathReq(Protocols.OSPF, "Kraslava", ['Vilani', 'Riga', 'Kraslava'], False),
 ]
 
 edges_cost_simple_2 = [
@@ -788,8 +788,8 @@ edges_cost_simple_2 = [
 ####################
 
 reqs_ecmp_2_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Liepaja', 'Riga', 'Sigulda', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Liepaja', 'Riga', 'Limbazi', 'Liepupe'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Liepaja', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Liepaja', 'Riga', 'Sigulda', 'Liepupe', 'Salagriva'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Jurmala', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Jurmala', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Jurmala', 'Riga', 'Limbazi', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Jurmala', 'Riga', 'Sigulda', 'Liepupe'], False)], False),
 ]
 
 edges_cost_ecmp_2_2 = [
@@ -944,8 +944,8 @@ edges_cost_ecmp_2_2 = [
 ]
 
 reqs_kconnected_2_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Liepaja', 'Riga', 'Sigulda', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Liepaja', 'Riga', 'Limbazi', 'Liepupe'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Liepaja', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Liepaja', 'Riga', 'Sigulda', 'Liepupe', 'Salagriva'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Jurmala', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Jurmala', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Jurmala', 'Riga', 'Limbazi', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Jurmala', 'Riga', 'Sigulda', 'Liepupe'], False)], False),
 ]
 
 edges_cost_kconnected_2_2 = [
@@ -1100,8 +1100,8 @@ edges_cost_kconnected_2_2 = [
 ]
 
 reqs_order_2_2 = [
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Olaine', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Olaine', 'Ozolnieki', 'Jelgava', 'Riga'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Mazsalaca', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Mazsalaca', 'Aloja', 'Limbazi', 'Riga', 'Rujiena'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Limbazi', [PathReq(Protocols.OSPF, "Limbazi", ['Liepupe', 'Limbazi'], False), PathReq(Protocols.OSPF, "Limbazi", ['Liepupe', 'Sigulda', 'Riga', 'Limbazi'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Adazi', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Adazi', 'Carnikava', 'Riga'], False)], False),
 ]
 
 edges_cost_order_2_2 = [
@@ -1256,10 +1256,10 @@ edges_cost_order_2_2 = [
 ]
 
 reqs_simple_4 = [
-    PathReq(Protocols.OSPF, "Strenci", ['Vangazi', 'Sigulda', 'Riga', 'Valmiera', 'Strenci'], False),
-    PathReq(Protocols.OSPF, "Salagriva", ['Vangazi', 'Sigulda', 'Liepupe', 'Salagriva'], False),
-    PathReq(Protocols.OSPF, "Eleja", ['Vangazi', 'Sigulda', 'Riga', 'Jelgava', 'Platone', 'Eleja'], False),
-    PathReq(Protocols.OSPF, "Ogre", ['Vangazi', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False),
+    PathReq(Protocols.OSPF, "Ledurga", ['Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Sigulda', 'Ledurga'], False),
+    PathReq(Protocols.OSPF, "Aloja", ['Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Limbazi', 'Aloja'], False),
+    PathReq(Protocols.OSPF, "Livberze", ['Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Livberze'], False),
+    PathReq(Protocols.OSPF, "Platone", ['Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Platone'], False),
 ]
 
 edges_cost_simple_4 = [
@@ -1416,10 +1416,10 @@ edges_cost_simple_4 = [
 ####################
 
 reqs_ecmp_4_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Vircava', [PathReq(Protocols.OSPF, "Vircava", ['Olaine', 'Ozolnieki', 'Jelgava', 'Platone', 'Vircava'], False), PathReq(Protocols.OSPF, "Vircava", ['Olaine', 'Riga', 'Jelgava', 'Platone', 'Vircava'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Platone', [PathReq(Protocols.OSPF, "Platone", ['Olaine', 'Riga', 'Jelgava', 'Platone'], False), PathReq(Protocols.OSPF, "Platone", ['Olaine', 'Ozolnieki', 'Jelgava', 'Platone'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Livberze', [PathReq(Protocols.OSPF, "Livberze", ['Olaine', 'Riga', 'Jelgava', 'Livberze'], False), PathReq(Protocols.OSPF, "Livberze", ['Olaine', 'Ozolnieki', 'Jelgava', 'Livberze'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Olaine', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Olaine', 'Riga', 'Sigulda', 'Liepupe', 'Salagriva'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Sigulda', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Limbazi', 'Liepupe'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Cibla', 'Ludza', 'Rezekne', 'Daugapils', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Preili'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Sigulda', 'Liepupe', 'Salagriva'], False)], False),
 ]
 
 edges_cost_ecmp_4_2 = [
@@ -1574,10 +1574,10 @@ edges_cost_ecmp_4_2 = [
 ]
 
 reqs_kconnected_4_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Vircava', [PathReq(Protocols.OSPF, "Vircava", ['Olaine', 'Ozolnieki', 'Jelgava', 'Platone', 'Vircava'], False), PathReq(Protocols.OSPF, "Vircava", ['Olaine', 'Riga', 'Jelgava', 'Platone', 'Vircava'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Platone', [PathReq(Protocols.OSPF, "Platone", ['Olaine', 'Riga', 'Jelgava', 'Platone'], False), PathReq(Protocols.OSPF, "Platone", ['Olaine', 'Ozolnieki', 'Jelgava', 'Platone'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Livberze', [PathReq(Protocols.OSPF, "Livberze", ['Olaine', 'Riga', 'Jelgava', 'Livberze'], False), PathReq(Protocols.OSPF, "Livberze", ['Olaine', 'Ozolnieki', 'Jelgava', 'Livberze'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Olaine', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Olaine', 'Riga', 'Sigulda', 'Liepupe', 'Salagriva'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Jelgava', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Olaine', 'Ozolnieki'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Sigulda', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Limbazi', 'Liepupe'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Cibla', 'Ludza', 'Rezekne', 'Daugapils', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Preili'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Cibla', 'Ludza', 'Rezekne', 'Riga', 'Sigulda', 'Liepupe', 'Salagriva'], False)], False),
 ]
 
 edges_cost_kconnected_4_2 = [
@@ -1732,10 +1732,10 @@ edges_cost_kconnected_4_2 = [
 ]
 
 reqs_order_4_2 = [
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Preili', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Preili', 'Daugapils', 'Riga'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Jelgava', [PathReq(Protocols.OSPF, "Jelgava", ['Riga', 'Jelgava'], False), PathReq(Protocols.OSPF, "Jelgava", ['Riga', 'Olaine', 'Ozolnieki', 'Jelgava'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Riga', 'Daugapils'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Limbazi', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Limbazi', 'Aloja', 'Mazsalaca', 'Rujiena', 'Riga'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Olaine', [PathReq(Protocols.OSPF, "Olaine", ['Riga', 'Olaine'], False), PathReq(Protocols.OSPF, "Olaine", ['Riga', 'Jelgava', 'Ozolnieki', 'Olaine'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Carnikava', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Carnikava', 'Adazi', 'Riga'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Daugapils', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Daugapils', 'Preili', 'Riga'], False)], False),
 ]
 
 edges_cost_order_4_2 = [
@@ -1754,7 +1754,7 @@ edges_cost_order_4_2 = [
     ("Olaine", "Riga", 1),
     ("Olaine", "Ozolnieki", 1),
     ("Rezekne", "Ludza", 1),
-    ("Rezekne", "Riga", 2),
+    ("Rezekne", "Riga", 1),
     ("Rezekne", "Daugapils", 1),
     ("Mazsalaca", "Aloja", 1),
     ("Mazsalaca", "Rujiena", 1),
@@ -1775,7 +1775,7 @@ edges_cost_order_4_2 = [
     ("Pociems", "Aloja", 1),
     ("Limbazi", "Aloja", 1),
     ("Limbazi", "Riga", 1),
-    ("Limbazi", "Liepupe", 1),
+    ("Limbazi", "Liepupe", 3),
     ("Limbazi", "Vijkene", 1),
     ("Auce", "Dobele", 1),
     ("Pusmucova", "Malnava", 1),
@@ -1890,14 +1890,14 @@ edges_cost_order_4_2 = [
 ]
 
 reqs_simple_8 = [
-    PathReq(Protocols.OSPF, "Preili", ['Ludza', 'Rezekne', 'Riga', 'Preili'], False),
-    PathReq(Protocols.OSPF, "Kegums", ['Ludza', 'Rezekne', 'Riga', 'Salaspils', 'Ikskile', 'Kegums'], False),
-    PathReq(Protocols.OSPF, "Pusmucova", ['Ludza', 'Rezekne', 'Riga', 'Karsava', 'Malnava', 'Pusmucova'], False),
-    PathReq(Protocols.OSPF, "Livani", ['Ludza', 'Rezekne', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils', 'Livani'], False),
-    PathReq(Protocols.OSPF, "Ulbroka", ['Ludza', 'Rezekne', 'Riga', 'Ulbroka'], False),
-    PathReq(Protocols.OSPF, "Salaspils", ['Ludza', 'Rezekne', 'Riga', 'Salaspils'], False),
-    PathReq(Protocols.OSPF, "Krimulda", ['Ludza', 'Rezekne', 'Riga', 'Sigulda', 'Krimulda'], False),
-    PathReq(Protocols.OSPF, "Sigulda", ['Ludza', 'Rezekne', 'Riga', 'Sigulda'], False),
+    PathReq(Protocols.OSPF, "Rezekne", ['Iecava', 'Riga', 'Rezekne'], False),
+    PathReq(Protocols.OSPF, "Livani", ['Iecava', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils', 'Livani'], False),
+    PathReq(Protocols.OSPF, "Livberze", ['Iecava', 'Riga', 'Jelgava', 'Livberze'], False),
+    PathReq(Protocols.OSPF, "Viesite", ['Iecava', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite'], False),
+    PathReq(Protocols.OSPF, "Ragona", ['Iecava', 'Riga', 'Sigulda', 'Ragona'], False),
+    PathReq(Protocols.OSPF, "Carnikava", ['Iecava', 'Riga', 'Carnikava'], False),
+    PathReq(Protocols.OSPF, "Pociems", ['Iecava', 'Riga', 'Limbazi', 'Aloja', 'Pociems'], False),
+    PathReq(Protocols.OSPF, "Ikskile", ['Iecava', 'Riga', 'Salaspils', 'Ikskile'], False),
 ]
 
 edges_cost_simple_8 = [
@@ -2048,20 +2048,20 @@ edges_cost_simple_8 = [
     ("Zilupe", "Ludza", 1),
     ("Daugapils", "Rezekne", 1),
     ("Daugapils", "Riga", 1),
-    ("Daugapils", "Preili", 2),
+    ("Daugapils", "Preili", 1),
 ]
 
 ####################
 
 reqs_ecmp_8_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Krimulda', [PathReq(Protocols.OSPF, "Krimulda", ['Ozolnieki', 'Olaine', 'Riga', 'Sigulda', 'Krimulda'], False), PathReq(Protocols.OSPF, "Krimulda", ['Ozolnieki', 'Jelgava', 'Riga', 'Sigulda', 'Krimulda'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Talsi', [PathReq(Protocols.OSPF, "Talsi", ['Ozolnieki', 'Olaine', 'Riga', 'Talsi'], False), PathReq(Protocols.OSPF, "Talsi", ['Ozolnieki', 'Jelgava', 'Riga', 'Talsi'], False)], False),
     ECMPPathsReq(Protocols.OSPF, 'Bauska', [PathReq(Protocols.OSPF, "Bauska", ['Ozolnieki', 'Olaine', 'Riga', 'Bauska'], False), PathReq(Protocols.OSPF, "Bauska", ['Ozolnieki', 'Jelgava', 'Riga', 'Bauska'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Ogre', [PathReq(Protocols.OSPF, "Ogre", ['Ozolnieki', 'Jelgava', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False), PathReq(Protocols.OSPF, "Ogre", ['Ozolnieki', 'Olaine', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Iecava', [PathReq(Protocols.OSPF, "Iecava", ['Ozolnieki', 'Jelgava', 'Riga', 'Iecava'], False), PathReq(Protocols.OSPF, "Iecava", ['Ozolnieki', 'Olaine', 'Riga', 'Iecava'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Zilupe', [PathReq(Protocols.OSPF, "Zilupe", ['Ozolnieki', 'Olaine', 'Riga', 'Rezekne', 'Ludza', 'Zilupe'], False), PathReq(Protocols.OSPF, "Zilupe", ['Ozolnieki', 'Jelgava', 'Riga', 'Rezekne', 'Ludza', 'Zilupe'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Limbazi', [PathReq(Protocols.OSPF, "Limbazi", ['Ozolnieki', 'Olaine', 'Riga', 'Limbazi'], False), PathReq(Protocols.OSPF, "Limbazi", ['Ozolnieki', 'Jelgava', 'Riga', 'Limbazi'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Vangazi', [PathReq(Protocols.OSPF, "Vangazi", ['Ozolnieki', 'Olaine', 'Riga', 'Sigulda', 'Vangazi'], False), PathReq(Protocols.OSPF, "Vangazi", ['Ozolnieki', 'Jelgava', 'Riga', 'Sigulda', 'Vangazi'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Ozolnieki', 'Olaine', 'Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Ozolnieki', 'Jelgava', 'Riga', 'Daugapils'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Ozolnieki', 'Jelgava', 'Riga', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Ozolnieki', 'Olaine', 'Riga', 'Rujiena'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Ozolnieki', 'Olaine', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Ozolnieki', 'Jelgava', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Gulbene', [PathReq(Protocols.OSPF, "Gulbene", ['Ozolnieki', 'Olaine', 'Riga', 'Gulbene'], False), PathReq(Protocols.OSPF, "Gulbene", ['Ozolnieki', 'Jelgava', 'Riga', 'Gulbene'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'GEANT2', [PathReq(Protocols.OSPF, "GEANT2", ['Ozolnieki', 'Jelgava', 'Riga', 'GEANT2'], False), PathReq(Protocols.OSPF, "GEANT2", ['Ozolnieki', 'Olaine', 'Riga', 'GEANT2'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Vilani', [PathReq(Protocols.OSPF, "Vilani", ['Ozolnieki', 'Olaine', 'Riga', 'Vilani'], False), PathReq(Protocols.OSPF, "Vilani", ['Ozolnieki', 'Jelgava', 'Riga', 'Vilani'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Liepaja', [PathReq(Protocols.OSPF, "Liepaja", ['Ozolnieki', 'Olaine', 'Riga', 'Liepaja'], False), PathReq(Protocols.OSPF, "Liepaja", ['Ozolnieki', 'Jelgava', 'Riga', 'Liepaja'], False)], False),
 ]
 
 edges_cost_ecmp_8_2 = [
@@ -2127,7 +2127,7 @@ edges_cost_ecmp_8_2 = [
     ("Riga", "Rezekne", 1),
     ("Riga", "Ulbroka", 1),
     ("Riga", "Kraslava", 1),
-    ("Riga", "Sigulda", 1),
+    ("Riga", "Sigulda", 2),
     ("Riga", "Balvi", 1),
     ("Riga", "Limbazi", 1),
     ("Riga", "Talsi", 1),
@@ -2216,14 +2216,14 @@ edges_cost_ecmp_8_2 = [
 ]
 
 reqs_kconnected_8_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Krimulda', [PathReq(Protocols.OSPF, "Krimulda", ['Ozolnieki', 'Olaine', 'Riga', 'Sigulda', 'Krimulda'], False), PathReq(Protocols.OSPF, "Krimulda", ['Ozolnieki', 'Jelgava', 'Riga', 'Sigulda', 'Krimulda'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Talsi', [PathReq(Protocols.OSPF, "Talsi", ['Ozolnieki', 'Olaine', 'Riga', 'Talsi'], False), PathReq(Protocols.OSPF, "Talsi", ['Ozolnieki', 'Jelgava', 'Riga', 'Talsi'], False)], False),
     KConnectedPathsReq(Protocols.OSPF, 'Bauska', [PathReq(Protocols.OSPF, "Bauska", ['Ozolnieki', 'Olaine', 'Riga', 'Bauska'], False), PathReq(Protocols.OSPF, "Bauska", ['Ozolnieki', 'Jelgava', 'Riga', 'Bauska'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Ogre', [PathReq(Protocols.OSPF, "Ogre", ['Ozolnieki', 'Jelgava', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False), PathReq(Protocols.OSPF, "Ogre", ['Ozolnieki', 'Olaine', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Iecava', [PathReq(Protocols.OSPF, "Iecava", ['Ozolnieki', 'Jelgava', 'Riga', 'Iecava'], False), PathReq(Protocols.OSPF, "Iecava", ['Ozolnieki', 'Olaine', 'Riga', 'Iecava'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Zilupe', [PathReq(Protocols.OSPF, "Zilupe", ['Ozolnieki', 'Olaine', 'Riga', 'Rezekne', 'Ludza', 'Zilupe'], False), PathReq(Protocols.OSPF, "Zilupe", ['Ozolnieki', 'Jelgava', 'Riga', 'Rezekne', 'Ludza', 'Zilupe'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Limbazi', [PathReq(Protocols.OSPF, "Limbazi", ['Ozolnieki', 'Olaine', 'Riga', 'Limbazi'], False), PathReq(Protocols.OSPF, "Limbazi", ['Ozolnieki', 'Jelgava', 'Riga', 'Limbazi'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Vangazi', [PathReq(Protocols.OSPF, "Vangazi", ['Ozolnieki', 'Olaine', 'Riga', 'Sigulda', 'Vangazi'], False), PathReq(Protocols.OSPF, "Vangazi", ['Ozolnieki', 'Jelgava', 'Riga', 'Sigulda', 'Vangazi'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Ozolnieki', 'Olaine', 'Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Ozolnieki', 'Jelgava', 'Riga', 'Daugapils'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Ozolnieki', 'Jelgava', 'Riga', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Ozolnieki', 'Olaine', 'Riga', 'Rujiena'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Salagriva', [PathReq(Protocols.OSPF, "Salagriva", ['Ozolnieki', 'Olaine', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False), PathReq(Protocols.OSPF, "Salagriva", ['Ozolnieki', 'Jelgava', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Gulbene', [PathReq(Protocols.OSPF, "Gulbene", ['Ozolnieki', 'Olaine', 'Riga', 'Gulbene'], False), PathReq(Protocols.OSPF, "Gulbene", ['Ozolnieki', 'Jelgava', 'Riga', 'Gulbene'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'GEANT2', [PathReq(Protocols.OSPF, "GEANT2", ['Ozolnieki', 'Jelgava', 'Riga', 'GEANT2'], False), PathReq(Protocols.OSPF, "GEANT2", ['Ozolnieki', 'Olaine', 'Riga', 'GEANT2'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Vilani', [PathReq(Protocols.OSPF, "Vilani", ['Ozolnieki', 'Olaine', 'Riga', 'Vilani'], False), PathReq(Protocols.OSPF, "Vilani", ['Ozolnieki', 'Jelgava', 'Riga', 'Vilani'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Liepaja', [PathReq(Protocols.OSPF, "Liepaja", ['Ozolnieki', 'Olaine', 'Riga', 'Liepaja'], False), PathReq(Protocols.OSPF, "Liepaja", ['Ozolnieki', 'Jelgava', 'Riga', 'Liepaja'], False)], False),
 ]
 
 edges_cost_kconnected_8_2 = [
@@ -2289,7 +2289,7 @@ edges_cost_kconnected_8_2 = [
     ("Riga", "Rezekne", 1),
     ("Riga", "Ulbroka", 1),
     ("Riga", "Kraslava", 1),
-    ("Riga", "Sigulda", 1),
+    ("Riga", "Sigulda", 2),
     ("Riga", "Balvi", 1),
     ("Riga", "Limbazi", 1),
     ("Riga", "Talsi", 1),
@@ -2378,14 +2378,14 @@ edges_cost_kconnected_8_2 = [
 ]
 
 reqs_order_8_2 = [
-    PathOrderReq(Protocols.OSPF, 'Carnikava', [PathReq(Protocols.OSPF, "Carnikava", ['Adazi', 'Carnikava'], False), PathReq(Protocols.OSPF, "Carnikava", ['Adazi', 'Riga', 'Carnikava'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Adazi', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Adazi', 'Carnikava', 'Riga'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Sigulda', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Sigulda', 'Liepupe', 'Limbazi', 'Riga'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Rezekne', [PathReq(Protocols.OSPF, "Rezekne", ['Riga', 'Rezekne'], False), PathReq(Protocols.OSPF, "Rezekne", ['Riga', 'Daugapils', 'Rezekne'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Sigulda', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Sigulda', 'Riga', 'Limbazi', 'Liepupe'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Riga', 'Preili', 'Daugapils'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Limbazi', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Limbazi', 'Aloja', 'Mazsalaca', 'Rujiena', 'Riga'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Limbazi', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Limbazi', 'Riga', 'Sigulda', 'Liepupe'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Adazi', [PathReq(Protocols.OSPF, "Adazi", ['Carnikava', 'Adazi'], False), PathReq(Protocols.OSPF, "Adazi", ['Carnikava', 'Riga', 'Adazi'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Aloja', [PathReq(Protocols.OSPF, "Aloja", ['Mazsalaca', 'Aloja'], False), PathReq(Protocols.OSPF, "Aloja", ['Mazsalaca', 'Rujiena', 'Riga', 'Limbazi', 'Aloja'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Carnikava', [PathReq(Protocols.OSPF, "Carnikava", ['Riga', 'Carnikava'], False), PathReq(Protocols.OSPF, "Carnikava", ['Riga', 'Adazi', 'Carnikava'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Mazsalaca', [PathReq(Protocols.OSPF, "Mazsalaca", ['Aloja', 'Mazsalaca'], False), PathReq(Protocols.OSPF, "Mazsalaca", ['Aloja', 'Limbazi', 'Riga', 'Rujiena', 'Mazsalaca'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Jelgava', [PathReq(Protocols.OSPF, "Jelgava", ['Ozolnieki', 'Jelgava'], False), PathReq(Protocols.OSPF, "Jelgava", ['Ozolnieki', 'Olaine', 'Riga', 'Jelgava'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Riga', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Riga', 'Rezekne', 'Daugapils', 'Preili'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Olaine', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Olaine', 'Ozolnieki', 'Jelgava', 'Riga'], False)], False),
 ]
 
 edges_cost_order_8_2 = [
@@ -2414,7 +2414,7 @@ edges_cost_order_8_2 = [
     ("Dobele", "Auce", 1),
     ("Kraslava", "Riga", 1),
     ("Sigulda", "Krimulda", 1),
-    ("Sigulda", "Riga", 1),
+    ("Sigulda", "Riga", 3),
     ("Sigulda", "Vangazi", 1),
     ("Sigulda", "Ledurga", 1),
     ("Sigulda", "Ragona", 1),
@@ -2466,7 +2466,7 @@ edges_cost_order_8_2 = [
     ("Riga", "Aizpute", 1),
     ("Riga", "Jelgava", 1),
     ("Riga", "Jurmala", 1),
-    ("Riga", "Daugapils", 1),
+    ("Riga", "Daugapils", 3),
     ("Riga", "Liepaja", 1),
     ("Riga", "Valmiera", 1),
     ("Riga", "Salaspils", 1),
@@ -2540,22 +2540,22 @@ edges_cost_order_8_2 = [
 ]
 
 reqs_simple_16 = [
-    PathReq(Protocols.OSPF, "Adazi", ['Malnava', 'Karsava', 'Riga', 'Adazi'], False),
-    PathReq(Protocols.OSPF, "Aizkroukle", ['Malnava', 'Karsava', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle'], False),
-    PathReq(Protocols.OSPF, "Vijkene", ['Malnava', 'Karsava', 'Riga', 'Limbazi', 'Vijkene'], False),
-    PathReq(Protocols.OSPF, "Ozolnieki", ['Malnava', 'Karsava', 'Riga', 'Jelgava', 'Ozolnieki'], False),
-    PathReq(Protocols.OSPF, "Rujiena", ['Malnava', 'Karsava', 'Riga', 'Rujiena'], False),
-    PathReq(Protocols.OSPF, "Preili", ['Malnava', 'Karsava', 'Riga', 'Preili'], False),
-    PathReq(Protocols.OSPF, "Olaine", ['Malnava', 'Karsava', 'Riga', 'Olaine'], False),
-    PathReq(Protocols.OSPF, "Ventspits", ['Malnava', 'Karsava', 'Riga', 'Tukums', 'Ventspits'], False),
-    PathReq(Protocols.OSPF, "Ulbroka", ['Malnava', 'Karsava', 'Riga', 'Ulbroka'], False),
-    PathReq(Protocols.OSPF, "Zvigzdene", ['Malnava', 'Karsava', 'Riga', 'Rezekne', 'Ludza', 'Zvigzdene'], False),
-    PathReq(Protocols.OSPF, "Eleja", ['Malnava', 'Karsava', 'Riga', 'Jelgava', 'Platone', 'Eleja'], False),
-    PathReq(Protocols.OSPF, "Kraslava", ['Malnava', 'Karsava', 'Riga', 'Kraslava'], False),
-    PathReq(Protocols.OSPF, "Lielvarde", ['Malnava', 'Karsava', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde'], False),
-    PathReq(Protocols.OSPF, "Ikskile", ['Malnava', 'Karsava', 'Riga', 'Salaspils', 'Ikskile'], False),
-    PathReq(Protocols.OSPF, "Kapsede", ['Malnava', 'Karsava', 'Riga', 'Liepaja', 'Kapsede'], False),
-    PathReq(Protocols.OSPF, "Gulbene", ['Malnava', 'Karsava', 'Riga', 'Gulbene'], False),
+    PathReq(Protocols.OSPF, "Skriveri", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Skriveri'], False),
+    PathReq(Protocols.OSPF, "Adazi", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Adazi'], False),
+    PathReq(Protocols.OSPF, "Ventspits", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Tukums', 'Ventspits'], False),
+    PathReq(Protocols.OSPF, "Saldus", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Saldus'], False),
+    PathReq(Protocols.OSPF, "Strenci", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Valmiera', 'Strenci'], False),
+    PathReq(Protocols.OSPF, "Kegums", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums'], False),
+    PathReq(Protocols.OSPF, "Vilani", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Vilani'], False),
+    PathReq(Protocols.OSPF, "Rujiena", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Rujiena'], False),
+    PathReq(Protocols.OSPF, "Platone", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Platone'], False),
+    PathReq(Protocols.OSPF, "Dobele", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Dobele'], False),
+    PathReq(Protocols.OSPF, "Auce", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Jelgava', 'Dobele', 'Auce'], False),
+    PathReq(Protocols.OSPF, "Lielvarde", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde'], False),
+    PathReq(Protocols.OSPF, "Riga", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga'], False),
+    PathReq(Protocols.OSPF, "Salagriva", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Limbazi', 'Liepupe', 'Salagriva'], False),
+    PathReq(Protocols.OSPF, "Kraslava", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Kraslava'], False),
+    PathReq(Protocols.OSPF, "Rezekne", ['Jekabpils', 'Viesite', 'Aizkroukle', 'Jumprava', 'Lielvarde', 'Kegums', 'Ikskile', 'Salaspils', 'Riga', 'Rezekne'], False),
 ]
 
 edges_cost_simple_16 = [
@@ -2572,7 +2572,7 @@ edges_cost_simple_16 = [
     ("Malnava", "Karsava", 1),
     ("Malnava", "Pusmucova", 1),
     ("Olaine", "Riga", 1),
-    ("Olaine", "Ozolnieki", 2),
+    ("Olaine", "Ozolnieki", 1),
     ("Rezekne", "Ludza", 1),
     ("Rezekne", "Riga", 1),
     ("Rezekne", "Daugapils", 1),
@@ -2621,7 +2621,7 @@ edges_cost_simple_16 = [
     ("Riga", "Rezekne", 1),
     ("Riga", "Ulbroka", 1),
     ("Riga", "Kraslava", 1),
-    ("Riga", "Sigulda", 1),
+    ("Riga", "Sigulda", 2),
     ("Riga", "Balvi", 1),
     ("Riga", "Limbazi", 1),
     ("Riga", "Talsi", 1),
@@ -2712,22 +2712,22 @@ edges_cost_simple_16 = [
 ####################
 
 reqs_ecmp_16_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Kegums', [PathReq(Protocols.OSPF, "Kegums", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums'], False), PathReq(Protocols.OSPF, "Kegums", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Strenci', [PathReq(Protocols.OSPF, "Strenci", ['Liepupe', 'Sigulda', 'Riga', 'Valmiera', 'Strenci'], False), PathReq(Protocols.OSPF, "Strenci", ['Liepupe', 'Limbazi', 'Riga', 'Valmiera', 'Strenci'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'GEANT2', [PathReq(Protocols.OSPF, "GEANT2", ['Liepupe', 'Limbazi', 'Riga', 'GEANT2'], False), PathReq(Protocols.OSPF, "GEANT2", ['Liepupe', 'Sigulda', 'Riga', 'GEANT2'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Saldus', [PathReq(Protocols.OSPF, "Saldus", ['Liepupe', 'Sigulda', 'Riga', 'Saldus'], False), PathReq(Protocols.OSPF, "Saldus", ['Liepupe', 'Limbazi', 'Riga', 'Saldus'], False)], False),
     ECMPPathsReq(Protocols.OSPF, 'Valmiera', [PathReq(Protocols.OSPF, "Valmiera", ['Liepupe', 'Limbazi', 'Riga', 'Valmiera'], False), PathReq(Protocols.OSPF, "Valmiera", ['Liepupe', 'Sigulda', 'Riga', 'Valmiera'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Skriveri', [PathReq(Protocols.OSPF, "Skriveri", ['Liepupe', 'Limbazi', 'Riga', 'Skriveri'], False), PathReq(Protocols.OSPF, "Skriveri", ['Liepupe', 'Sigulda', 'Riga', 'Skriveri'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Broceni', [PathReq(Protocols.OSPF, "Broceni", ['Liepupe', 'Sigulda', 'Riga', 'Saldus', 'Broceni'], False), PathReq(Protocols.OSPF, "Broceni", ['Liepupe', 'Limbazi', 'Riga', 'Saldus', 'Broceni'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Kalnciems', [PathReq(Protocols.OSPF, "Kalnciems", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava', 'Kalnciems'], False), PathReq(Protocols.OSPF, "Kalnciems", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava', 'Kalnciems'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Kraslava', [PathReq(Protocols.OSPF, "Kraslava", ['Liepupe', 'Limbazi', 'Riga', 'Kraslava'], False), PathReq(Protocols.OSPF, "Kraslava", ['Liepupe', 'Sigulda', 'Riga', 'Kraslava'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Liepupe', 'Sigulda', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Liepupe', 'Limbazi', 'Riga'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Ikskile', [PathReq(Protocols.OSPF, "Ikskile", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile'], False), PathReq(Protocols.OSPF, "Ikskile", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Jumprava', [PathReq(Protocols.OSPF, "Jumprava", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava'], False), PathReq(Protocols.OSPF, "Jumprava", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava'], False)], False),
     ECMPPathsReq(Protocols.OSPF, 'Carnikava', [PathReq(Protocols.OSPF, "Carnikava", ['Liepupe', 'Sigulda', 'Riga', 'Carnikava'], False), PathReq(Protocols.OSPF, "Carnikava", ['Liepupe', 'Limbazi', 'Riga', 'Carnikava'], False)], False),
     ECMPPathsReq(Protocols.OSPF, 'Jelgava', [PathReq(Protocols.OSPF, "Jelgava", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava'], False), PathReq(Protocols.OSPF, "Jelgava", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Ludza', [PathReq(Protocols.OSPF, "Ludza", ['Liepupe', 'Limbazi', 'Riga', 'Rezekne', 'Ludza'], False), PathReq(Protocols.OSPF, "Ludza", ['Liepupe', 'Sigulda', 'Riga', 'Rezekne', 'Ludza'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Liepaja', [PathReq(Protocols.OSPF, "Liepaja", ['Liepupe', 'Limbazi', 'Riga', 'Liepaja'], False), PathReq(Protocols.OSPF, "Liepaja", ['Liepupe', 'Sigulda', 'Riga', 'Liepaja'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Ogre', [PathReq(Protocols.OSPF, "Ogre", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False), PathReq(Protocols.OSPF, "Ogre", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Talsi', [PathReq(Protocols.OSPF, "Talsi", ['Liepupe', 'Sigulda', 'Riga', 'Talsi'], False), PathReq(Protocols.OSPF, "Talsi", ['Liepupe', 'Limbazi', 'Riga', 'Talsi'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Jekabpils', [PathReq(Protocols.OSPF, "Jekabpils", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils'], False), PathReq(Protocols.OSPF, "Jekabpils", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Liepupe', 'Limbazi', 'Riga', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Liepupe', 'Sigulda', 'Riga', 'Preili'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Lielvarde', [PathReq(Protocols.OSPF, "Lielvarde", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde'], False), PathReq(Protocols.OSPF, "Lielvarde", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Vircava', [PathReq(Protocols.OSPF, "Vircava", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava', 'Platone', 'Vircava'], False), PathReq(Protocols.OSPF, "Vircava", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava', 'Platone', 'Vircava'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Ulbroka', [PathReq(Protocols.OSPF, "Ulbroka", ['Liepupe', 'Sigulda', 'Riga', 'Ulbroka'], False), PathReq(Protocols.OSPF, "Ulbroka", ['Liepupe', 'Limbazi', 'Riga', 'Ulbroka'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Olaine', [PathReq(Protocols.OSPF, "Olaine", ['Liepupe', 'Sigulda', 'Riga', 'Olaine'], False), PathReq(Protocols.OSPF, "Olaine", ['Liepupe', 'Limbazi', 'Riga', 'Olaine'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Platone', [PathReq(Protocols.OSPF, "Platone", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava', 'Platone'], False), PathReq(Protocols.OSPF, "Platone", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava', 'Platone'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Kekava', [PathReq(Protocols.OSPF, "Kekava", ['Liepupe', 'Sigulda', 'Riga', 'Kekava'], False), PathReq(Protocols.OSPF, "Kekava", ['Liepupe', 'Limbazi', 'Riga', 'Kekava'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Vilani', [PathReq(Protocols.OSPF, "Vilani", ['Liepupe', 'Sigulda', 'Riga', 'Vilani'], False), PathReq(Protocols.OSPF, "Vilani", ['Liepupe', 'Limbazi', 'Riga', 'Vilani'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Liepupe', 'Limbazi', 'Riga', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Liepupe', 'Sigulda', 'Riga', 'Rujiena'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Liepupe', 'Sigulda', 'Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Liepupe', 'Limbazi', 'Riga', 'Daugapils'], False)], False),
 ]
 
 edges_cost_ecmp_16_2 = [
@@ -2882,22 +2882,22 @@ edges_cost_ecmp_16_2 = [
 ]
 
 reqs_kconnected_16_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Kegums', [PathReq(Protocols.OSPF, "Kegums", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums'], False), PathReq(Protocols.OSPF, "Kegums", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Strenci', [PathReq(Protocols.OSPF, "Strenci", ['Liepupe', 'Sigulda', 'Riga', 'Valmiera', 'Strenci'], False), PathReq(Protocols.OSPF, "Strenci", ['Liepupe', 'Limbazi', 'Riga', 'Valmiera', 'Strenci'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'GEANT2', [PathReq(Protocols.OSPF, "GEANT2", ['Liepupe', 'Limbazi', 'Riga', 'GEANT2'], False), PathReq(Protocols.OSPF, "GEANT2", ['Liepupe', 'Sigulda', 'Riga', 'GEANT2'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Saldus', [PathReq(Protocols.OSPF, "Saldus", ['Liepupe', 'Sigulda', 'Riga', 'Saldus'], False), PathReq(Protocols.OSPF, "Saldus", ['Liepupe', 'Limbazi', 'Riga', 'Saldus'], False)], False),
     KConnectedPathsReq(Protocols.OSPF, 'Valmiera', [PathReq(Protocols.OSPF, "Valmiera", ['Liepupe', 'Limbazi', 'Riga', 'Valmiera'], False), PathReq(Protocols.OSPF, "Valmiera", ['Liepupe', 'Sigulda', 'Riga', 'Valmiera'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Skriveri', [PathReq(Protocols.OSPF, "Skriveri", ['Liepupe', 'Limbazi', 'Riga', 'Skriveri'], False), PathReq(Protocols.OSPF, "Skriveri", ['Liepupe', 'Sigulda', 'Riga', 'Skriveri'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Broceni', [PathReq(Protocols.OSPF, "Broceni", ['Liepupe', 'Sigulda', 'Riga', 'Saldus', 'Broceni'], False), PathReq(Protocols.OSPF, "Broceni", ['Liepupe', 'Limbazi', 'Riga', 'Saldus', 'Broceni'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Kalnciems', [PathReq(Protocols.OSPF, "Kalnciems", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava', 'Kalnciems'], False), PathReq(Protocols.OSPF, "Kalnciems", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava', 'Kalnciems'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Kraslava', [PathReq(Protocols.OSPF, "Kraslava", ['Liepupe', 'Limbazi', 'Riga', 'Kraslava'], False), PathReq(Protocols.OSPF, "Kraslava", ['Liepupe', 'Sigulda', 'Riga', 'Kraslava'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Liepupe', 'Sigulda', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Liepupe', 'Limbazi', 'Riga'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Ikskile', [PathReq(Protocols.OSPF, "Ikskile", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile'], False), PathReq(Protocols.OSPF, "Ikskile", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Jumprava', [PathReq(Protocols.OSPF, "Jumprava", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava'], False), PathReq(Protocols.OSPF, "Jumprava", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava'], False)], False),
     KConnectedPathsReq(Protocols.OSPF, 'Carnikava', [PathReq(Protocols.OSPF, "Carnikava", ['Liepupe', 'Sigulda', 'Riga', 'Carnikava'], False), PathReq(Protocols.OSPF, "Carnikava", ['Liepupe', 'Limbazi', 'Riga', 'Carnikava'], False)], False),
     KConnectedPathsReq(Protocols.OSPF, 'Jelgava', [PathReq(Protocols.OSPF, "Jelgava", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava'], False), PathReq(Protocols.OSPF, "Jelgava", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Ludza', [PathReq(Protocols.OSPF, "Ludza", ['Liepupe', 'Limbazi', 'Riga', 'Rezekne', 'Ludza'], False), PathReq(Protocols.OSPF, "Ludza", ['Liepupe', 'Sigulda', 'Riga', 'Rezekne', 'Ludza'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Liepaja', [PathReq(Protocols.OSPF, "Liepaja", ['Liepupe', 'Limbazi', 'Riga', 'Liepaja'], False), PathReq(Protocols.OSPF, "Liepaja", ['Liepupe', 'Sigulda', 'Riga', 'Liepaja'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Ogre', [PathReq(Protocols.OSPF, "Ogre", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False), PathReq(Protocols.OSPF, "Ogre", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Ogre'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Talsi', [PathReq(Protocols.OSPF, "Talsi", ['Liepupe', 'Sigulda', 'Riga', 'Talsi'], False), PathReq(Protocols.OSPF, "Talsi", ['Liepupe', 'Limbazi', 'Riga', 'Talsi'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Jekabpils', [PathReq(Protocols.OSPF, "Jekabpils", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils'], False), PathReq(Protocols.OSPF, "Jekabpils", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde', 'Jumprava', 'Aizkroukle', 'Viesite', 'Jekabpils'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Liepupe', 'Limbazi', 'Riga', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Liepupe', 'Sigulda', 'Riga', 'Preili'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Lielvarde', [PathReq(Protocols.OSPF, "Lielvarde", ['Liepupe', 'Sigulda', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde'], False), PathReq(Protocols.OSPF, "Lielvarde", ['Liepupe', 'Limbazi', 'Riga', 'Salaspils', 'Ikskile', 'Kegums', 'Lielvarde'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Vircava', [PathReq(Protocols.OSPF, "Vircava", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava', 'Platone', 'Vircava'], False), PathReq(Protocols.OSPF, "Vircava", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava', 'Platone', 'Vircava'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Ulbroka', [PathReq(Protocols.OSPF, "Ulbroka", ['Liepupe', 'Sigulda', 'Riga', 'Ulbroka'], False), PathReq(Protocols.OSPF, "Ulbroka", ['Liepupe', 'Limbazi', 'Riga', 'Ulbroka'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Olaine', [PathReq(Protocols.OSPF, "Olaine", ['Liepupe', 'Sigulda', 'Riga', 'Olaine'], False), PathReq(Protocols.OSPF, "Olaine", ['Liepupe', 'Limbazi', 'Riga', 'Olaine'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Platone', [PathReq(Protocols.OSPF, "Platone", ['Liepupe', 'Sigulda', 'Riga', 'Jelgava', 'Platone'], False), PathReq(Protocols.OSPF, "Platone", ['Liepupe', 'Limbazi', 'Riga', 'Jelgava', 'Platone'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Kekava', [PathReq(Protocols.OSPF, "Kekava", ['Liepupe', 'Sigulda', 'Riga', 'Kekava'], False), PathReq(Protocols.OSPF, "Kekava", ['Liepupe', 'Limbazi', 'Riga', 'Kekava'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Vilani', [PathReq(Protocols.OSPF, "Vilani", ['Liepupe', 'Sigulda', 'Riga', 'Vilani'], False), PathReq(Protocols.OSPF, "Vilani", ['Liepupe', 'Limbazi', 'Riga', 'Vilani'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Liepupe', 'Limbazi', 'Riga', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Liepupe', 'Sigulda', 'Riga', 'Rujiena'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Liepupe', 'Sigulda', 'Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Liepupe', 'Limbazi', 'Riga', 'Daugapils'], False)], False),
 ]
 
 edges_cost_kconnected_16_2 = [
@@ -3052,22 +3052,22 @@ edges_cost_kconnected_16_2 = [
 ]
 
 reqs_order_16_2 = [
+    PathOrderReq(Protocols.OSPF, 'Aloja', [PathReq(Protocols.OSPF, "Aloja", ['Limbazi', 'Aloja'], False), PathReq(Protocols.OSPF, "Aloja", ['Limbazi', 'Riga', 'Rujiena', 'Mazsalaca', 'Aloja'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Riga', 'Daugapils'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Ozolnieki', [PathReq(Protocols.OSPF, "Ozolnieki", ['Olaine', 'Ozolnieki'], False), PathReq(Protocols.OSPF, "Ozolnieki", ['Olaine', 'Riga', 'Jelgava', 'Ozolnieki'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Jelgava', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Jelgava', 'Ozolnieki', 'Olaine', 'Riga'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Rezekne', [PathReq(Protocols.OSPF, "Rezekne", ['Riga', 'Rezekne'], False), PathReq(Protocols.OSPF, "Rezekne", ['Riga', 'Daugapils', 'Rezekne'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Preili', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Preili', 'Daugapils', 'Riga'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Carnikava', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Carnikava', 'Adazi', 'Riga'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Daugapils', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Daugapils', 'Riga', 'Preili'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Riga', 'Rezekne', 'Daugapils'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Riga', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Riga', 'Limbazi', 'Aloja', 'Mazsalaca', 'Rujiena'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Sigulda', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Sigulda', 'Liepupe', 'Limbazi', 'Riga'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Rezekne', 'Riga', 'Daugapils'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Mazsalaca', [PathReq(Protocols.OSPF, "Mazsalaca", ['Rujiena', 'Mazsalaca'], False), PathReq(Protocols.OSPF, "Mazsalaca", ['Rujiena', 'Riga', 'Limbazi', 'Aloja', 'Mazsalaca'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Mazsalaca', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Mazsalaca', 'Aloja', 'Limbazi', 'Riga', 'Rujiena'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Adazi', [PathReq(Protocols.OSPF, "Adazi", ['Riga', 'Adazi'], False), PathReq(Protocols.OSPF, "Adazi", ['Riga', 'Carnikava', 'Adazi'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Rezekne', [PathReq(Protocols.OSPF, "Rezekne", ['Riga', 'Rezekne'], False), PathReq(Protocols.OSPF, "Rezekne", ['Riga', 'Daugapils', 'Rezekne'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Sigulda', [PathReq(Protocols.OSPF, "Sigulda", ['Liepupe', 'Sigulda'], False), PathReq(Protocols.OSPF, "Sigulda", ['Liepupe', 'Limbazi', 'Riga', 'Sigulda'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Limbazi', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Limbazi', 'Liepupe', 'Sigulda', 'Riga'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Limbazi', [PathReq(Protocols.OSPF, "Limbazi", ['Aloja', 'Limbazi'], False), PathReq(Protocols.OSPF, "Limbazi", ['Aloja', 'Mazsalaca', 'Rujiena', 'Riga', 'Limbazi'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Olaine', [PathReq(Protocols.OSPF, "Olaine", ['Riga', 'Olaine'], False), PathReq(Protocols.OSPF, "Olaine", ['Riga', 'Jelgava', 'Ozolnieki', 'Olaine'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Preili', [PathReq(Protocols.OSPF, "Preili", ['Riga', 'Preili'], False), PathReq(Protocols.OSPF, "Preili", ['Riga', 'Daugapils', 'Preili'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Sigulda', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Sigulda', 'Riga', 'Limbazi', 'Liepupe'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Daugapils', [PathReq(Protocols.OSPF, "Daugapils", ['Riga', 'Daugapils'], False), PathReq(Protocols.OSPF, "Daugapils", ['Riga', 'Preili', 'Daugapils'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Jelgava', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Jelgava', 'Ozolnieki', 'Olaine', 'Riga'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Limbazi', [PathReq(Protocols.OSPF, "Limbazi", ['Liepupe', 'Limbazi'], False), PathReq(Protocols.OSPF, "Limbazi", ['Liepupe', 'Sigulda', 'Riga', 'Limbazi'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Riga', [PathReq(Protocols.OSPF, "Riga", ['Adazi', 'Riga'], False), PathReq(Protocols.OSPF, "Riga", ['Adazi', 'Carnikava', 'Riga'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Rujiena', [PathReq(Protocols.OSPF, "Rujiena", ['Mazsalaca', 'Rujiena'], False), PathReq(Protocols.OSPF, "Rujiena", ['Mazsalaca', 'Aloja', 'Limbazi', 'Riga', 'Rujiena'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Liepupe', [PathReq(Protocols.OSPF, "Liepupe", ['Limbazi', 'Liepupe'], False), PathReq(Protocols.OSPF, "Liepupe", ['Limbazi', 'Riga', 'Sigulda', 'Liepupe'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Jelgava', [PathReq(Protocols.OSPF, "Jelgava", ['Ozolnieki', 'Jelgava'], False), PathReq(Protocols.OSPF, "Jelgava", ['Ozolnieki', 'Olaine', 'Riga', 'Jelgava'], False)], False),
 ]
 
 edges_cost_order_16_2 = [
@@ -3086,8 +3086,8 @@ edges_cost_order_16_2 = [
     ("Olaine", "Riga", 1),
     ("Olaine", "Ozolnieki", 1),
     ("Rezekne", "Ludza", 1),
-    ("Rezekne", "Riga", 2),
-    ("Rezekne", "Daugapils", 2),
+    ("Rezekne", "Riga", 1),
+    ("Rezekne", "Daugapils", 1),
     ("Mazsalaca", "Aloja", 1),
     ("Mazsalaca", "Rujiena", 1),
     ("Ulbroka", "Riga", 1),
@@ -3137,7 +3137,7 @@ edges_cost_order_16_2 = [
     ("Riga", "Balvi", 1),
     ("Riga", "Limbazi", 1),
     ("Riga", "Talsi", 1),
-    ("Riga", "Preili", 1),
+    ("Riga", "Preili", 2),
     ("Riga", "Saldus", 1),
     ("Riga", "Skriveri", 1),
     ("Riga", "Carnikava", 1),
