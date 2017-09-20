@@ -10,18 +10,20 @@ PATH_TO_TOPOS="topos/*/"
 #topos/mid/Columbus topos/mid/Esnet topos/mid/Latnet topos/mid/Sinet topos/mid/Uninett2011
 #topos/large/Cogentco topos/large/Colt	topos/large/GtsCe  topos/large/TataNld topos/large/UsCarrier
 
-for file in topos/mid/Columbus topos/mid/Esnet topos/mid/Latnet topos/mid/Sinet topos/mid/Uninett2011;
+
+for syn in cegis concrete;
 do
-    topo="${file}.graphml"
-    values="${file}_ospf_reqs.py "
-    for syn in cegis concrete;
+    for file in topos/small/Arnes topos/small/Bics topos/small/Canerie topos/small/Renater2008 topos/small/CrlNetworkServices topos/mid/Columbus topos/mid/Esnet topos/mid/Latnet topos/mid/Sinet topos/mid/Uninett2011 topos/large/Cogentco topos/large/Colt topos/large/GtsCe topos/large/TataNld topos/large/UsCarrier;
     do
+	topo="${file}.graphml"
+	values="${file}_ospf_reqs.py "
+    
         for reqs in 1 2 4 8 16;
         #for reqs in 1;
         do
             for req_type in simple kconnected ecmp order;
             do
-                for fixed in "0" "0.25" "0.5" "0.75" "1.0";
+                for fixed in "1" "0.75" "0.5" "0.25" "0";
                 do
                     for RUN_ID in $(seq 1 $NUM_REPEATS);
                     do
