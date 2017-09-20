@@ -6,9 +6,9 @@ from synet.utils.common import Protocols
 from synet.utils.common import KConnectedPathsReq
 
 topology_file = 'topos/large/Colt.graphml'
-seed = 3160603248
+seed = 3147179523
 reqs_simple_1 = [
-    PathReq(Protocols.OSPF, "Zug", ['Livorno', 'Milan', 'Como', 'Chiasso', 'Lugano', 'Lucerne', 'Zug'], False),
+    PathReq(Protocols.OSPF, "Essen", ['Grenoble', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen'], False),
 ]
 
 edges_cost_simple_1 = [
@@ -371,7 +371,7 @@ edges_cost_simple_1 = [
 ####################
 
 reqs_ecmp_1_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'NodeID79', [PathReq(Protocols.OSPF, "NodeID79", ['Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79'], False), PathReq(Protocols.OSPF, "NodeID79", ['Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Liege', [PathReq(Protocols.OSPF, "Liege", ['Stuttgart', 'Karlsruhe', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Liege'], False), PathReq(Protocols.OSPF, "Liege", ['Stuttgart', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Liege'], False)], False),
 ]
 
 edges_cost_ecmp_1_2 = [
@@ -732,7 +732,7 @@ edges_cost_ecmp_1_2 = [
 ]
 
 reqs_kconnected_1_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'NodeID79', [PathReq(Protocols.OSPF, "NodeID79", ['Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79'], False), PathReq(Protocols.OSPF, "NodeID79", ['Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Liege', [PathReq(Protocols.OSPF, "Liege", ['Stuttgart', 'Karlsruhe', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Liege'], False), PathReq(Protocols.OSPF, "Liege", ['Stuttgart', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Liege'], False)], False),
 ]
 
 edges_cost_kconnected_1_2 = [
@@ -1093,7 +1093,7 @@ edges_cost_kconnected_1_2 = [
 ]
 
 reqs_order_1_2 = [
-    PathOrderReq(Protocols.OSPF, 'Montpellier', [PathReq(Protocols.OSPF, "Montpellier", ['Marseille', 'Montpellier'], False), PathReq(Protocols.OSPF, "Montpellier", ['Marseille', 'Lyon', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Valencia', 'Barcelona', 'NodeID79', 'Montpellier'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Barcelona', [PathReq(Protocols.OSPF, "Barcelona", ['Valencia', 'Barcelona'], False), PathReq(Protocols.OSPF, "Barcelona", ['Valencia', 'Madrid', 'Bordeaux', 'Toulouse', 'NodeID79', 'Barcelona'], False)], False),
 ]
 
 edges_cost_order_1_2 = [
@@ -1339,7 +1339,7 @@ edges_cost_order_1_2 = [
     ("Stockholm", "Helsinki", 1),
     ("Anderlecht", "Brussels", 1),
     ("Bordeaux", "Madrid", 1),
-    ("Bordeaux", "Toulouse", 4),
+    ("Bordeaux", "Toulouse", 1),
     ("Bordeaux", "Nantes", 1),
     ("Boblingen", "Stuttgart", 1),
     ("Bucharest", "Budapest", 1),
@@ -1454,8 +1454,8 @@ edges_cost_order_1_2 = [
 ]
 
 reqs_simple_2 = [
-    PathReq(Protocols.OSPF, "Almere", ['Grenoble', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Amsterdam', 'Almere'], False),
-    PathReq(Protocols.OSPF, "Strasbourg", ['Grenoble', 'Lyon', 'Paris', 'Strasbourg'], False),
+    PathReq(Protocols.OSPF, "NodeID73", ['Winterthur', 'Zurich', 'Basel', 'NodeID73'], False),
+    PathReq(Protocols.OSPF, "TheTTHague", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague'], False),
 ]
 
 edges_cost_simple_2 = [
@@ -1463,7 +1463,7 @@ edges_cost_simple_2 = [
     ("NewTTYork", "Newark", 1),
     ("NewTTYork", "London", 1),
     ("Lille", "Paris", 1),
-    ("Lille", "Ghent", 2),
+    ("Lille", "Ghent", 1),
     ("Lille", "NodeID62", 1),
     ("Paris", "Lyon", 1),
     ("Paris", "Strasbourg", 1),
@@ -1479,7 +1479,7 @@ edges_cost_simple_2 = [
     ("Lugano", "Lucerne", 1),
     ("Lugano", "Chiasso", 1),
     ("Newark", "Paris", 1),
-    ("Newark", "London", 2),
+    ("Newark", "London", 1),
     ("Newark", "NewTTYork", 1),
     ("Schaffhausen", "StTTGallen", 1),
     ("Schaffhausen", "Zurich", 1),
@@ -1534,7 +1534,7 @@ edges_cost_simple_2 = [
     ("Rome", "Padova", 1),
     ("Almere", "Amsterdam", 1),
     ("Mons", "Brussels", 1),
-    ("Ghent", "Brussels", 1),
+    ("Ghent", "Brussels", 2),
     ("Ghent", "Ostend", 1),
     ("Ghent", "Lille", 1),
     ("Charleroi", "Brussels", 1),
@@ -1818,8 +1818,8 @@ edges_cost_simple_2 = [
 ####################
 
 reqs_ecmp_2_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Wuppertal', [PathReq(Protocols.OSPF, "Wuppertal", ['Graz', 'Vienna', 'Munich', 'Stuttgart', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Wuppertal'], False), PathReq(Protocols.OSPF, "Wuppertal", ['Graz', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Rostock', 'Hamburg', 'Essen', 'Dusseldorf', 'Wuppertal'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Eindhoven', [PathReq(Protocols.OSPF, "Eindhoven", ['Graz', 'Vienna', 'Munich', 'Stuttgart', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch', 'Eindhoven'], False), PathReq(Protocols.OSPF, "Eindhoven", ['Graz', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Rostock', 'Hamburg', 'Essen', 'Dusseldorf', 'Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch', 'Eindhoven'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Magdemburg', [PathReq(Protocols.OSPF, "Magdemburg", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False), PathReq(Protocols.OSPF, "Magdemburg", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Mons', [PathReq(Protocols.OSPF, "Mons", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Mons'], False), PathReq(Protocols.OSPF, "Mons", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Mons'], False)], False),
 ]
 
 edges_cost_ecmp_2_2 = [
@@ -1955,7 +1955,7 @@ edges_cost_ecmp_2_2 = [
     ("Strasbourg", "Basel", 1),
     ("Strasbourg", "Karlsruhe", 1),
     ("Dortmund", "Essen", 1),
-    ("Dortmund", "Wuppertal", 2),
+    ("Dortmund", "Wuppertal", 1),
     ("Trieste", "Milan", 1),
     ("DenTTBosch", "Breda", 1),
     ("DenTTBosch", "Rotterdam", 1),
@@ -2180,8 +2180,8 @@ edges_cost_ecmp_2_2 = [
 ]
 
 reqs_kconnected_2_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Wuppertal', [PathReq(Protocols.OSPF, "Wuppertal", ['Graz', 'Vienna', 'Munich', 'Stuttgart', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Wuppertal'], False), PathReq(Protocols.OSPF, "Wuppertal", ['Graz', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Rostock', 'Hamburg', 'Essen', 'Dusseldorf', 'Wuppertal'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Eindhoven', [PathReq(Protocols.OSPF, "Eindhoven", ['Graz', 'Vienna', 'Munich', 'Stuttgart', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch', 'Eindhoven'], False), PathReq(Protocols.OSPF, "Eindhoven", ['Graz', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Rostock', 'Hamburg', 'Essen', 'Dusseldorf', 'Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch', 'Eindhoven'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Magdemburg', [PathReq(Protocols.OSPF, "Magdemburg", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False), PathReq(Protocols.OSPF, "Magdemburg", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Mons', [PathReq(Protocols.OSPF, "Mons", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Mons'], False), PathReq(Protocols.OSPF, "Mons", ['Lucerne', 'Zug', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Mons'], False)], False),
 ]
 
 edges_cost_kconnected_2_2 = [
@@ -2376,7 +2376,7 @@ edges_cost_kconnected_2_2 = [
     ("StTTGallen", "Pfaffikon", 1),
     ("StTTGallen", "Zurich", 1),
     ("Bari", "Rome", 1),
-    ("Essen", "Dortmund", 2),
+    ("Essen", "Dortmund", 1),
     ("Essen", "Dusseldorf", 1),
     ("Essen", "Hamburg", 1),
     ("Kortnijk", "Brussels", 1),
@@ -2542,8 +2542,8 @@ edges_cost_kconnected_2_2 = [
 ]
 
 reqs_order_2_2 = [
-    PathOrderReq(Protocols.OSPF, 'Pfaffikon', [PathReq(Protocols.OSPF, "Pfaffikon", ['StTTGallen', 'Pfaffikon'], False), PathReq(Protocols.OSPF, "Pfaffikon", ['StTTGallen', 'Schaffhausen', 'Zurich', 'Winterthur', 'Pfaffikon'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Aarhus', [PathReq(Protocols.OSPF, "Aarhus", ['Copenhagen', 'Aarhus'], False), PathReq(Protocols.OSPF, "Aarhus", ['Copenhagen', 'Hamburg', 'Kolding', 'Aarhus'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Chiasso', [PathReq(Protocols.OSPF, "Chiasso", ['Lugano', 'Chiasso'], False), PathReq(Protocols.OSPF, "Chiasso", ['Lugano', 'Lucerne', 'Zug', 'Zurich', 'Basel', 'NodeID73', 'Lausanne', 'Nyon', 'Geneve', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Como', 'Chiasso'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'DenTTBosch', [PathReq(Protocols.OSPF, "DenTTBosch", ['Rotterdam', 'DenTTBosch'], False), PathReq(Protocols.OSPF, "DenTTBosch", ['Rotterdam', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch'], False)], False),
 ]
 
 edges_cost_order_2_2 = [
@@ -2553,7 +2553,7 @@ edges_cost_order_2_2 = [
     ("Lille", "Paris", 1),
     ("Lille", "Ghent", 1),
     ("Lille", "NodeID62", 1),
-    ("Paris", "Lyon", 1),
+    ("Paris", "Lyon", 4),
     ("Paris", "Strasbourg", 1),
     ("Paris", "Lille", 1),
     ("Paris", "Newark", 1),
@@ -2736,7 +2736,7 @@ edges_cost_order_2_2 = [
     ("Borgomanero", "Milan", 1),
     ("StTTGallen", "Schaffhausen", 1),
     ("StTTGallen", "Pfaffikon", 1),
-    ("StTTGallen", "Zurich", 3),
+    ("StTTGallen", "Zurich", 1),
     ("Bari", "Rome", 1),
     ("Essen", "Dortmund", 1),
     ("Essen", "Dusseldorf", 1),
@@ -2778,7 +2778,7 @@ edges_cost_order_2_2 = [
     ("Helsinki", "Stockholm", 1),
     ("Hamburg", "Hannover", 1),
     ("Hamburg", "Bremen", 1),
-    ("Hamburg", "Aarhus", 3),
+    ("Hamburg", "Aarhus", 1),
     ("Hamburg", "Kolding", 1),
     ("Hamburg", "Copenhagen", 1),
     ("Hamburg", "Essen", 1),
@@ -2904,10 +2904,10 @@ edges_cost_order_2_2 = [
 ]
 
 reqs_simple_4 = [
-    PathReq(Protocols.OSPF, "Eindhoven", ['Padova', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Eindhoven'], False),
-    PathReq(Protocols.OSPF, "Boblingen", ['Padova', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Boblingen'], False),
-    PathReq(Protocols.OSPF, "Rimini", ['Padova', 'Rome', 'Firenze', 'Genova', 'Milan', 'Rimini'], False),
-    PathReq(Protocols.OSPF, "Ghent", ['Padova', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent'], False),
+    PathReq(Protocols.OSPF, "Monza", ['NewTTYork', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Monza'], False),
+    PathReq(Protocols.OSPF, "Ghent", ['NewTTYork', 'London', 'Brussels', 'Ghent'], False),
+    PathReq(Protocols.OSPF, "Prague", ['NewTTYork', 'Newark', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague'], False),
+    PathReq(Protocols.OSPF, "Bratislava", ['NewTTYork', 'Newark', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Bratislava'], False),
 ]
 
 edges_cost_simple_4 = [
@@ -2931,7 +2931,7 @@ edges_cost_simple_4 = [
     ("Lugano", "Lucerne", 1),
     ("Lugano", "Chiasso", 1),
     ("Newark", "Paris", 1),
-    ("Newark", "London", 2),
+    ("Newark", "London", 1),
     ("Newark", "NewTTYork", 1),
     ("Schaffhausen", "StTTGallen", 1),
     ("Schaffhausen", "Zurich", 1),
@@ -2998,7 +2998,7 @@ edges_cost_simple_4 = [
     ("Marseille", "Turin", 1),
     ("Marseille", "Montpellier", 1),
     ("Marseille", "Nice", 1),
-    ("Brescia", "Bergamo", 2),
+    ("Brescia", "Bergamo", 1),
     ("Brescia", "Verona", 1),
     ("Piacenza", "Milan", 1),
     ("Mannheim", "Frankfurt", 1),
@@ -3270,10 +3270,10 @@ edges_cost_simple_4 = [
 ####################
 
 reqs_ecmp_4_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Liege', [PathReq(Protocols.OSPF, "Liege", ['Karlsruhe', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Liege'], False), PathReq(Protocols.OSPF, "Liege", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Liege'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Valencia', [PathReq(Protocols.OSPF, "Valencia", ['Karlsruhe', 'Strasbourg', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Valencia'], False), PathReq(Protocols.OSPF, "Valencia", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79', 'Barcelona', 'Valencia'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Charleroi', [PathReq(Protocols.OSPF, "Charleroi", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Charleroi'], False), PathReq(Protocols.OSPF, "Charleroi", ['Karlsruhe', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Charleroi'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Nyon', [PathReq(Protocols.OSPF, "Nyon", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Geneve', 'Nyon'], False), PathReq(Protocols.OSPF, "Nyon", ['Karlsruhe', 'Strasbourg', 'Basel', 'NodeID73', 'Lausanne', 'Nyon'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Rostock', [PathReq(Protocols.OSPF, "Rostock", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'Rostock'], False), PathReq(Protocols.OSPF, "Rostock", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Rostock'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Pfaffikon', [PathReq(Protocols.OSPF, "Pfaffikon", ['Trieste', 'Milan', 'Como', 'Chiasso', 'Lugano', 'Lucerne', 'Zug', 'Zurich', 'Winterthur', 'Pfaffikon'], False), PathReq(Protocols.OSPF, "Pfaffikon", ['Trieste', 'Milan', 'Como', 'Chiasso', 'Lugano', 'Lucerne', 'Zug', 'Zurich', 'StTTGallen', 'Pfaffikon'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Oslo', [PathReq(Protocols.OSPF, "Oslo", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Stockholm', 'Oslo'], False), PathReq(Protocols.OSPF, "Oslo", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Gothenburg', 'Oslo'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Padova', [PathReq(Protocols.OSPF, "Padova", ['Trieste', 'Milan', 'Genova', 'Firenze', 'Rome', 'Padova'], False), PathReq(Protocols.OSPF, "Padova", ['Trieste', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova'], False)], False),
 ]
 
 edges_cost_ecmp_4_2 = [
@@ -3611,7 +3611,7 @@ edges_cost_ecmp_4_2 = [
     ("ReggioTTEmilia", "Modena", 1),
     ("ReggioTTEmilia", "Milan", 1),
     ("Prague", "Krakov", 1),
-    ("Prague", "Dresden", 1),
+    ("Prague", "Dresden", 2),
     ("Prague", "Vienna", 1),
     ("Leipzig", "Nuremberg", 1),
     ("Leipzig", "Dresden", 1),
@@ -3634,10 +3634,10 @@ edges_cost_ecmp_4_2 = [
 ]
 
 reqs_kconnected_4_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Liege', [PathReq(Protocols.OSPF, "Liege", ['Karlsruhe', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Liege'], False), PathReq(Protocols.OSPF, "Liege", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Liege'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Valencia', [PathReq(Protocols.OSPF, "Valencia", ['Karlsruhe', 'Strasbourg', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Valencia'], False), PathReq(Protocols.OSPF, "Valencia", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79', 'Barcelona', 'Valencia'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Charleroi', [PathReq(Protocols.OSPF, "Charleroi", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Charleroi'], False), PathReq(Protocols.OSPF, "Charleroi", ['Karlsruhe', 'Strasbourg', 'Paris', 'Newark', 'London', 'Brussels', 'Charleroi'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Nyon', [PathReq(Protocols.OSPF, "Nyon", ['Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Geneve', 'Nyon'], False), PathReq(Protocols.OSPF, "Nyon", ['Karlsruhe', 'Strasbourg', 'Basel', 'NodeID73', 'Lausanne', 'Nyon'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Rostock', [PathReq(Protocols.OSPF, "Rostock", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'Rostock'], False), PathReq(Protocols.OSPF, "Rostock", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Rostock'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Pfaffikon', [PathReq(Protocols.OSPF, "Pfaffikon", ['Trieste', 'Milan', 'Como', 'Chiasso', 'Lugano', 'Lucerne', 'Zug', 'Zurich', 'Winterthur', 'Pfaffikon'], False), PathReq(Protocols.OSPF, "Pfaffikon", ['Trieste', 'Milan', 'Como', 'Chiasso', 'Lugano', 'Lucerne', 'Zug', 'Zurich', 'StTTGallen', 'Pfaffikon'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Oslo', [PathReq(Protocols.OSPF, "Oslo", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Stockholm', 'Oslo'], False), PathReq(Protocols.OSPF, "Oslo", ['Trieste', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Gothenburg', 'Oslo'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Padova', [PathReq(Protocols.OSPF, "Padova", ['Trieste', 'Milan', 'Genova', 'Firenze', 'Rome', 'Padova'], False), PathReq(Protocols.OSPF, "Padova", ['Trieste', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova'], False)], False),
 ]
 
 edges_cost_kconnected_4_2 = [
@@ -3975,7 +3975,7 @@ edges_cost_kconnected_4_2 = [
     ("ReggioTTEmilia", "Modena", 1),
     ("ReggioTTEmilia", "Milan", 1),
     ("Prague", "Krakov", 1),
-    ("Prague", "Dresden", 1),
+    ("Prague", "Dresden", 2),
     ("Prague", "Vienna", 1),
     ("Leipzig", "Nuremberg", 1),
     ("Leipzig", "Dresden", 1),
@@ -3998,10 +3998,10 @@ edges_cost_kconnected_4_2 = [
 ]
 
 reqs_order_4_2 = [
-    PathOrderReq(Protocols.OSPF, 'Montpellier', [PathReq(Protocols.OSPF, "Montpellier", ['NodeID79', 'Montpellier'], False), PathReq(Protocols.OSPF, "Montpellier", ['NodeID79', 'Toulouse', 'Bordeaux', 'Nantes', 'Rennes', 'Rouen', 'Paris', 'Lyon', 'Marseille', 'Montpellier'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Manchester', [PathReq(Protocols.OSPF, "Manchester", ['Birmingham', 'Manchester'], False), PathReq(Protocols.OSPF, "Manchester", ['Birmingham', 'Bristol', 'Dublin', 'London', 'Manchester'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Hamburg', [PathReq(Protocols.OSPF, "Hamburg", ['Rostock', 'Hamburg'], False), PathReq(Protocols.OSPF, "Hamburg", ['Rostock', 'Berlin', 'NodeID60', 'Hannover', 'Hamburg'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Vienna', [PathReq(Protocols.OSPF, "Vienna", ['Munich', 'Vienna'], False), PathReq(Protocols.OSPF, "Vienna", ['Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Prague', 'Vienna'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Newark', [PathReq(Protocols.OSPF, "Newark", ['London', 'Newark'], False), PathReq(Protocols.OSPF, "Newark", ['London', 'NewTTYork', 'Newark'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Zurich', [PathReq(Protocols.OSPF, "Zurich", ['Basel', 'Zurich'], False), PathReq(Protocols.OSPF, "Zurich", ['Basel', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Como', 'Chiasso', 'Lugano', 'Lucerne', 'Zug', 'Zurich'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Stockholm', [PathReq(Protocols.OSPF, "Stockholm", ['Oslo', 'Stockholm'], False), PathReq(Protocols.OSPF, "Stockholm", ['Oslo', 'Gothenburg', 'Copenhagen', 'Stockholm'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Valencia', [PathReq(Protocols.OSPF, "Valencia", ['Madrid', 'Valencia'], False), PathReq(Protocols.OSPF, "Valencia", ['Madrid', 'Bordeaux', 'Toulouse', 'NodeID79', 'Barcelona', 'Valencia'], False)], False),
 ]
 
 edges_cost_order_4_2 = [
@@ -4143,7 +4143,7 @@ edges_cost_order_4_2 = [
     ("DenTTBosch", "Rotterdam", 1),
     ("DenTTBosch", "Utrecht", 1),
     ("DenTTBosch", "Eindhoven", 1),
-    ("Reading", "London", 2),
+    ("Reading", "London", 1),
     ("Reading", "Bristol", 1),
     ("Vienna", "Graz", 1),
     ("Vienna", "Linz", 1),
@@ -4362,14 +4362,14 @@ edges_cost_order_4_2 = [
 ]
 
 reqs_simple_8 = [
-    PathReq(Protocols.OSPF, "Lucerne", ['Paris', 'Strasbourg', 'Basel', 'Zurich', 'Zug', 'Lucerne'], False),
-    PathReq(Protocols.OSPF, "Catania", ['Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Catania'], False),
-    PathReq(Protocols.OSPF, "Geneve", ['Paris', 'Lyon', 'Geneve'], False),
-    PathReq(Protocols.OSPF, "Karlsruhe", ['Paris', 'Strasbourg', 'Karlsruhe'], False),
-    PathReq(Protocols.OSPF, "ReggioTTEmilia", ['Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'ReggioTTEmilia'], False),
-    PathReq(Protocols.OSPF, "Livorno", ['Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Livorno'], False),
-    PathReq(Protocols.OSPF, "Essen", ['Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen'], False),
-    PathReq(Protocols.OSPF, "Toulouse", ['Paris', 'Lyon', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse'], False),
+    PathReq(Protocols.OSPF, "Reading", ['Brescia', 'Bergamo', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Reading'], False),
+    PathReq(Protocols.OSPF, "Bucharest", ['Brescia', 'Bergamo', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Budapest', 'Bucharest'], False),
+    PathReq(Protocols.OSPF, "Boston", ['Brescia', 'Bergamo', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Boston'], False),
+    PathReq(Protocols.OSPF, "Budapest", ['Brescia', 'Bergamo', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Budapest'], False),
+    PathReq(Protocols.OSPF, "Cagliari", ['Brescia', 'Verona', 'Padova', 'Rome', 'Cagliari'], False),
+    PathReq(Protocols.OSPF, "Innsbruck", ['Brescia', 'Bergamo', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Linz', 'Salzburg', 'Innsbruck'], False),
+    PathReq(Protocols.OSPF, "Linz", ['Brescia', 'Bergamo', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Linz'], False),
+    PathReq(Protocols.OSPF, "Milan", ['Brescia', 'Bergamo', 'Milan'], False),
 ]
 
 edges_cost_simple_8 = [
@@ -4615,7 +4615,7 @@ edges_cost_simple_8 = [
     ("Stockholm", "Helsinki", 1),
     ("Anderlecht", "Brussels", 1),
     ("Bordeaux", "Madrid", 1),
-    ("Bordeaux", "Toulouse", 2),
+    ("Bordeaux", "Toulouse", 1),
     ("Bordeaux", "Nantes", 1),
     ("Boblingen", "Stuttgart", 1),
     ("Bucharest", "Budapest", 1),
@@ -4732,14 +4732,14 @@ edges_cost_simple_8 = [
 ####################
 
 reqs_ecmp_8_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Luxembourg', [PathReq(Protocols.OSPF, "Luxembourg", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Luxembourg'], False), PathReq(Protocols.OSPF, "Luxembourg", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Luxembourg'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Bern', [PathReq(Protocols.OSPF, "Bern", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73', 'Bern'], False), PathReq(Protocols.OSPF, "Bern", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Bern'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'NodeID73', [PathReq(Protocols.OSPF, "NodeID73", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73'], False), PathReq(Protocols.OSPF, "NodeID73", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Dresden', [PathReq(Protocols.OSPF, "Dresden", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden'], False), PathReq(Protocols.OSPF, "Dresden", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Kortnijk', [PathReq(Protocols.OSPF, "Kortnijk", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Kortnijk'], False), PathReq(Protocols.OSPF, "Kortnijk", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Kortnijk'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Antwerp', [PathReq(Protocols.OSPF, "Antwerp", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp'], False), PathReq(Protocols.OSPF, "Antwerp", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Dortmund', [PathReq(Protocols.OSPF, "Dortmund", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Dortmund'], False), PathReq(Protocols.OSPF, "Dortmund", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Wuppertal', 'Dortmund'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Catania', [PathReq(Protocols.OSPF, "Catania", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Catania'], False), PathReq(Protocols.OSPF, "Catania", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Catania'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Rimini', [PathReq(Protocols.OSPF, "Rimini", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Rimini'], False), PathReq(Protocols.OSPF, "Rimini", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Rimini'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Porto', [PathReq(Protocols.OSPF, "Porto", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Lisbon', 'Porto'], False), PathReq(Protocols.OSPF, "Porto", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Lisbon', 'Porto'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Winterthur', [PathReq(Protocols.OSPF, "Winterthur", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'Winterthur'], False), PathReq(Protocols.OSPF, "Winterthur", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'Winterthur'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Bologna', [PathReq(Protocols.OSPF, "Bologna", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Bologna'], False), PathReq(Protocols.OSPF, "Bologna", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Bologna'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Livorno', [PathReq(Protocols.OSPF, "Livorno", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Livorno'], False), PathReq(Protocols.OSPF, "Livorno", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Livorno'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Rome', [PathReq(Protocols.OSPF, "Rome", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome'], False), PathReq(Protocols.OSPF, "Rome", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Pfaffikon', [PathReq(Protocols.OSPF, "Pfaffikon", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'StTTGallen', 'Pfaffikon'], False), PathReq(Protocols.OSPF, "Pfaffikon", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'StTTGallen', 'Pfaffikon'], False)], False),
 ]
 
 edges_cost_ecmp_8_2 = [
@@ -4795,7 +4795,7 @@ edges_cost_ecmp_8_2 = [
     ("Bremen", "Hamburg", 1),
     ("Nantes", "Rennes", 1),
     ("Nantes", "Bordeaux", 1),
-    ("Winterthur", "Pfaffikon", 1),
+    ("Winterthur", "Pfaffikon", 2),
     ("Winterthur", "Zurich", 1),
     ("Porto", "Lisbon", 1),
     ("Nuremberg", "Leipzig", 1),
@@ -5074,7 +5074,7 @@ edges_cost_ecmp_8_2 = [
     ("NodeID62", "Lille", 1),
     ("Montpellier", "Marseille", 1),
     ("Montpellier", "NodeID79", 1),
-    ("ReggioTTEmilia", "Modena", 1),
+    ("ReggioTTEmilia", "Modena", 2),
     ("ReggioTTEmilia", "Milan", 1),
     ("Prague", "Krakov", 1),
     ("Prague", "Dresden", 1),
@@ -5100,14 +5100,14 @@ edges_cost_ecmp_8_2 = [
 ]
 
 reqs_kconnected_8_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Luxembourg', [PathReq(Protocols.OSPF, "Luxembourg", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Luxembourg'], False), PathReq(Protocols.OSPF, "Luxembourg", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Luxembourg'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Bern', [PathReq(Protocols.OSPF, "Bern", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73', 'Bern'], False), PathReq(Protocols.OSPF, "Bern", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Bern'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'NodeID73', [PathReq(Protocols.OSPF, "NodeID73", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73'], False), PathReq(Protocols.OSPF, "NodeID73", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Dresden', [PathReq(Protocols.OSPF, "Dresden", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden'], False), PathReq(Protocols.OSPF, "Dresden", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Kortnijk', [PathReq(Protocols.OSPF, "Kortnijk", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Kortnijk'], False), PathReq(Protocols.OSPF, "Kortnijk", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Kortnijk'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Antwerp', [PathReq(Protocols.OSPF, "Antwerp", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp'], False), PathReq(Protocols.OSPF, "Antwerp", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Dortmund', [PathReq(Protocols.OSPF, "Dortmund", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Dortmund'], False), PathReq(Protocols.OSPF, "Dortmund", ['Napoli', 'Rome', 'Firenze', 'Genova', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Wuppertal', 'Dortmund'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Catania', [PathReq(Protocols.OSPF, "Catania", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Catania'], False), PathReq(Protocols.OSPF, "Catania", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Catania'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Rimini', [PathReq(Protocols.OSPF, "Rimini", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Rimini'], False), PathReq(Protocols.OSPF, "Rimini", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Rimini'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Porto', [PathReq(Protocols.OSPF, "Porto", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Lisbon', 'Porto'], False), PathReq(Protocols.OSPF, "Porto", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid', 'Lisbon', 'Porto'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Winterthur', [PathReq(Protocols.OSPF, "Winterthur", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'Winterthur'], False), PathReq(Protocols.OSPF, "Winterthur", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'Winterthur'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Bologna', [PathReq(Protocols.OSPF, "Bologna", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Bologna'], False), PathReq(Protocols.OSPF, "Bologna", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Bologna'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Livorno', [PathReq(Protocols.OSPF, "Livorno", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Livorno'], False), PathReq(Protocols.OSPF, "Livorno", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Livorno'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Rome', [PathReq(Protocols.OSPF, "Rome", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome'], False), PathReq(Protocols.OSPF, "Rome", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Pfaffikon', [PathReq(Protocols.OSPF, "Pfaffikon", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'StTTGallen', 'Pfaffikon'], False), PathReq(Protocols.OSPF, "Pfaffikon", ['Eindhoven', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Antwerp', 'Brussels', 'London', 'Newark', 'Paris', 'Strasbourg', 'Basel', 'Zurich', 'StTTGallen', 'Pfaffikon'], False)], False),
 ]
 
 edges_cost_kconnected_8_2 = [
@@ -5163,7 +5163,7 @@ edges_cost_kconnected_8_2 = [
     ("Bremen", "Hamburg", 1),
     ("Nantes", "Rennes", 1),
     ("Nantes", "Bordeaux", 1),
-    ("Winterthur", "Pfaffikon", 1),
+    ("Winterthur", "Pfaffikon", 2),
     ("Winterthur", "Zurich", 1),
     ("Porto", "Lisbon", 1),
     ("Nuremberg", "Leipzig", 1),
@@ -5442,7 +5442,7 @@ edges_cost_kconnected_8_2 = [
     ("NodeID62", "Lille", 1),
     ("Montpellier", "Marseille", 1),
     ("Montpellier", "NodeID79", 1),
-    ("ReggioTTEmilia", "Modena", 1),
+    ("ReggioTTEmilia", "Modena", 2),
     ("ReggioTTEmilia", "Milan", 1),
     ("Prague", "Krakov", 1),
     ("Prague", "Dresden", 1),
@@ -5468,14 +5468,14 @@ edges_cost_kconnected_8_2 = [
 ]
 
 reqs_order_8_2 = [
-    PathOrderReq(Protocols.OSPF, 'Strasbourg', [PathReq(Protocols.OSPF, "Strasbourg", ['Karlsruhe', 'Strasbourg'], False), PathReq(Protocols.OSPF, "Strasbourg", ['Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Amsterdam', 'Hoofddorp', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Strasbourg'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Frankfurt', [PathReq(Protocols.OSPF, "Frankfurt", ['Cologne', 'Frankfurt'], False), PathReq(Protocols.OSPF, "Frankfurt", ['Cologne', 'Dusseldorf', 'Wuppertal', 'Dortmund', 'Essen', 'Hamburg', 'Rostock', 'Berlin', 'Dresden', 'Leipzig', 'Nuremberg', 'Munich', 'Stuttgart', 'Karlsruhe', 'Mannheim', 'Frankfurt'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Modena', [PathReq(Protocols.OSPF, "Modena", ['ReggioTTEmilia', 'Modena'], False), PathReq(Protocols.OSPF, "Modena", ['ReggioTTEmilia', 'Milan', 'Genova', 'Firenze', 'Bologna', 'Modena'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Genova', [PathReq(Protocols.OSPF, "Genova", ['Firenze', 'Genova'], False), PathReq(Protocols.OSPF, "Genova", ['Firenze', 'Bologna', 'Modena', 'ReggioTTEmilia', 'Milan', 'Genova'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Paris', [PathReq(Protocols.OSPF, "Paris", ['Strasbourg', 'Paris'], False), PathReq(Protocols.OSPF, "Paris", ['Strasbourg', 'Basel', 'NodeID73', 'Lausanne', 'Nyon', 'Geneve', 'Lyon', 'Paris'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Dresden', [PathReq(Protocols.OSPF, "Dresden", ['Prague', 'Dresden'], False), PathReq(Protocols.OSPF, "Dresden", ['Prague', 'Krakov', 'Warsaw', 'Berlin', 'Dresden'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['TheTTHague', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['TheTTHague', 'Rotterdam', 'DenTTBosch', 'Utrecht', 'Hilversum', 'Amsterdam', 'Hoofddorp'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'DenTTBosch', [PathReq(Protocols.OSPF, "DenTTBosch", ['Rotterdam', 'DenTTBosch'], False), PathReq(Protocols.OSPF, "DenTTBosch", ['Rotterdam', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'NodeID62', [PathReq(Protocols.OSPF, "NodeID62", ['London', 'NodeID62'], False), PathReq(Protocols.OSPF, "NodeID62", ['London', 'Newark', 'Paris', 'Lille', 'NodeID62'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Utrecht', [PathReq(Protocols.OSPF, "Utrecht", ['DenTTBosch', 'Utrecht'], False), PathReq(Protocols.OSPF, "Utrecht", ['DenTTBosch', 'Rotterdam', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum', 'Utrecht'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Rome', [PathReq(Protocols.OSPF, "Rome", ['Firenze', 'Rome'], False), PathReq(Protocols.OSPF, "Rome", ['Firenze', 'Genova', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova', 'Rome'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Zurich', [PathReq(Protocols.OSPF, "Zurich", ['StTTGallen', 'Zurich'], False), PathReq(Protocols.OSPF, "Zurich", ['StTTGallen', 'Schaffhausen', 'Zurich'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TheTTHague', [PathReq(Protocols.OSPF, "TheTTHague", ['Rotterdam', 'TheTTHague'], False), PathReq(Protocols.OSPF, "TheTTHague", ['Rotterdam', 'DenTTBosch', 'Utrecht', 'Hilversum', 'Amsterdam', 'Hoofddorp', 'TheTTHague'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Rostock', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Rostock', 'Hamburg', 'Hannover', 'NodeID60', 'Berlin'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Barcelona', [PathReq(Protocols.OSPF, "Barcelona", ['NodeID79', 'Barcelona'], False), PathReq(Protocols.OSPF, "Barcelona", ['NodeID79', 'Toulouse', 'Bordeaux', 'Madrid', 'Valencia', 'Barcelona'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['Amsterdam', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Hoofddorp'], False)], False),
 ]
 
 edges_cost_order_8_2 = [
@@ -5526,7 +5526,7 @@ edges_cost_order_8_2 = [
     ("Brussels", "London", 1),
     ("Brussels", "Mons", 1),
     ("Brussels", "Anderlecht", 1),
-    ("Brussels", "Ghent", 1),
+    ("Brussels", "Ghent", 2),
     ("Brussels", "Kortnijk", 1),
     ("Bremen", "Hamburg", 1),
     ("Nantes", "Rennes", 1),
@@ -5836,22 +5836,22 @@ edges_cost_order_8_2 = [
 ]
 
 reqs_simple_16 = [
-    PathReq(Protocols.OSPF, "Dresden", ['Hamburg', 'Rostock', 'Berlin', 'Dresden'], False),
-    PathReq(Protocols.OSPF, "Pfaffikon", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Basel', 'Zurich', 'Winterthur', 'Pfaffikon'], False),
-    PathReq(Protocols.OSPF, "Helsinki", ['Hamburg', 'Copenhagen', 'Stockholm', 'Helsinki'], False),
-    PathReq(Protocols.OSPF, "Biel/Bienne", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Basel', 'NodeID73', 'Biel/Bienne'], False),
-    PathReq(Protocols.OSPF, "Vicenza", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Vicenza'], False),
-    PathReq(Protocols.OSPF, "Bologna", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Milan', 'Genova', 'Firenze', 'Bologna'], False),
-    PathReq(Protocols.OSPF, "London", ['Hamburg', 'Essen', 'Dusseldorf', 'Amsterdam', 'Hoofddorp', 'TheTTHague', 'Antwerp', 'Brussels', 'London'], False),
-    PathReq(Protocols.OSPF, "Munich", ['Hamburg', 'Rostock', 'Berlin', 'Dresden', 'Leipzig', 'Nuremberg', 'Munich'], False),
-    PathReq(Protocols.OSPF, "Bratislava", ['Hamburg', 'Rostock', 'Berlin', 'Dresden', 'Prague', 'Vienna', 'Bratislava'], False),
-    PathReq(Protocols.OSPF, "Bordeaux", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux'], False),
-    PathReq(Protocols.OSPF, "Cuneo", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Turin', 'Cuneo'], False),
-    PathReq(Protocols.OSPF, "Basel", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Basel'], False),
-    PathReq(Protocols.OSPF, "Montpellier", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lyon', 'Marseille', 'Montpellier'], False),
-    PathReq(Protocols.OSPF, "Strasbourg", ['Hamburg', 'Essen', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg'], False),
-    PathReq(Protocols.OSPF, "TheTTHague", ['Hamburg', 'Essen', 'Dusseldorf', 'Amsterdam', 'Hoofddorp', 'TheTTHague'], False),
-    PathReq(Protocols.OSPF, "Malmo", ['Hamburg', 'Copenhagen', 'Malmo'], False),
+    PathReq(Protocols.OSPF, "Reading", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Newark', 'London', 'Reading'], False),
+    PathReq(Protocols.OSPF, "Bologna", ['Winterthur', 'Zurich', 'Zug', 'Lucerne', 'Lugano', 'Chiasso', 'Como', 'Milan', 'Genova', 'Firenze', 'Bologna'], False),
+    PathReq(Protocols.OSPF, "Stockholm", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Stockholm'], False),
+    PathReq(Protocols.OSPF, "Esslingen", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Esslingen'], False),
+    PathReq(Protocols.OSPF, "Almere", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Amsterdam', 'Almere'], False),
+    PathReq(Protocols.OSPF, "Trento", ['Winterthur', 'Zurich', 'Zug', 'Lucerne', 'Lugano', 'Chiasso', 'Como', 'Milan', 'Trento'], False),
+    PathReq(Protocols.OSPF, "Bari", ['Winterthur', 'Zurich', 'Zug', 'Lucerne', 'Lugano', 'Chiasso', 'Como', 'Milan', 'Genova', 'Firenze', 'Rome', 'Bari'], False),
+    PathReq(Protocols.OSPF, "Chicago", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Newark', 'London', 'Boston', 'Chicago'], False),
+    PathReq(Protocols.OSPF, "Dortmund", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Dortmund'], False),
+    PathReq(Protocols.OSPF, "Ostend", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Lille', 'NodeID62', 'Ostend'], False),
+    PathReq(Protocols.OSPF, "Pfaffikon", ['Winterthur', 'Pfaffikon'], False),
+    PathReq(Protocols.OSPF, "Warsaw", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Krakov', 'Warsaw'], False),
+    PathReq(Protocols.OSPF, "Toulouse", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Toulouse'], False),
+    PathReq(Protocols.OSPF, "Madrid", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Madrid'], False),
+    PathReq(Protocols.OSPF, "Anderlecht", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Anderlecht'], False),
+    PathReq(Protocols.OSPF, "Graz", ['Winterthur', 'Zurich', 'Basel', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Graz'], False),
 ]
 
 edges_cost_simple_16 = [
@@ -5931,7 +5931,7 @@ edges_cost_simple_16 = [
     ("Almere", "Amsterdam", 1),
     ("Mons", "Brussels", 1),
     ("Ghent", "Brussels", 1),
-    ("Ghent", "Ostend", 1),
+    ("Ghent", "Ostend", 2),
     ("Ghent", "Lille", 1),
     ("Charleroi", "Brussels", 1),
     ("Toulouse", "Bordeaux", 1),
@@ -5977,7 +5977,7 @@ edges_cost_simple_16 = [
     ("London", "Dublin", 1),
     ("London", "Newark", 1),
     ("London", "Manchester", 1),
-    ("London", "Brussels", 1),
+    ("London", "Brussels", 2),
     ("London", "NodeID62", 1),
     ("Rouen", "Paris", 1),
     ("Rouen", "Rennes", 1),
@@ -6109,7 +6109,7 @@ edges_cost_simple_16 = [
     ("Zurich", "Schaffhausen", 1),
     ("Zurich", "Basel", 1),
     ("Zurich", "Zug", 1),
-    ("Zurich", "StTTGallen", 2),
+    ("Zurich", "StTTGallen", 1),
     ("Monza", "Milan", 1),
     ("Birmingham", "Manchester", 1),
     ("Birmingham", "Bristol", 1),
@@ -6123,7 +6123,7 @@ edges_cost_simple_16 = [
     ("Antwerp", "Brussels", 1),
     ("Antwerp", "TheTTHague", 1),
     ("Vicenza", "Milan", 1),
-    ("NodeID79", "Toulouse", 1),
+    ("NodeID79", "Toulouse", 2),
     ("NodeID79", "Montpellier", 1),
     ("NodeID79", "Barcelona", 1),
     ("Potsdam", "Berlin", 1),
@@ -6162,7 +6162,7 @@ edges_cost_simple_16 = [
     ("Dusseldorf", "Cologne", 1),
     ("Dusseldorf", "Amsterdam", 1),
     ("Dusseldorf", "Essen", 1),
-    ("Dusseldorf", "Wuppertal", 1),
+    ("Dusseldorf", "Wuppertal", 2),
     ("Dusseldorf", "Neuss", 1),
     ("Barcelona", "Valencia", 1),
     ("Barcelona", "NodeID79", 1),
@@ -6190,7 +6190,7 @@ edges_cost_simple_16 = [
     ("ReggioTTEmilia", "Milan", 1),
     ("Prague", "Krakov", 1),
     ("Prague", "Dresden", 1),
-    ("Prague", "Vienna", 2),
+    ("Prague", "Vienna", 1),
     ("Leipzig", "Nuremberg", 1),
     ("Leipzig", "Dresden", 1),
     ("Aarhus", "Copenhagen", 1),
@@ -6214,22 +6214,22 @@ edges_cost_simple_16 = [
 ####################
 
 reqs_ecmp_16_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Dortmund', [PathReq(Protocols.OSPF, "Dortmund", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Wuppertal', 'Dortmund'], False), PathReq(Protocols.OSPF, "Dortmund", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Dortmund'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Ostend', [PathReq(Protocols.OSPF, "Ostend", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'NodeID62', 'Ostend'], False), PathReq(Protocols.OSPF, "Ostend", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Ostend'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Padova', [PathReq(Protocols.OSPF, "Padova", ['Cuneo', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Padova'], False), PathReq(Protocols.OSPF, "Padova", ['Cuneo', 'Turin', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Madrid', [PathReq(Protocols.OSPF, "Madrid", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse', 'Bordeaux', 'Madrid'], False), PathReq(Protocols.OSPF, "Madrid", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Barcelona', 'Valencia', 'Madrid'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Leuven', [PathReq(Protocols.OSPF, "Leuven", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Leuven'], False), PathReq(Protocols.OSPF, "Leuven", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Leuven'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'NodeID60', [PathReq(Protocols.OSPF, "NodeID60", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'NodeID60'], False), PathReq(Protocols.OSPF, "NodeID60", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'NodeID60'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Rostock', [PathReq(Protocols.OSPF, "Rostock", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'Rostock'], False), PathReq(Protocols.OSPF, "Rostock", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Rostock'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Utrecht', [PathReq(Protocols.OSPF, "Utrecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Utrecht'], False), PathReq(Protocols.OSPF, "Utrecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Utrecht'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Bern', [PathReq(Protocols.OSPF, "Bern", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73', 'Bern'], False), PathReq(Protocols.OSPF, "Bern", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Bern'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Hilversum', [PathReq(Protocols.OSPF, "Hilversum", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum'], False), PathReq(Protocols.OSPF, "Hilversum", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Sintra', [PathReq(Protocols.OSPF, "Sintra", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse', 'Bordeaux', 'Madrid', 'Lisbon', 'Sintra'], False), PathReq(Protocols.OSPF, "Sintra", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Barcelona', 'Valencia', 'Madrid', 'Lisbon', 'Sintra'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Anderlecht', [PathReq(Protocols.OSPF, "Anderlecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Anderlecht'], False), PathReq(Protocols.OSPF, "Anderlecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Anderlecht'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Almere', [PathReq(Protocols.OSPF, "Almere", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False), PathReq(Protocols.OSPF, "Almere", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Rotterdam', [PathReq(Protocols.OSPF, "Rotterdam", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False), PathReq(Protocols.OSPF, "Rotterdam", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Ostend', [PathReq(Protocols.OSPF, "Ostend", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'NodeID62', 'Ostend'], False), PathReq(Protocols.OSPF, "Ostend", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Ostend'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Biel/Bienne', [PathReq(Protocols.OSPF, "Biel/Bienne", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73', 'Biel/Bienne'], False), PathReq(Protocols.OSPF, "Biel/Bienne", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Biel/Bienne'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Nantes', [PathReq(Protocols.OSPF, "Nantes", ['Parma', 'Milan', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse', 'Bordeaux', 'Nantes'], False), PathReq(Protocols.OSPF, "Nantes", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Rouen', 'Rennes', 'Nantes'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Mons', [PathReq(Protocols.OSPF, "Mons", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Mons'], False), PathReq(Protocols.OSPF, "Mons", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Mons'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'TheTTHague', [PathReq(Protocols.OSPF, "TheTTHague", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague'], False), PathReq(Protocols.OSPF, "TheTTHague", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Magdemburg', [PathReq(Protocols.OSPF, "Magdemburg", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False), PathReq(Protocols.OSPF, "Magdemburg", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Rotterdam', [PathReq(Protocols.OSPF, "Rotterdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False), PathReq(Protocols.OSPF, "Rotterdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Eindhoven', [PathReq(Protocols.OSPF, "Eindhoven", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Eindhoven'], False), PathReq(Protocols.OSPF, "Eindhoven", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Eindhoven'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Potsdam', [PathReq(Protocols.OSPF, "Potsdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Potsdam'], False), PathReq(Protocols.OSPF, "Potsdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'Potsdam'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Dresden', [PathReq(Protocols.OSPF, "Dresden", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden'], False), PathReq(Protocols.OSPF, "Dresden", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Liege', [PathReq(Protocols.OSPF, "Liege", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Liege'], False), PathReq(Protocols.OSPF, "Liege", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Liege'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Almere', [PathReq(Protocols.OSPF, "Almere", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False), PathReq(Protocols.OSPF, "Almere", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Oslo', [PathReq(Protocols.OSPF, "Oslo", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Gothenburg', 'Oslo'], False), PathReq(Protocols.OSPF, "Oslo", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Stockholm', 'Oslo'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Venezia', [PathReq(Protocols.OSPF, "Venezia", ['Parma', 'Milan', 'Genova', 'Firenze', 'Rome', 'Padova', 'Venezia'], False), PathReq(Protocols.OSPF, "Venezia", ['Parma', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova', 'Venezia'], False)], False),
 ]
 
 edges_cost_ecmp_16_2 = [
@@ -6468,7 +6468,7 @@ edges_cost_ecmp_16_2 = [
     ("Hamburg", "Kolding", 1),
     ("Hamburg", "Copenhagen", 1),
     ("Hamburg", "Essen", 1),
-    ("Hamburg", "Rostock", 2),
+    ("Hamburg", "Rostock", 1),
     ("Esslingen", "Stuttgart", 1),
     ("Stockholm", "Oslo", 1),
     ("Stockholm", "Copenhagen", 1),
@@ -6590,22 +6590,22 @@ edges_cost_ecmp_16_2 = [
 ]
 
 reqs_kconnected_16_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Dortmund', [PathReq(Protocols.OSPF, "Dortmund", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Wuppertal', 'Dortmund'], False), PathReq(Protocols.OSPF, "Dortmund", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Dortmund'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Ostend', [PathReq(Protocols.OSPF, "Ostend", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'NodeID62', 'Ostend'], False), PathReq(Protocols.OSPF, "Ostend", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Ostend'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Padova', [PathReq(Protocols.OSPF, "Padova", ['Cuneo', 'Turin', 'Milan', 'Genova', 'Firenze', 'Rome', 'Padova'], False), PathReq(Protocols.OSPF, "Padova", ['Cuneo', 'Turin', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Madrid', [PathReq(Protocols.OSPF, "Madrid", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse', 'Bordeaux', 'Madrid'], False), PathReq(Protocols.OSPF, "Madrid", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Barcelona', 'Valencia', 'Madrid'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Leuven', [PathReq(Protocols.OSPF, "Leuven", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Leuven'], False), PathReq(Protocols.OSPF, "Leuven", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Leuven'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'NodeID60', [PathReq(Protocols.OSPF, "NodeID60", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'NodeID60'], False), PathReq(Protocols.OSPF, "NodeID60", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'NodeID60'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Rostock', [PathReq(Protocols.OSPF, "Rostock", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'Rostock'], False), PathReq(Protocols.OSPF, "Rostock", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Rostock'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Utrecht', [PathReq(Protocols.OSPF, "Utrecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Utrecht'], False), PathReq(Protocols.OSPF, "Utrecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Utrecht'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Bern', [PathReq(Protocols.OSPF, "Bern", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73', 'Bern'], False), PathReq(Protocols.OSPF, "Bern", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Bern'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Hilversum', [PathReq(Protocols.OSPF, "Hilversum", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum'], False), PathReq(Protocols.OSPF, "Hilversum", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Sintra', [PathReq(Protocols.OSPF, "Sintra", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse', 'Bordeaux', 'Madrid', 'Lisbon', 'Sintra'], False), PathReq(Protocols.OSPF, "Sintra", ['Cuneo', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Barcelona', 'Valencia', 'Madrid', 'Lisbon', 'Sintra'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Anderlecht', [PathReq(Protocols.OSPF, "Anderlecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Anderlecht'], False), PathReq(Protocols.OSPF, "Anderlecht", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Anderlecht'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Almere', [PathReq(Protocols.OSPF, "Almere", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False), PathReq(Protocols.OSPF, "Almere", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Rotterdam', [PathReq(Protocols.OSPF, "Rotterdam", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False), PathReq(Protocols.OSPF, "Rotterdam", ['Cuneo', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Ostend', [PathReq(Protocols.OSPF, "Ostend", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'NodeID62', 'Ostend'], False), PathReq(Protocols.OSPF, "Ostend", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Ostend'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Biel/Bienne', [PathReq(Protocols.OSPF, "Biel/Bienne", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Geneve', 'Nyon', 'Lausanne', 'NodeID73', 'Biel/Bienne'], False), PathReq(Protocols.OSPF, "Biel/Bienne", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Biel/Bienne'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Nantes', [PathReq(Protocols.OSPF, "Nantes", ['Parma', 'Milan', 'Turin', 'Marseille', 'Montpellier', 'NodeID79', 'Toulouse', 'Bordeaux', 'Nantes'], False), PathReq(Protocols.OSPF, "Nantes", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Rouen', 'Rennes', 'Nantes'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Mons', [PathReq(Protocols.OSPF, "Mons", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Mons'], False), PathReq(Protocols.OSPF, "Mons", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Mons'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'TheTTHague', [PathReq(Protocols.OSPF, "TheTTHague", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague'], False), PathReq(Protocols.OSPF, "TheTTHague", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Magdemburg', [PathReq(Protocols.OSPF, "Magdemburg", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False), PathReq(Protocols.OSPF, "Magdemburg", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'NodeID60', 'Magdemburg'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Rotterdam', [PathReq(Protocols.OSPF, "Rotterdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False), PathReq(Protocols.OSPF, "Rotterdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Eindhoven', [PathReq(Protocols.OSPF, "Eindhoven", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Eindhoven'], False), PathReq(Protocols.OSPF, "Eindhoven", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Rotterdam', 'DenTTBosch', 'Eindhoven'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Potsdam', [PathReq(Protocols.OSPF, "Potsdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden', 'Berlin', 'Potsdam'], False), PathReq(Protocols.OSPF, "Potsdam", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden', 'Berlin', 'Potsdam'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Dresden', [PathReq(Protocols.OSPF, "Dresden", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Nuremberg', 'Leipzig', 'Dresden'], False), PathReq(Protocols.OSPF, "Dresden", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Stuttgart', 'Munich', 'Vienna', 'Prague', 'Dresden'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Liege', [PathReq(Protocols.OSPF, "Liege", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Liege'], False), PathReq(Protocols.OSPF, "Liege", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Liege'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Almere', [PathReq(Protocols.OSPF, "Almere", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Newark', 'London', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False), PathReq(Protocols.OSPF, "Almere", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Lille', 'Ghent', 'Brussels', 'Antwerp', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Almere'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Oslo', [PathReq(Protocols.OSPF, "Oslo", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Gothenburg', 'Oslo'], False), PathReq(Protocols.OSPF, "Oslo", ['Parma', 'Milan', 'Turin', 'Marseille', 'Lyon', 'Paris', 'Strasbourg', 'Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Essen', 'Hamburg', 'Copenhagen', 'Stockholm', 'Oslo'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Venezia', [PathReq(Protocols.OSPF, "Venezia", ['Parma', 'Milan', 'Genova', 'Firenze', 'Rome', 'Padova', 'Venezia'], False), PathReq(Protocols.OSPF, "Venezia", ['Parma', 'Milan', 'Bergamo', 'Brescia', 'Verona', 'Padova', 'Venezia'], False)], False),
 ]
 
 edges_cost_kconnected_16_2 = [
@@ -6844,7 +6844,7 @@ edges_cost_kconnected_16_2 = [
     ("Hamburg", "Kolding", 1),
     ("Hamburg", "Copenhagen", 1),
     ("Hamburg", "Essen", 1),
-    ("Hamburg", "Rostock", 2),
+    ("Hamburg", "Rostock", 1),
     ("Esslingen", "Stuttgart", 1),
     ("Stockholm", "Oslo", 1),
     ("Stockholm", "Copenhagen", 1),
@@ -6966,30 +6966,30 @@ edges_cost_kconnected_16_2 = [
 ]
 
 reqs_order_16_2 = [
-    PathOrderReq(Protocols.OSPF, 'London', [PathReq(Protocols.OSPF, "London", ['Manchester', 'London'], False), PathReq(Protocols.OSPF, "London", ['Manchester', 'Birmingham', 'Bristol', 'Dublin', 'London'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Rennes', [PathReq(Protocols.OSPF, "Rennes", ['Nantes', 'Rennes'], False), PathReq(Protocols.OSPF, "Rennes", ['Nantes', 'Bordeaux', 'Toulouse', 'NodeID79', 'Montpellier', 'Marseille', 'Lyon', 'Paris', 'Rouen', 'Rennes'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Madrid', [PathReq(Protocols.OSPF, "Madrid", ['Valencia', 'Madrid'], False), PathReq(Protocols.OSPF, "Madrid", ['Valencia', 'Barcelona', 'NodeID79', 'Toulouse', 'Bordeaux', 'Madrid'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Barcelona', [PathReq(Protocols.OSPF, "Barcelona", ['Valencia', 'Barcelona'], False), PathReq(Protocols.OSPF, "Barcelona", ['Valencia', 'Madrid', 'Bordeaux', 'Toulouse', 'NodeID79', 'Barcelona'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Nuremberg', [PathReq(Protocols.OSPF, "Nuremberg", ['Munich', 'Nuremberg'], False), PathReq(Protocols.OSPF, "Nuremberg", ['Munich', 'Vienna', 'Prague', 'Dresden', 'Leipzig', 'Nuremberg'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Manchester', [PathReq(Protocols.OSPF, "Manchester", ['London', 'Manchester'], False), PathReq(Protocols.OSPF, "Manchester", ['London', 'Dublin', 'Bristol', 'Birmingham', 'Manchester'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Lille', [PathReq(Protocols.OSPF, "Lille", ['NodeID62', 'Lille'], False), PathReq(Protocols.OSPF, "Lille", ['NodeID62', 'Ostend', 'Ghent', 'Lille'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Modena', [PathReq(Protocols.OSPF, "Modena", ['Bologna', 'Modena'], False), PathReq(Protocols.OSPF, "Modena", ['Bologna', 'Firenze', 'Genova', 'Milan', 'ReggioTTEmilia', 'Modena'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Rostock', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Rostock', 'Hamburg', 'Hannover', 'NodeID60', 'Berlin'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Antwerp', [PathReq(Protocols.OSPF, "Antwerp", ['TheTTHague', 'Antwerp'], False), PathReq(Protocols.OSPF, "Antwerp", ['TheTTHague', 'Hoofddorp', 'Amsterdam', 'Dusseldorf', 'Cologne', 'Frankfurt', 'Mannheim', 'Karlsruhe', 'Strasbourg', 'Paris', 'Lille', 'NodeID62', 'London', 'Brussels', 'Antwerp'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Hoofddorp', [PathReq(Protocols.OSPF, "Hoofddorp", ['Amsterdam', 'Hoofddorp'], False), PathReq(Protocols.OSPF, "Hoofddorp", ['Amsterdam', 'Hilversum', 'Utrecht', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Hoofddorp'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Warsaw', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Warsaw', 'Krakov', 'Prague', 'Dresden', 'Berlin'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Strasbourg', [PathReq(Protocols.OSPF, "Strasbourg", ['Karlsruhe', 'Strasbourg'], False), PathReq(Protocols.OSPF, "Strasbourg", ['Karlsruhe', 'Mannheim', 'Frankfurt', 'Cologne', 'Dusseldorf', 'Amsterdam', 'Hoofddorp', 'TheTTHague', 'Antwerp', 'Brussels', 'Ghent', 'Lille', 'Paris', 'Strasbourg'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Hamburg', [PathReq(Protocols.OSPF, "Hamburg", ['Aarhus', 'Hamburg'], False), PathReq(Protocols.OSPF, "Hamburg", ['Aarhus', 'Kolding', 'Hamburg'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Hilversum', [PathReq(Protocols.OSPF, "Hilversum", ['Utrecht', 'Hilversum'], False), PathReq(Protocols.OSPF, "Hilversum", ['Utrecht', 'DenTTBosch', 'Rotterdam', 'TheTTHague', 'Hoofddorp', 'Amsterdam', 'Hilversum'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Kolding', [PathReq(Protocols.OSPF, "Kolding", ['Hamburg', 'Kolding'], False), PathReq(Protocols.OSPF, "Kolding", ['Hamburg', 'Aarhus', 'Kolding'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Nyon', [PathReq(Protocols.OSPF, "Nyon", ['Lausanne', 'Nyon'], False), PathReq(Protocols.OSPF, "Nyon", ['Lausanne', 'NodeID73', 'Basel', 'Strasbourg', 'Paris', 'Lyon', 'Geneve', 'Nyon'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Geneve', [PathReq(Protocols.OSPF, "Geneve", ['Lyon', 'Geneve'], False), PathReq(Protocols.OSPF, "Geneve", ['Lyon', 'Paris', 'Strasbourg', 'Basel', 'NodeID73', 'Lausanne', 'Nyon', 'Geneve'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Valencia', [PathReq(Protocols.OSPF, "Valencia", ['Madrid', 'Valencia'], False), PathReq(Protocols.OSPF, "Valencia", ['Madrid', 'Bordeaux', 'Toulouse', 'NodeID79', 'Barcelona', 'Valencia'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Madrid', [PathReq(Protocols.OSPF, "Madrid", ['Valencia', 'Madrid'], False), PathReq(Protocols.OSPF, "Madrid", ['Valencia', 'Barcelona', 'NodeID79', 'Toulouse', 'Bordeaux', 'Madrid'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Pfaffikon', [PathReq(Protocols.OSPF, "Pfaffikon", ['StTTGallen', 'Pfaffikon'], False), PathReq(Protocols.OSPF, "Pfaffikon", ['StTTGallen', 'Zurich', 'Winterthur', 'Pfaffikon'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Stockholm', [PathReq(Protocols.OSPF, "Stockholm", ['Copenhagen', 'Stockholm'], False), PathReq(Protocols.OSPF, "Stockholm", ['Copenhagen', 'Gothenburg', 'Oslo', 'Stockholm'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Berlin', [PathReq(Protocols.OSPF, "Berlin", ['Rostock', 'Berlin'], False), PathReq(Protocols.OSPF, "Berlin", ['Rostock', 'Hamburg', 'Hannover', 'NodeID60', 'Berlin'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'London', [PathReq(Protocols.OSPF, "London", ['Manchester', 'London'], False), PathReq(Protocols.OSPF, "London", ['Manchester', 'Birmingham', 'Bristol', 'Reading', 'London'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Paris', [PathReq(Protocols.OSPF, "Paris", ['Rouen', 'Paris'], False), PathReq(Protocols.OSPF, "Paris", ['Rouen', 'Rennes', 'Nantes', 'Bordeaux', 'Toulouse', 'NodeID79', 'Montpellier', 'Marseille', 'Lyon', 'Paris'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Firenze', [PathReq(Protocols.OSPF, "Firenze", ['Genova', 'Firenze'], False), PathReq(Protocols.OSPF, "Firenze", ['Genova', 'Milan', 'ReggioTTEmilia', 'Modena', 'Bologna', 'Firenze'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Milan', [PathReq(Protocols.OSPF, "Milan", ['Genova', 'Milan'], False), PathReq(Protocols.OSPF, "Milan", ['Genova', 'Firenze', 'Bologna', 'Modena', 'ReggioTTEmilia', 'Milan'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Ostend', [PathReq(Protocols.OSPF, "Ostend", ['Ghent', 'Ostend'], False), PathReq(Protocols.OSPF, "Ostend", ['Ghent', 'Lille', 'NodeID62', 'Ostend'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Nuremberg', [PathReq(Protocols.OSPF, "Nuremberg", ['Leipzig', 'Nuremberg'], False), PathReq(Protocols.OSPF, "Nuremberg", ['Leipzig', 'Dresden', 'Prague', 'Vienna', 'Munich', 'Nuremberg'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Gothenburg', [PathReq(Protocols.OSPF, "Gothenburg", ['Copenhagen', 'Gothenburg'], False), PathReq(Protocols.OSPF, "Gothenburg", ['Copenhagen', 'Stockholm', 'Oslo', 'Gothenburg'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Bologna', [PathReq(Protocols.OSPF, "Bologna", ['Firenze', 'Bologna'], False), PathReq(Protocols.OSPF, "Bologna", ['Firenze', 'Genova', 'Milan', 'ReggioTTEmilia', 'Modena', 'Bologna'], False)], False),
 ]
 
 edges_cost_order_16_2 = [
     ("Liege", "Brussels", 1),
     ("NewTTYork", "Newark", 1),
-    ("NewTTYork", "London", 1),
+    ("NewTTYork", "London", 2),
     ("Lille", "Paris", 1),
-    ("Lille", "Ghent", 1),
+    ("Lille", "Ghent", 3),
     ("Lille", "NodeID62", 1),
     ("Paris", "Lyon", 1),
     ("Paris", "Strasbourg", 1),
@@ -7005,7 +7005,7 @@ edges_cost_order_16_2 = [
     ("Lugano", "Lucerne", 1),
     ("Lugano", "Chiasso", 1),
     ("Newark", "Paris", 1),
-    ("Newark", "London", 1),
+    ("Newark", "London", 3),
     ("Newark", "NewTTYork", 1),
     ("Schaffhausen", "StTTGallen", 1),
     ("Schaffhausen", "Zurich", 1),
@@ -7124,7 +7124,7 @@ edges_cost_order_16_2 = [
     ("DenTTBosch", "Utrecht", 1),
     ("DenTTBosch", "Eindhoven", 1),
     ("Reading", "London", 1),
-    ("Reading", "Bristol", 2),
+    ("Reading", "Bristol", 1),
     ("Vienna", "Graz", 1),
     ("Vienna", "Linz", 1),
     ("Vienna", "Prague", 1),
@@ -7298,8 +7298,8 @@ edges_cost_order_16_2 = [
     ("Barcelona", "NodeID79", 1),
     ("Zug", "Lucerne", 1),
     ("Zug", "Zurich", 1),
-    ("Bristol", "Dublin", 1),
-    ("Bristol", "Reading", 2),
+    ("Bristol", "Dublin", 2),
+    ("Bristol", "Reading", 1),
     ("Bristol", "Birmingham", 1),
     ("Amsterdam", "Almere", 1),
     ("Amsterdam", "Hoofddorp", 1),
@@ -7323,7 +7323,7 @@ edges_cost_order_16_2 = [
     ("Prague", "Vienna", 1),
     ("Leipzig", "Nuremberg", 1),
     ("Leipzig", "Dresden", 1),
-    ("Aarhus", "Copenhagen", 2),
+    ("Aarhus", "Copenhagen", 1),
     ("Aarhus", "Kolding", 1),
     ("Aarhus", "Hamburg", 1),
     ("Lisbon", "Porto", 1),
