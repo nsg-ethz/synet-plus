@@ -69,8 +69,8 @@ def main():
     path_gen = args.p
     seed = args.seed
     fixed = args.fixed
-    syn = args.fixed
-
+    syn = args.syn
+    print "Syntype", syn
     assert 0 <= fixed <= 1.0
 
     # Generate new random number seed if need
@@ -116,16 +116,20 @@ def main():
 
     t1 = timer()
     if syn == 'cegis':
+        print "Syn CEGIS"
         ospf = OSPFCEGIS(topo, gen_paths=path_gen, random_obj=ospfRand)
         for req in reqs:
             ospf.add_req(req)
         assert ospf.synthesize()
-        assert not ospf.removed_reqs()
-    else:
+        assert not ospf.removed_reqs
+    elif syn == "concrete":
+        print "Syn Concrete"
         ospf = OSPFConcrete(topo)
         for req in reqs:
             ospf.add_req(req)
         assert ospf.solve()
+    else:
+        raise ValueError("Unknow syn type %s" % syn)
     t2 = timer()
     print "TOTAL SYN TIME:", t2 - t1
     if fixed == 1.0:
