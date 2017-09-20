@@ -21,7 +21,7 @@ do
         do
             for req_type in simple kconnected ecmp order;
             do
-                for fixed in "0" "0.25" "0.5" "1.0";
+                for fixed in "0" "0.25" "0.5" "0.75" "1.0";
                 do
                     for RUN_ID in $(seq 1 $NUM_REPEATS);
                     do
