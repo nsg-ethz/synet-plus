@@ -169,7 +169,7 @@ edges_cost_simple_1 = [
 ####################
 
 reqs_ecmp_1_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'GSIST,TTUTTTokyo', [PathReq(Protocols.OSPF, "GSIST,TTUTTTokyo", ['HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'GSIST,TTUTTTokyo'], False), PathReq(Protocols.OSPF, "GSIST,TTUTTTokyo", ['HiroshimaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'GSIST,TTUTTTokyo'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KanazawaTTU', [PathReq(Protocols.OSPF, "KanazawaTTU", ['JAEA', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KanazawaTTU'], False), PathReq(Protocols.OSPF, "KanazawaTTU", ['JAEA', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KanazawaTTU'], False)], False),
 ]
 
 edges_cost_ecmp_1_2 = [
@@ -328,7 +328,7 @@ edges_cost_ecmp_1_2 = [
 ]
 
 reqs_kconnected_1_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'GSIST,TTUTTTokyo', [PathReq(Protocols.OSPF, "GSIST,TTUTTTokyo", ['HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'GSIST,TTUTTTokyo'], False), PathReq(Protocols.OSPF, "GSIST,TTUTTTokyo", ['HiroshimaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'GSIST,TTUTTTokyo'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KanazawaTTU', [PathReq(Protocols.OSPF, "KanazawaTTU", ['JAEA', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KanazawaTTU'], False), PathReq(Protocols.OSPF, "KanazawaTTU", ['JAEA', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KanazawaTTU'], False)], False),
 ]
 
 edges_cost_kconnected_1_2 = [
@@ -487,7 +487,7 @@ edges_cost_kconnected_1_2 = [
 ]
 
 reqs_order_1_2 = [
-    PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['NagoyaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
 ]
 
 edges_cost_order_1_2 = [
@@ -587,7 +587,7 @@ edges_cost_order_1_2 = [
     ("TokyoTTDC1", "NII", 1),
     ("TokyoTTDC1", "NAOJ", 1),
     ("TokyoTTDC1", "JAXA-ISAS", 1),
-    ("TokyoTTDC1", "NagoyaTTDC", 2),
+    ("TokyoTTDC1", "NagoyaTTDC", 1),
     ("TokyoTTDC1", "UTTTokyo", 1),
     ("TokyoTTDC1", "KeioTTU", 1),
     ("TokyoTTDC1", "GSIST,TTUTTTokyo", 1),
@@ -646,8 +646,8 @@ edges_cost_order_1_2 = [
 ]
 
 reqs_simple_2 = [
-    PathReq(Protocols.OSPF, "IMS,TTUTTTokyo", ['TohokuTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'IMS,TTUTTTokyo'], False),
-    PathReq(Protocols.OSPF, "SendaiTTDC", ['TohokuTTU', 'SendaiTTDC'], False),
+    PathReq(Protocols.OSPF, "KEK", ['HokkaidoTTU', 'SapporoTTDC', 'SendaiTTDC', 'TsukubaTTDC', 'KEK'], False),
+    PathReq(Protocols.OSPF, "HirosakiTTU", ['HokkaidoTTU', 'SapporoTTDC', 'SendaiTTDC', 'HirosakiTTU'], False),
 ]
 
 edges_cost_simple_2 = [
@@ -808,8 +808,8 @@ edges_cost_simple_2 = [
 ####################
 
 reqs_ecmp_2_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'SendaiTTDC', [PathReq(Protocols.OSPF, "SendaiTTDC", ['TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC'], False), PathReq(Protocols.OSPF, "SendaiTTDC", ['TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'TottoriTTU', [PathReq(Protocols.OSPF, "TottoriTTU", ['RIKEN', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'TottoriTTU'], False), PathReq(Protocols.OSPF, "TottoriTTU", ['RIKEN', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'TottoriTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['RIKEN', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['RIKEN', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
 ]
 
 edges_cost_ecmp_2_2 = [
@@ -968,8 +968,8 @@ edges_cost_ecmp_2_2 = [
 ]
 
 reqs_kconnected_2_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'SendaiTTDC', [PathReq(Protocols.OSPF, "SendaiTTDC", ['TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC'], False), PathReq(Protocols.OSPF, "SendaiTTDC", ['TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'TottoriTTU', [PathReq(Protocols.OSPF, "TottoriTTU", ['RIKEN', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'TottoriTTU'], False), PathReq(Protocols.OSPF, "TottoriTTU", ['RIKEN', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'TottoriTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['RIKEN', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['RIKEN', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
 ]
 
 edges_cost_kconnected_2_2 = [
@@ -1128,8 +1128,8 @@ edges_cost_kconnected_2_2 = [
 ]
 
 reqs_order_2_2 = [
-    PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'FukuokaTTDC', [PathReq(Protocols.OSPF, "FukuokaTTDC", ['MatsuyamaTTDC', 'FukuokaTTDC'], False), PathReq(Protocols.OSPF, "FukuokaTTDC", ['MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['KanazawaTTDC', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
 ]
 
 edges_cost_order_2_2 = [
@@ -1270,7 +1270,7 @@ edges_cost_order_2_2 = [
     ("KanazawaTTDC", "NiigataTTU", 1),
     ("KanazawaTTDC", "FukuiTTU", 1),
     ("KanazawaTTDC", "KyotoTTDC", 1),
-    ("KanazawaTTDC", "SapporoTTDC", 1),
+    ("KanazawaTTDC", "SapporoTTDC", 2),
     ("KanazawaTTDC", "TokyoTTDC2", 1),
     ("KanazawaTTDC", "KanazawaTTU", 1),
     ("KanazawaTTDC", "JAIST", 1),
@@ -1288,10 +1288,10 @@ edges_cost_order_2_2 = [
 ]
 
 reqs_simple_4 = [
-    PathReq(Protocols.OSPF, "UTTofTTtheTTRyukyus", ['SaitamaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'UTTofTTtheTTRyukyus'], False),
-    PathReq(Protocols.OSPF, "KyushuTTIT", ['SaitamaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'KyushuTTIT'], False),
-    PathReq(Protocols.OSPF, "JAXA-ISAS", ['SaitamaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'JAXA-ISAS'], False),
-    PathReq(Protocols.OSPF, "ICR,TTKyotoTTU", ['SaitamaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'ICR,TTKyotoTTU'], False),
+    PathReq(Protocols.OSPF, "HirosakiTTU", ['SendaiTTDC', 'HirosakiTTU'], False),
+    PathReq(Protocols.OSPF, "KobeTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False),
+    PathReq(Protocols.OSPF, "KitamiTTIT", ['SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU', 'KitamiTTIT'], False),
+    PathReq(Protocols.OSPF, "TokyoTTDC1", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1'], False),
 ]
 
 edges_cost_simple_4 = [
@@ -1391,7 +1391,7 @@ edges_cost_simple_4 = [
     ("TokyoTTDC1", "NII", 1),
     ("TokyoTTDC1", "NAOJ", 1),
     ("TokyoTTDC1", "JAXA-ISAS", 1),
-    ("TokyoTTDC1", "NagoyaTTDC", 1),
+    ("TokyoTTDC1", "NagoyaTTDC", 2),
     ("TokyoTTDC1", "UTTTokyo", 1),
     ("TokyoTTDC1", "KeioTTU", 1),
     ("TokyoTTDC1", "GSIST,TTUTTTokyo", 1),
@@ -1452,10 +1452,10 @@ edges_cost_simple_4 = [
 ####################
 
 reqs_ecmp_4_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'ISSP,TTUTTTokyo', [PathReq(Protocols.OSPF, "ISSP,TTUTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'ISSP,TTUTTTokyo'], False), PathReq(Protocols.OSPF, "ISSP,TTUTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'ISSP,TTUTTTokyo'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'NAOJ', [PathReq(Protocols.OSPF, "NAOJ", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'NAOJ'], False), PathReq(Protocols.OSPF, "NAOJ", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'NAOJ'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'UTTTokyo', [PathReq(Protocols.OSPF, "UTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'UTTTokyo'], False), PathReq(Protocols.OSPF, "UTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'UTTTokyo'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'HokkaidoTTU', [PathReq(Protocols.OSPF, "HokkaidoTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False), PathReq(Protocols.OSPF, "HokkaidoTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'HiroshimaTTU', [PathReq(Protocols.OSPF, "HiroshimaTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False), PathReq(Protocols.OSPF, "HiroshimaTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
 ]
 
 edges_cost_ecmp_4_2 = [
@@ -1614,10 +1614,10 @@ edges_cost_ecmp_4_2 = [
 ]
 
 reqs_kconnected_4_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'ISSP,TTUTTTokyo', [PathReq(Protocols.OSPF, "ISSP,TTUTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'ISSP,TTUTTTokyo'], False), PathReq(Protocols.OSPF, "ISSP,TTUTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'ISSP,TTUTTTokyo'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'NAOJ', [PathReq(Protocols.OSPF, "NAOJ", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'NAOJ'], False), PathReq(Protocols.OSPF, "NAOJ", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'NAOJ'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'UTTTokyo', [PathReq(Protocols.OSPF, "UTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'UTTTokyo'], False), PathReq(Protocols.OSPF, "UTTTokyo", ['ICR,TTKyotoTTU', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'UTTTokyo'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'HokkaidoTTU', [PathReq(Protocols.OSPF, "HokkaidoTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False), PathReq(Protocols.OSPF, "HokkaidoTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'HiroshimaTTU', [PathReq(Protocols.OSPF, "HiroshimaTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False), PathReq(Protocols.OSPF, "HiroshimaTTU", ['JAXA-ISAS', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['JAXA-ISAS', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
 ]
 
 edges_cost_kconnected_4_2 = [
@@ -1776,10 +1776,10 @@ edges_cost_kconnected_4_2 = [
 ]
 
 reqs_order_4_2 = [
-    PathOrderReq(Protocols.OSPF, 'SapporoTTDC', [PathReq(Protocols.OSPF, "SapporoTTDC", ['SendaiTTDC', 'SapporoTTDC'], False), PathReq(Protocols.OSPF, "SapporoTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC', 'HiroshimaTTDC'], False)], False),
     PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'KanazawaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['NagoyaTTDC', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SapporoTTDC', [PathReq(Protocols.OSPF, "SapporoTTDC", ['KanazawaTTDC', 'SapporoTTDC'], False), PathReq(Protocols.OSPF, "SapporoTTDC", ['KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['KyotoTTDC', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
 ]
 
 edges_cost_order_4_2 = [
@@ -1938,14 +1938,14 @@ edges_cost_order_4_2 = [
 ]
 
 reqs_simple_8 = [
-    PathReq(Protocols.OSPF, "KanazawaTTDC", ['KyushuTTU', 'FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'KanazawaTTDC'], False),
-    PathReq(Protocols.OSPF, "UTTTsukuba", ['KyushuTTU', 'FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'TsukubaTTDC', 'UTTTsukuba'], False),
-    PathReq(Protocols.OSPF, "TohokuTTU", ['KyushuTTU', 'FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC', 'TohokuTTU'], False),
-    PathReq(Protocols.OSPF, "UTTElectro-Communications", ['KyushuTTU', 'FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'UTTElectro-Communications'], False),
-    PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['KyushuTTU', 'FukuokaTTDC', 'MatsuyamaTTDC'], False),
-    PathReq(Protocols.OSPF, "UTTTokyo", ['KyushuTTU', 'FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'UTTTokyo'], False),
-    PathReq(Protocols.OSPF, "UTTTokushima", ['KyushuTTU', 'FukuokaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False),
-    PathReq(Protocols.OSPF, "KansaiTTU", ['KyushuTTU', 'FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KansaiTTU'], False),
+    PathReq(Protocols.OSPF, "ISSP,TTUTTTokyo", ['UTTElectro-Communications', 'TokyoTTDC2', 'TokyoTTDC1', 'ISSP,TTUTTTokyo'], False),
+    PathReq(Protocols.OSPF, "SaitamaTTU", ['UTTElectro-Communications', 'TokyoTTDC2', 'SaitamaTTU'], False),
+    PathReq(Protocols.OSPF, "HirosakiTTU", ['UTTElectro-Communications', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'HirosakiTTU'], False),
+    PathReq(Protocols.OSPF, "NAOJ", ['UTTElectro-Communications', 'TokyoTTDC2', 'TokyoTTDC1', 'NAOJ'], False),
+    PathReq(Protocols.OSPF, "KEK", ['UTTElectro-Communications', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'KEK'], False),
+    PathReq(Protocols.OSPF, "RIKEN", ['UTTElectro-Communications', 'TokyoTTDC2', 'TokyoTTDC1', 'RIKEN'], False),
+    PathReq(Protocols.OSPF, "OsakaTTDC", ['UTTElectro-Communications', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False),
+    PathReq(Protocols.OSPF, "NiigataTTU", ['UTTElectro-Communications', 'TokyoTTDC2', 'KanazawaTTDC', 'NiigataTTU'], False),
 ]
 
 edges_cost_simple_8 = [
@@ -2071,7 +2071,7 @@ edges_cost_simple_8 = [
     ("KEK", "TsukubaTTDC", 1),
     ("NII", "TokyoTTDC1", 1),
     ("NAOJ", "TokyoTTDC1", 1),
-    ("NagoyaTTDC", "OsakaTTDC", 1),
+    ("NagoyaTTDC", "OsakaTTDC", 2),
     ("NagoyaTTDC", "KamiokaTTObs,TTICRR,TTUTTTokyo", 1),
     ("NagoyaTTDC", "TokyoTTDC1", 1),
     ("NagoyaTTDC", "ShizuokaTTU", 1),
@@ -2086,7 +2086,7 @@ edges_cost_simple_8 = [
     ("KanazawaTTDC", "NiigataTTU", 1),
     ("KanazawaTTDC", "FukuiTTU", 1),
     ("KanazawaTTDC", "KyotoTTDC", 1),
-    ("KanazawaTTDC", "SapporoTTDC", 1),
+    ("KanazawaTTDC", "SapporoTTDC", 2),
     ("KanazawaTTDC", "TokyoTTDC2", 1),
     ("KanazawaTTDC", "KanazawaTTU", 1),
     ("KanazawaTTDC", "JAIST", 1),
@@ -2106,14 +2106,14 @@ edges_cost_simple_8 = [
 ####################
 
 reqs_ecmp_8_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KansaiTTU', [PathReq(Protocols.OSPF, "KansaiTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KansaiTTU'], False), PathReq(Protocols.OSPF, "KansaiTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'HirosakiTTU', [PathReq(Protocols.OSPF, "HirosakiTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC', 'HirosakiTTU'], False), PathReq(Protocols.OSPF, "HirosakiTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'HirosakiTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'OsakaTTU', [PathReq(Protocols.OSPF, "OsakaTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'OsakaTTU'], False), PathReq(Protocols.OSPF, "OsakaTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'OsakaTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KobeTTU', [PathReq(Protocols.OSPF, "KobeTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KobeTTU'], False), PathReq(Protocols.OSPF, "KobeTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KagawaTTU', [PathReq(Protocols.OSPF, "KagawaTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False), PathReq(Protocols.OSPF, "KagawaTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'DoshishaTTU', [PathReq(Protocols.OSPF, "DoshishaTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'DoshishaTTU'], False), PathReq(Protocols.OSPF, "DoshishaTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'DoshishaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'OkayamaTTU', [PathReq(Protocols.OSPF, "OkayamaTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'OkayamaTTU'], False), PathReq(Protocols.OSPF, "OkayamaTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'OkayamaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'ICR,TTKyotoTTU', [PathReq(Protocols.OSPF, "ICR,TTKyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'ICR,TTKyotoTTU'], False), PathReq(Protocols.OSPF, "ICR,TTKyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'ICR,TTKyotoTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KyotoTTU', [PathReq(Protocols.OSPF, "KyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'KyotoTTU'], False), PathReq(Protocols.OSPF, "KyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'KyotoTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'HokkaidoTTU', [PathReq(Protocols.OSPF, "HokkaidoTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False), PathReq(Protocols.OSPF, "HokkaidoTTU", ['KeioTTU', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'HiroshimaTTU', [PathReq(Protocols.OSPF, "HiroshimaTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False), PathReq(Protocols.OSPF, "HiroshimaTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KitamiTTIT', [PathReq(Protocols.OSPF, "KitamiTTIT", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU', 'KitamiTTIT'], False), PathReq(Protocols.OSPF, "KitamiTTIT", ['KeioTTU', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU', 'KitamiTTIT'], False)], False),
 ]
 
 edges_cost_ecmp_8_2 = [
@@ -2272,14 +2272,14 @@ edges_cost_ecmp_8_2 = [
 ]
 
 reqs_kconnected_8_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KansaiTTU', [PathReq(Protocols.OSPF, "KansaiTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KansaiTTU'], False), PathReq(Protocols.OSPF, "KansaiTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'HirosakiTTU', [PathReq(Protocols.OSPF, "HirosakiTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC', 'HirosakiTTU'], False), PathReq(Protocols.OSPF, "HirosakiTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'HirosakiTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'OsakaTTU', [PathReq(Protocols.OSPF, "OsakaTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'OsakaTTU'], False), PathReq(Protocols.OSPF, "OsakaTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'OsakaTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KobeTTU', [PathReq(Protocols.OSPF, "KobeTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KobeTTU'], False), PathReq(Protocols.OSPF, "KobeTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KagawaTTU', [PathReq(Protocols.OSPF, "KagawaTTU", ['ChibaTTU', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False), PathReq(Protocols.OSPF, "KagawaTTU", ['ChibaTTU', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'DoshishaTTU', [PathReq(Protocols.OSPF, "DoshishaTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'DoshishaTTU'], False), PathReq(Protocols.OSPF, "DoshishaTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'DoshishaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'OkayamaTTU', [PathReq(Protocols.OSPF, "OkayamaTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'OkayamaTTU'], False), PathReq(Protocols.OSPF, "OkayamaTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'OkayamaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'ICR,TTKyotoTTU', [PathReq(Protocols.OSPF, "ICR,TTKyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'ICR,TTKyotoTTU'], False), PathReq(Protocols.OSPF, "ICR,TTKyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'ICR,TTKyotoTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KyotoTTU', [PathReq(Protocols.OSPF, "KyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'KyotoTTU'], False), PathReq(Protocols.OSPF, "KyotoTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'KyotoTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'HokkaidoTTU', [PathReq(Protocols.OSPF, "HokkaidoTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False), PathReq(Protocols.OSPF, "HokkaidoTTU", ['KeioTTU', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'HiroshimaTTU', [PathReq(Protocols.OSPF, "HiroshimaTTU", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False), PathReq(Protocols.OSPF, "HiroshimaTTU", ['KeioTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KitamiTTIT', [PathReq(Protocols.OSPF, "KitamiTTIT", ['KeioTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU', 'KitamiTTIT'], False), PathReq(Protocols.OSPF, "KitamiTTIT", ['KeioTTU', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'HokkaidoTTU', 'KitamiTTIT'], False)], False),
 ]
 
 edges_cost_kconnected_8_2 = [
@@ -2439,13 +2439,13 @@ edges_cost_kconnected_8_2 = [
 
 reqs_order_8_2 = [
     PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['HiroshimaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['HiroshimaTTDC', 'FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SendaiTTDC', [PathReq(Protocols.OSPF, "SendaiTTDC", ['TsukubaTTDC', 'SendaiTTDC'], False), PathReq(Protocols.OSPF, "SendaiTTDC", ['TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'NagoyaTTDC', [PathReq(Protocols.OSPF, "NagoyaTTDC", ['TokyoTTDC1', 'NagoyaTTDC'], False), PathReq(Protocols.OSPF, "NagoyaTTDC", ['TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['NagoyaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['TokyoTTDC1', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['TokyoTTDC2', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1'], False)], False),
     PathOrderReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['KanazawaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['MatsuyamaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['MatsuyamaTTDC', 'FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['KanazawaTTDC', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['OsakaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'MatsuyamaTTDC'], False)], False),
 ]
 
 edges_cost_order_8_2 = [
@@ -2509,7 +2509,7 @@ edges_cost_order_8_2 = [
     ("KyotoTTDC", "OsakaTTDC", 1),
     ("KyotoTTDC", "ICR,TTKyotoTTU", 1),
     ("KyotoTTDC", "HiroshimaTTDC", 1),
-    ("KyotoTTDC", "KanazawaTTDC", 1),
+    ("KyotoTTDC", "KanazawaTTDC", 2),
     ("KyotoTTDC", "KyotoTTU", 1),
     ("KyotoTTDC", "DoshishaTTU", 1),
     ("SapporoTTDC", "SendaiTTDC", 1),
@@ -2586,7 +2586,7 @@ edges_cost_order_8_2 = [
     ("KanazawaTTDC", "NiigataTTU", 1),
     ("KanazawaTTDC", "FukuiTTU", 1),
     ("KanazawaTTDC", "KyotoTTDC", 1),
-    ("KanazawaTTDC", "SapporoTTDC", 1),
+    ("KanazawaTTDC", "SapporoTTDC", 2),
     ("KanazawaTTDC", "TokyoTTDC2", 1),
     ("KanazawaTTDC", "KanazawaTTU", 1),
     ("KanazawaTTDC", "JAIST", 1),
@@ -2604,22 +2604,22 @@ edges_cost_order_8_2 = [
 ]
 
 reqs_simple_16 = [
-    PathReq(Protocols.OSPF, "NagasakiTTU", ['WasedaTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC', 'NagasakiTTU'], False),
-    PathReq(Protocols.OSPF, "FukuiTTU", ['WasedaTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'FukuiTTU'], False),
-    PathReq(Protocols.OSPF, "NagoyaTTDC", ['WasedaTTU', 'TokyoTTDC1', 'NagoyaTTDC'], False),
-    PathReq(Protocols.OSPF, "HiroshimaTTU", ['WasedaTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'HiroshimaTTU'], False),
-    PathReq(Protocols.OSPF, "KyushuTTU", ['WasedaTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC', 'KyushuTTU'], False),
-    PathReq(Protocols.OSPF, "NIFS", ['WasedaTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'NIFS'], False),
-    PathReq(Protocols.OSPF, "NiigataTTU", ['WasedaTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'NiigataTTU'], False),
-    PathReq(Protocols.OSPF, "YamanashiTTU", ['WasedaTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'YamanashiTTU'], False),
-    PathReq(Protocols.OSPF, "UTTTokushima", ['WasedaTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False),
-    PathReq(Protocols.OSPF, "UTTTokyo", ['WasedaTTU', 'TokyoTTDC1', 'UTTTokyo'], False),
-    PathReq(Protocols.OSPF, "NAOJ", ['WasedaTTU', 'TokyoTTDC1', 'NAOJ'], False),
-    PathReq(Protocols.OSPF, "SapporoTTDC", ['WasedaTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC'], False),
-    PathReq(Protocols.OSPF, "FukuokaTTDC", ['WasedaTTU', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC'], False),
-    PathReq(Protocols.OSPF, "TokyoTTDC1", ['WasedaTTU', 'TokyoTTDC1'], False),
-    PathReq(Protocols.OSPF, "UTTTsukuba", ['WasedaTTU', 'TokyoTTDC1', 'TsukubaTTDC', 'UTTTsukuba'], False),
-    PathReq(Protocols.OSPF, "HokkaidoTTU", ['WasedaTTU', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU'], False),
+    PathReq(Protocols.OSPF, "KurnamotoTTU", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'KurnamotoTTU'], False),
+    PathReq(Protocols.OSPF, "YokohamaTTNationalTTU", ['JAMSTEC', 'TokyoTTDC2', 'TokyoTTDC1', 'YokohamaTTNationalTTU'], False),
+    PathReq(Protocols.OSPF, "TohokuTTU", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC', 'TohokuTTU'], False),
+    PathReq(Protocols.OSPF, "SaitamaTTU", ['JAMSTEC', 'TokyoTTDC2', 'SaitamaTTU'], False),
+    PathReq(Protocols.OSPF, "KitamiTTIT", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'HokkaidoTTU', 'KitamiTTIT'], False),
+    PathReq(Protocols.OSPF, "KanazawaTTDC", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC'], False),
+    PathReq(Protocols.OSPF, "YamanashiTTU", ['JAMSTEC', 'TokyoTTDC2', 'YamanashiTTU'], False),
+    PathReq(Protocols.OSPF, "JAEA", ['JAMSTEC', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'JAEA'], False),
+    PathReq(Protocols.OSPF, "KanazawaTTU", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'KanazawaTTU'], False),
+    PathReq(Protocols.OSPF, "NagasakiTTU", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'NagasakiTTU'], False),
+    PathReq(Protocols.OSPF, "TokyoTTIT", ['JAMSTEC', 'TokyoTTDC2', 'TokyoTTDC1', 'TokyoTTIT'], False),
+    PathReq(Protocols.OSPF, "NII-CHiba", ['JAMSTEC', 'TokyoTTDC2', 'TokyoTTDC1', 'NII-CHiba'], False),
+    PathReq(Protocols.OSPF, "KansaiTTU", ['JAMSTEC', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False),
+    PathReq(Protocols.OSPF, "KyotoTTDC", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC'], False),
+    PathReq(Protocols.OSPF, "DoshishaTTU", ['JAMSTEC', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'DoshishaTTU'], False),
+    PathReq(Protocols.OSPF, "TokyoTTDC1", ['JAMSTEC', 'TokyoTTDC2', 'TokyoTTDC1'], False),
 ]
 
 edges_cost_simple_16 = [
@@ -2628,13 +2628,13 @@ edges_cost_simple_16 = [
     ("OsakaTTDC", "KobeTTU", 1),
     ("OsakaTTDC", "NagoyaTTDC", 1),
     ("OsakaTTDC", "KansaiTTU", 1),
-    ("OsakaTTDC", "KyotoTTDC", 2),
+    ("OsakaTTDC", "KyotoTTDC", 1),
     ("OsakaTTDC", "MatsuyamaTTDC", 1),
     ("UTTTokushima", "MatsuyamaTTDC", 1),
     ("KyushuTTU", "FukuokaTTDC", 1),
     ("SendaiTTDC", "HirosakiTTU", 1),
     ("SendaiTTDC", "TohokuTTU", 1),
-    ("SendaiTTDC", "SapporoTTDC", 2),
+    ("SendaiTTDC", "SapporoTTDC", 1),
     ("SendaiTTDC", "TsukubaTTDC", 1),
     ("FukuokaTTDC", "KyushuTTU", 1),
     ("FukuokaTTDC", "KyushuTTIT", 1),
@@ -2664,7 +2664,7 @@ edges_cost_simple_16 = [
     ("TsukubaTTDC", "UTTTsukuba", 1),
     ("TsukubaTTDC", "TokyoTTDC1", 1),
     ("TsukubaTTDC", "JAEA", 1),
-    ("TsukubaTTDC", "SendaiTTDC", 1),
+    ("TsukubaTTDC", "SendaiTTDC", 2),
     ("MatsuyamaTTDC", "OsakaTTDC", 1),
     ("MatsuyamaTTDC", "UTTTokushima", 1),
     ("MatsuyamaTTDC", "KagawaTTU", 1),
@@ -2680,7 +2680,7 @@ edges_cost_simple_16 = [
     ("UTTElectro-Communications", "TokyoTTDC2", 1),
     ("NII-CHiba", "TokyoTTDC1", 1),
     ("FukuiTTU", "KanazawaTTDC", 1),
-    ("KyotoTTDC", "OsakaTTDC", 1),
+    ("KyotoTTDC", "OsakaTTDC", 2),
     ("KyotoTTDC", "ICR,TTKyotoTTU", 1),
     ("KyotoTTDC", "HiroshimaTTDC", 1),
     ("KyotoTTDC", "KanazawaTTDC", 1),
@@ -2780,22 +2780,22 @@ edges_cost_simple_16 = [
 ####################
 
 reqs_ecmp_16_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'OsakaTTU', [PathReq(Protocols.OSPF, "OsakaTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'OsakaTTU'], False), PathReq(Protocols.OSPF, "OsakaTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'OsakaTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'JASRI', [PathReq(Protocols.OSPF, "JASRI", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'JASRI'], False), PathReq(Protocols.OSPF, "JASRI", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'JASRI'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'TokyoTTDC3', [PathReq(Protocols.OSPF, "TokyoTTDC3", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'TokyoTTDC3'], False), PathReq(Protocols.OSPF, "TokyoTTDC3", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC3'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'ISM', [PathReq(Protocols.OSPF, "ISM", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ISM'], False), PathReq(Protocols.OSPF, "ISM", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ISM'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'TokyoTTUTTAgTTandTTTech', [PathReq(Protocols.OSPF, "TokyoTTUTTAgTTandTTTech", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'TokyoTTUTTAgTTandTTTech'], False), PathReq(Protocols.OSPF, "TokyoTTUTTAgTTandTTTech", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTUTTAgTTandTTTech'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'UTTElectro-Communications', [PathReq(Protocols.OSPF, "UTTElectro-Communications", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'UTTElectro-Communications'], False), PathReq(Protocols.OSPF, "UTTElectro-Communications", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'UTTElectro-Communications'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KansaiTTU', [PathReq(Protocols.OSPF, "KansaiTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KansaiTTU'], False), PathReq(Protocols.OSPF, "KansaiTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KagawaTTU', [PathReq(Protocols.OSPF, "KagawaTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False), PathReq(Protocols.OSPF, "KagawaTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'JAMSTEC', [PathReq(Protocols.OSPF, "JAMSTEC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'JAMSTEC'], False), PathReq(Protocols.OSPF, "JAMSTEC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'JAMSTEC'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KobeTTU', [PathReq(Protocols.OSPF, "KobeTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False), PathReq(Protocols.OSPF, "KobeTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KobeTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'YamanashiTTU', [PathReq(Protocols.OSPF, "YamanashiTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'YamanashiTTU'], False), PathReq(Protocols.OSPF, "YamanashiTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'YamanashiTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'SaitamaTTU', [PathReq(Protocols.OSPF, "SaitamaTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'SaitamaTTU'], False), PathReq(Protocols.OSPF, "SaitamaTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'SaitamaTTU'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KobeTTU', [PathReq(Protocols.OSPF, "KobeTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KobeTTU'], False), PathReq(Protocols.OSPF, "KobeTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SaitamaTTU', [PathReq(Protocols.OSPF, "SaitamaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'SaitamaTTU'], False), PathReq(Protocols.OSPF, "SaitamaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'SaitamaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KansaiTTU', [PathReq(Protocols.OSPF, "KansaiTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False), PathReq(Protocols.OSPF, "KansaiTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KansaiTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'JAMSTEC', [PathReq(Protocols.OSPF, "JAMSTEC", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'JAMSTEC'], False), PathReq(Protocols.OSPF, "JAMSTEC", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'JAMSTEC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'ChibaTTU', [PathReq(Protocols.OSPF, "ChibaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ChibaTTU'], False), PathReq(Protocols.OSPF, "ChibaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ChibaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'OsakaTTU', [PathReq(Protocols.OSPF, "OsakaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'OsakaTTU'], False), PathReq(Protocols.OSPF, "OsakaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'OsakaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'ShinshuTTU', [PathReq(Protocols.OSPF, "ShinshuTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ShinshuTTU'], False), PathReq(Protocols.OSPF, "ShinshuTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ShinshuTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'TokyoTTDC3', [PathReq(Protocols.OSPF, "TokyoTTDC3", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'TokyoTTDC3'], False), PathReq(Protocols.OSPF, "TokyoTTDC3", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC3'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'GunmaTTU', [PathReq(Protocols.OSPF, "GunmaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'GunmaTTU'], False), PathReq(Protocols.OSPF, "GunmaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'GunmaTTU'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'UTTElectro-Communications', [PathReq(Protocols.OSPF, "UTTElectro-Communications", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'UTTElectro-Communications'], False), PathReq(Protocols.OSPF, "UTTElectro-Communications", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'UTTElectro-Communications'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'ISM', [PathReq(Protocols.OSPF, "ISM", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ISM'], False), PathReq(Protocols.OSPF, "ISM", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ISM'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'JASRI', [PathReq(Protocols.OSPF, "JASRI", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'JASRI'], False), PathReq(Protocols.OSPF, "JASRI", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'JASRI'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'YamanashiTTU', [PathReq(Protocols.OSPF, "YamanashiTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'YamanashiTTU'], False), PathReq(Protocols.OSPF, "YamanashiTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'YamanashiTTU'], False)], False),
 ]
 
 edges_cost_ecmp_16_2 = [
@@ -2954,22 +2954,22 @@ edges_cost_ecmp_16_2 = [
 ]
 
 reqs_kconnected_16_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'OsakaTTU', [PathReq(Protocols.OSPF, "OsakaTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'OsakaTTU'], False), PathReq(Protocols.OSPF, "OsakaTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'OsakaTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'JASRI', [PathReq(Protocols.OSPF, "JASRI", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'JASRI'], False), PathReq(Protocols.OSPF, "JASRI", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'JASRI'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'TokyoTTDC3', [PathReq(Protocols.OSPF, "TokyoTTDC3", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'TokyoTTDC3'], False), PathReq(Protocols.OSPF, "TokyoTTDC3", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC3'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'ISM', [PathReq(Protocols.OSPF, "ISM", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ISM'], False), PathReq(Protocols.OSPF, "ISM", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ISM'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'TokyoTTUTTAgTTandTTTech', [PathReq(Protocols.OSPF, "TokyoTTUTTAgTTandTTTech", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'TokyoTTUTTAgTTandTTTech'], False), PathReq(Protocols.OSPF, "TokyoTTUTTAgTTandTTTech", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTUTTAgTTandTTTech'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'UTTElectro-Communications', [PathReq(Protocols.OSPF, "UTTElectro-Communications", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'UTTElectro-Communications'], False), PathReq(Protocols.OSPF, "UTTElectro-Communications", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'UTTElectro-Communications'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KansaiTTU', [PathReq(Protocols.OSPF, "KansaiTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KansaiTTU'], False), PathReq(Protocols.OSPF, "KansaiTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KagawaTTU', [PathReq(Protocols.OSPF, "KagawaTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False), PathReq(Protocols.OSPF, "KagawaTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'KagawaTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'JAMSTEC', [PathReq(Protocols.OSPF, "JAMSTEC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'JAMSTEC'], False), PathReq(Protocols.OSPF, "JAMSTEC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'JAMSTEC'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KobeTTU', [PathReq(Protocols.OSPF, "KobeTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False), PathReq(Protocols.OSPF, "KobeTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KobeTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'YamanashiTTU', [PathReq(Protocols.OSPF, "YamanashiTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'YamanashiTTU'], False), PathReq(Protocols.OSPF, "YamanashiTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'YamanashiTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'SaitamaTTU', [PathReq(Protocols.OSPF, "SaitamaTTU", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'SaitamaTTU'], False), PathReq(Protocols.OSPF, "SaitamaTTU", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'SaitamaTTU'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KobeTTU', [PathReq(Protocols.OSPF, "KobeTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KobeTTU'], False), PathReq(Protocols.OSPF, "KobeTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KobeTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SaitamaTTU', [PathReq(Protocols.OSPF, "SaitamaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'SaitamaTTU'], False), PathReq(Protocols.OSPF, "SaitamaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'SaitamaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KansaiTTU', [PathReq(Protocols.OSPF, "KansaiTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KansaiTTU'], False), PathReq(Protocols.OSPF, "KansaiTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'KansaiTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'JAMSTEC', [PathReq(Protocols.OSPF, "JAMSTEC", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'JAMSTEC'], False), PathReq(Protocols.OSPF, "JAMSTEC", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'JAMSTEC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'ChibaTTU', [PathReq(Protocols.OSPF, "ChibaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ChibaTTU'], False), PathReq(Protocols.OSPF, "ChibaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ChibaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'OsakaTTU', [PathReq(Protocols.OSPF, "OsakaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'OsakaTTU'], False), PathReq(Protocols.OSPF, "OsakaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'OsakaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'ShinshuTTU', [PathReq(Protocols.OSPF, "ShinshuTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ShinshuTTU'], False), PathReq(Protocols.OSPF, "ShinshuTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ShinshuTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'TokyoTTDC3', [PathReq(Protocols.OSPF, "TokyoTTDC3", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'TokyoTTDC3'], False), PathReq(Protocols.OSPF, "TokyoTTDC3", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC3'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'GunmaTTU', [PathReq(Protocols.OSPF, "GunmaTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'GunmaTTU'], False), PathReq(Protocols.OSPF, "GunmaTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'GunmaTTU'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'UTTTokushima', [PathReq(Protocols.OSPF, "UTTTokushima", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False), PathReq(Protocols.OSPF, "UTTTokushima", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'UTTTokushima'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'UTTElectro-Communications', [PathReq(Protocols.OSPF, "UTTElectro-Communications", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'UTTElectro-Communications'], False), PathReq(Protocols.OSPF, "UTTElectro-Communications", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'UTTElectro-Communications'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'ISM', [PathReq(Protocols.OSPF, "ISM", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'ISM'], False), PathReq(Protocols.OSPF, "ISM", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'ISM'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'JASRI', [PathReq(Protocols.OSPF, "JASRI", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'JASRI'], False), PathReq(Protocols.OSPF, "JASRI", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'JASRI'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'YamanashiTTU', [PathReq(Protocols.OSPF, "YamanashiTTU", ['HirosakiTTU', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'YamanashiTTU'], False), PathReq(Protocols.OSPF, "YamanashiTTU", ['HirosakiTTU', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'YamanashiTTU'], False)], False),
 ]
 
 edges_cost_kconnected_16_2 = [
@@ -3128,22 +3128,22 @@ edges_cost_kconnected_16_2 = [
 ]
 
 reqs_order_16_2 = [
-    PathOrderReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC', 'HiroshimaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['KanazawaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['NagoyaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'TsukubaTTDC', [PathReq(Protocols.OSPF, "TsukubaTTDC", ['TokyoTTDC1', 'TsukubaTTDC'], False), PathReq(Protocols.OSPF, "TsukubaTTDC", ['TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC', 'TsukubaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SapporoTTDC', [PathReq(Protocols.OSPF, "SapporoTTDC", ['SendaiTTDC', 'SapporoTTDC'], False), PathReq(Protocols.OSPF, "SapporoTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['TokyoTTDC1', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['KyotoTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'OsakaTTDC', [PathReq(Protocols.OSPF, "OsakaTTDC", ['MatsuyamaTTDC', 'OsakaTTDC'], False), PathReq(Protocols.OSPF, "OsakaTTDC", ['MatsuyamaTTDC', 'FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'NagoyaTTDC', [PathReq(Protocols.OSPF, "NagoyaTTDC", ['TokyoTTDC1', 'NagoyaTTDC'], False), PathReq(Protocols.OSPF, "NagoyaTTDC", ['TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['SapporoTTDC', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['SapporoTTDC', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'NagoyaTTDC', [PathReq(Protocols.OSPF, "NagoyaTTDC", ['OsakaTTDC', 'NagoyaTTDC'], False), PathReq(Protocols.OSPF, "NagoyaTTDC", ['OsakaTTDC', 'KyotoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC'], False)], False),
     PathOrderReq(Protocols.OSPF, 'SendaiTTDC', [PathReq(Protocols.OSPF, "SendaiTTDC", ['SapporoTTDC', 'SendaiTTDC'], False), PathReq(Protocols.OSPF, "SendaiTTDC", ['SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['HiroshimaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['HiroshimaTTDC', 'FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC1', [PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'TokyoTTDC1'], False), PathReq(Protocols.OSPF, "TokyoTTDC1", ['TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'HiroshimaTTDC', [PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KyotoTTDC', 'HiroshimaTTDC'], False), PathReq(Protocols.OSPF, "HiroshimaTTDC", ['KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC', 'HiroshimaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SapporoTTDC', [PathReq(Protocols.OSPF, "SapporoTTDC", ['SendaiTTDC', 'SapporoTTDC'], False), PathReq(Protocols.OSPF, "SapporoTTDC", ['SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['OsakaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['OsakaTTDC', 'KyotoTTDC', 'HiroshimaTTDC', 'FukuokaTTDC', 'MatsuyamaTTDC'], False)], False),
     PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['TokyoTTDC2', 'TokyoTTDC1', 'NagoyaTTDC', 'OsakaTTDC', 'KyotoTTDC', 'KanazawaTTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SendaiTTDC', [PathReq(Protocols.OSPF, "SendaiTTDC", ['TsukubaTTDC', 'SendaiTTDC'], False), PathReq(Protocols.OSPF, "SendaiTTDC", ['TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'SapporoTTDC', 'SendaiTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'NagoyaTTDC', [PathReq(Protocols.OSPF, "NagoyaTTDC", ['TokyoTTDC1', 'NagoyaTTDC'], False), PathReq(Protocols.OSPF, "NagoyaTTDC", ['TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'MatsuyamaTTDC', [PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['FukuokaTTDC', 'MatsuyamaTTDC'], False), PathReq(Protocols.OSPF, "MatsuyamaTTDC", ['FukuokaTTDC', 'HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'KanazawaTTDC', [PathReq(Protocols.OSPF, "KanazawaTTDC", ['SapporoTTDC', 'KanazawaTTDC'], False), PathReq(Protocols.OSPF, "KanazawaTTDC", ['SapporoTTDC', 'SendaiTTDC', 'TsukubaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TsukubaTTDC', [PathReq(Protocols.OSPF, "TsukubaTTDC", ['SendaiTTDC', 'TsukubaTTDC'], False), PathReq(Protocols.OSPF, "TsukubaTTDC", ['SendaiTTDC', 'SapporoTTDC', 'KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'KyotoTTDC', [PathReq(Protocols.OSPF, "KyotoTTDC", ['OsakaTTDC', 'KyotoTTDC'], False), PathReq(Protocols.OSPF, "KyotoTTDC", ['OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2', 'KanazawaTTDC', 'KyotoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'TokyoTTDC2', [PathReq(Protocols.OSPF, "TokyoTTDC2", ['KanazawaTTDC', 'TokyoTTDC2'], False), PathReq(Protocols.OSPF, "TokyoTTDC2", ['KanazawaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'NagoyaTTDC', 'TokyoTTDC1', 'TokyoTTDC2'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SapporoTTDC', [PathReq(Protocols.OSPF, "SapporoTTDC", ['KanazawaTTDC', 'SapporoTTDC'], False), PathReq(Protocols.OSPF, "SapporoTTDC", ['KanazawaTTDC', 'TokyoTTDC2', 'TokyoTTDC1', 'TsukubaTTDC', 'SendaiTTDC', 'SapporoTTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'FukuokaTTDC', [PathReq(Protocols.OSPF, "FukuokaTTDC", ['HiroshimaTTDC', 'FukuokaTTDC'], False), PathReq(Protocols.OSPF, "FukuokaTTDC", ['HiroshimaTTDC', 'KyotoTTDC', 'OsakaTTDC', 'MatsuyamaTTDC', 'FukuokaTTDC'], False)], False),
 ]
 
 edges_cost_order_16_2 = [
@@ -3188,11 +3188,11 @@ edges_cost_order_16_2 = [
     ("TsukubaTTDC", "UTTTsukuba", 1),
     ("TsukubaTTDC", "TokyoTTDC1", 1),
     ("TsukubaTTDC", "JAEA", 1),
-    ("TsukubaTTDC", "SendaiTTDC", 1),
+    ("TsukubaTTDC", "SendaiTTDC", 2),
     ("MatsuyamaTTDC", "OsakaTTDC", 1),
     ("MatsuyamaTTDC", "UTTTokushima", 1),
     ("MatsuyamaTTDC", "KagawaTTU", 1),
-    ("MatsuyamaTTDC", "FukuokaTTDC", 1),
+    ("MatsuyamaTTDC", "FukuokaTTDC", 3),
     ("MatsuyamaTTDC", "EhimeTTU", 1),
     ("KitamiTTIT", "HokkaidoTTU", 1),
     ("KagawaTTU", "MatsuyamaTTDC", 1),
@@ -3284,7 +3284,7 @@ edges_cost_order_16_2 = [
     ("KanazawaTTDC", "NiigataTTU", 1),
     ("KanazawaTTDC", "FukuiTTU", 1),
     ("KanazawaTTDC", "KyotoTTDC", 1),
-    ("KanazawaTTDC", "SapporoTTDC", 1),
+    ("KanazawaTTDC", "SapporoTTDC", 2),
     ("KanazawaTTDC", "TokyoTTDC2", 1),
     ("KanazawaTTDC", "KanazawaTTU", 1),
     ("KanazawaTTDC", "JAIST", 1),

@@ -28,7 +28,7 @@ edges_cost_simple_1 = [
     ("SantaTTRosa", "Sacramento", 1),
     ("SantaTTRosa", "Portland", 1),
     ("SantaTTRosa", "SanTTRafael", 1),
-    ("Phoenix", "SanTTDiego", 1),
+    ("Phoenix", "SanTTDiego", 2),
     ("Phoenix", "Albuquerque", 1),
     ("Pittsburgh", "Washington,TTDC", 1),
     ("Pittsburgh", "Cleveland", 1),
@@ -66,7 +66,7 @@ edges_cost_simple_1 = [
     ("Stockton", "Concord", 1),
     ("Houston", "SanTTAntonio", 1),
     ("Houston", "Dallas", 1),
-    ("SanTTDiego", "Anaheim", 2),
+    ("SanTTDiego", "Anaheim", 1),
     ("SanTTDiego", "Phoenix", 1),
     ("LosTTAngeles", "Anaheim", 1),
     ("LosTTAngeles", "SanTTJose", 1),
@@ -93,7 +93,7 @@ edges_cost_simple_1 = [
 ####################
 
 reqs_ecmp_1_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['Seattle', 'Portland', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'NewTTYork', [PathReq(Protocols.OSPF, "NewTTYork", ['Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork'], False), PathReq(Protocols.OSPF, "NewTTYork", ['Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston', 'NewTTYork'], False)], False),
 ]
 
 edges_cost_ecmp_1_2 = [
@@ -176,7 +176,7 @@ edges_cost_ecmp_1_2 = [
 ]
 
 reqs_kconnected_1_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['Seattle', 'Portland', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'NewTTYork', [PathReq(Protocols.OSPF, "NewTTYork", ['Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork'], False), PathReq(Protocols.OSPF, "NewTTYork", ['Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston', 'NewTTYork'], False)], False),
 ]
 
 edges_cost_kconnected_1_2 = [
@@ -259,7 +259,7 @@ edges_cost_kconnected_1_2 = [
 ]
 
 reqs_order_1_2 = [
-    PathOrderReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['Philadelphia', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['Philadelphia', 'NewTTYork', 'Boston', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Baltimore'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['Atlanta', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['Atlanta', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Raleigh'], False)], False),
 ]
 
 edges_cost_order_1_2 = [
@@ -342,8 +342,8 @@ edges_cost_order_1_2 = [
 ]
 
 reqs_simple_2 = [
-    PathReq(Protocols.OSPF, "Dallas", ['Austin', 'Dallas'], False),
-    PathReq(Protocols.OSPF, "Denver", ['Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False),
+    PathReq(Protocols.OSPF, "SanTTRafael", ['SantaTTRosa', 'SanTTRafael'], False),
+    PathReq(Protocols.OSPF, "Seattle", ['SantaTTRosa', 'Portland', 'Seattle'], False),
 ]
 
 edges_cost_simple_2 = [
@@ -428,8 +428,8 @@ edges_cost_simple_2 = [
 ####################
 
 reqs_ecmp_2_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Austin', [PathReq(Protocols.OSPF, "Austin", ['Houston', 'Dallas', 'Austin'], False), PathReq(Protocols.OSPF, "Austin", ['Houston', 'SanTTAntonio', 'Austin'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Houston', 'SanTTAntonio'], False)], False),
 ]
 
 edges_cost_ecmp_2_2 = [
@@ -446,7 +446,7 @@ edges_cost_ecmp_2_2 = [
     ("Denver", "SanTTFrancisco", 1),
     ("SanTTJose", "LosTTAngeles", 1),
     ("SanTTJose", "SanTTFrancisco", 1),
-    ("SantaTTRosa", "Sacramento", 2),
+    ("SantaTTRosa", "Sacramento", 1),
     ("SantaTTRosa", "Portland", 1),
     ("SantaTTRosa", "SanTTRafael", 1),
     ("Phoenix", "SanTTDiego", 1),
@@ -512,8 +512,8 @@ edges_cost_ecmp_2_2 = [
 ]
 
 reqs_kconnected_2_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Austin', [PathReq(Protocols.OSPF, "Austin", ['Houston', 'Dallas', 'Austin'], False), PathReq(Protocols.OSPF, "Austin", ['Houston', 'SanTTAntonio', 'Austin'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Houston', 'SanTTAntonio'], False)], False),
 ]
 
 edges_cost_kconnected_2_2 = [
@@ -575,7 +575,7 @@ edges_cost_kconnected_2_2 = [
     ("SanTTDiego", "Phoenix", 1),
     ("LosTTAngeles", "Anaheim", 1),
     ("LosTTAngeles", "SanTTJose", 1),
-    ("SanTTFrancisco", "SanTTRafael", 2),
+    ("SanTTFrancisco", "SanTTRafael", 1),
     ("SanTTFrancisco", "Denver", 1),
     ("SanTTFrancisco", "SanTTJose", 1),
     ("SanTTFrancisco", "Concord", 1),
@@ -596,8 +596,8 @@ edges_cost_kconnected_2_2 = [
 ]
 
 reqs_order_2_2 = [
-    PathOrderReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Stockton', [PathReq(Protocols.OSPF, "Stockton", ['Concord', 'Stockton'], False), PathReq(Protocols.OSPF, "Stockton", ['Concord', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Sacramento', 'Stockton'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork', 'Boston'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Austin', [PathReq(Protocols.OSPF, "Austin", ['Dallas', 'Austin'], False), PathReq(Protocols.OSPF, "Austin", ['Dallas', 'Houston', 'SanTTAntonio', 'Austin'], False)], False),
 ]
 
 edges_cost_order_2_2 = [
@@ -680,10 +680,10 @@ edges_cost_order_2_2 = [
 ]
 
 reqs_simple_4 = [
-    PathReq(Protocols.OSPF, "SanTTRafael", ['Seattle', 'Portland', 'SantaTTRosa', 'SanTTRafael'], False),
-    PathReq(Protocols.OSPF, "Boston", ['Seattle', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False),
-    PathReq(Protocols.OSPF, "SanTTAntonio", ['Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False),
-    PathReq(Protocols.OSPF, "Albuquerque", ['Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque'], False),
+    PathReq(Protocols.OSPF, "Tampa", ['Washington,TTDC', 'Raleigh', 'Atlanta', 'Tampa'], False),
+    PathReq(Protocols.OSPF, "Pittsburgh", ['Washington,TTDC', 'Pittsburgh'], False),
+    PathReq(Protocols.OSPF, "Philadelphia", ['Washington,TTDC', 'Baltimore', 'Philadelphia'], False),
+    PathReq(Protocols.OSPF, "SanTTJose", ['Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTJose'], False),
 ]
 
 edges_cost_simple_4 = [
@@ -739,7 +739,7 @@ edges_cost_simple_4 = [
     ("Baltimore", "Washington,TTDC", 1),
     ("Stockton", "Sacramento", 1),
     ("Stockton", "Concord", 1),
-    ("Houston", "SanTTAntonio", 2),
+    ("Houston", "SanTTAntonio", 1),
     ("Houston", "Dallas", 1),
     ("SanTTDiego", "Anaheim", 1),
     ("SanTTDiego", "Phoenix", 1),
@@ -768,10 +768,10 @@ edges_cost_simple_4 = [
 ####################
 
 reqs_ecmp_4_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Seattle', [PathReq(Protocols.OSPF, "Seattle", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Seattle'], False), PathReq(Protocols.OSPF, "Seattle", ['SanTTJose', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland', 'Seattle'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SanTTJose', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SanTTJose', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Houston', 'SanTTAntonio'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Houston', [PathReq(Protocols.OSPF, "Houston", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Houston'], False), PathReq(Protocols.OSPF, "Houston", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Houston'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'LosTTAngeles', [PathReq(Protocols.OSPF, "LosTTAngeles", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles'], False), PathReq(Protocols.OSPF, "LosTTAngeles", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
 ]
 
 edges_cost_ecmp_4_2 = [
@@ -812,7 +812,7 @@ edges_cost_ecmp_4_2 = [
     ("StTTLouis", "KansasTTCity", 1),
     ("StTTLouis", "Dallas", 1),
     ("SanTTRafael", "SantaTTRosa", 1),
-    ("SanTTRafael", "SanTTFrancisco", 1),
+    ("SanTTRafael", "SanTTFrancisco", 2),
     ("Detroit", "Cleveland", 1),
     ("Detroit", "Chicago", 1),
     ("Anaheim", "SanTTDiego", 1),
@@ -820,7 +820,7 @@ edges_cost_ecmp_4_2 = [
     ("Raleigh", "Atlanta", 1),
     ("Raleigh", "Washington,TTDC", 1),
     ("KansasTTCity", "StTTLouis", 1),
-    ("KansasTTCity", "Denver", 1),
+    ("KansasTTCity", "Denver", 3),
     ("Austin", "SanTTAntonio", 1),
     ("Austin", "Dallas", 1),
     ("Baltimore", "Philadelphia", 1),
@@ -833,10 +833,10 @@ edges_cost_ecmp_4_2 = [
     ("SanTTDiego", "Phoenix", 1),
     ("LosTTAngeles", "Anaheim", 1),
     ("LosTTAngeles", "SanTTJose", 1),
-    ("SanTTFrancisco", "SanTTRafael", 2),
+    ("SanTTFrancisco", "SanTTRafael", 1),
     ("SanTTFrancisco", "Denver", 1),
     ("SanTTFrancisco", "SanTTJose", 1),
-    ("SanTTFrancisco", "Concord", 2),
+    ("SanTTFrancisco", "Concord", 1),
     ("Concord", "Stockton", 1),
     ("Concord", "SanTTFrancisco", 1),
     ("Boston", "NewTTYork", 1),
@@ -854,10 +854,10 @@ edges_cost_ecmp_4_2 = [
 ]
 
 reqs_kconnected_4_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Seattle', [PathReq(Protocols.OSPF, "Seattle", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Seattle'], False), PathReq(Protocols.OSPF, "Seattle", ['SanTTJose', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland', 'Seattle'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SanTTJose', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SanTTJose', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Houston', 'SanTTAntonio'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Houston', [PathReq(Protocols.OSPF, "Houston", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Houston'], False), PathReq(Protocols.OSPF, "Houston", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Houston'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'LosTTAngeles', [PathReq(Protocols.OSPF, "LosTTAngeles", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles'], False), PathReq(Protocols.OSPF, "LosTTAngeles", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['NewTTYork', 'Boston', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
 ]
 
 edges_cost_kconnected_4_2 = [
@@ -898,7 +898,7 @@ edges_cost_kconnected_4_2 = [
     ("StTTLouis", "KansasTTCity", 1),
     ("StTTLouis", "Dallas", 1),
     ("SanTTRafael", "SantaTTRosa", 1),
-    ("SanTTRafael", "SanTTFrancisco", 1),
+    ("SanTTRafael", "SanTTFrancisco", 2),
     ("Detroit", "Cleveland", 1),
     ("Detroit", "Chicago", 1),
     ("Anaheim", "SanTTDiego", 1),
@@ -906,7 +906,7 @@ edges_cost_kconnected_4_2 = [
     ("Raleigh", "Atlanta", 1),
     ("Raleigh", "Washington,TTDC", 1),
     ("KansasTTCity", "StTTLouis", 1),
-    ("KansasTTCity", "Denver", 1),
+    ("KansasTTCity", "Denver", 3),
     ("Austin", "SanTTAntonio", 1),
     ("Austin", "Dallas", 1),
     ("Baltimore", "Philadelphia", 1),
@@ -940,10 +940,10 @@ edges_cost_kconnected_4_2 = [
 ]
 
 reqs_order_4_2 = [
-    PathOrderReq(Protocols.OSPF, 'StTTLouis', [PathReq(Protocols.OSPF, "StTTLouis", ['KansasTTCity', 'StTTLouis'], False), PathReq(Protocols.OSPF, "StTTLouis", ['KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SanTTDiego', [PathReq(Protocols.OSPF, "SanTTDiego", ['Anaheim', 'SanTTDiego'], False), PathReq(Protocols.OSPF, "SanTTDiego", ['Anaheim', 'LosTTAngeles', 'SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Portland', [PathReq(Protocols.OSPF, "Portland", ['Seattle', 'Portland'], False), PathReq(Protocols.OSPF, "Portland", ['Seattle', 'Chicago', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['Albuquerque', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim', 'SanTTDiego', 'Phoenix'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Cleveland', [PathReq(Protocols.OSPF, "Cleveland", ['Detroit', 'Cleveland'], False), PathReq(Protocols.OSPF, "Cleveland", ['Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh', 'Cleveland'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Atlanta', [PathReq(Protocols.OSPF, "Atlanta", ['Raleigh', 'Atlanta'], False), PathReq(Protocols.OSPF, "Atlanta", ['Raleigh', 'Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Seattle', [PathReq(Protocols.OSPF, "Seattle", ['Chicago', 'Seattle'], False), PathReq(Protocols.OSPF, "Seattle", ['Chicago', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland', 'Seattle'], False)], False),
 ]
 
 edges_cost_order_4_2 = [
@@ -1026,14 +1026,14 @@ edges_cost_order_4_2 = [
 ]
 
 reqs_simple_8 = [
-    PathReq(Protocols.OSPF, "Atlanta", ['Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta'], False),
-    PathReq(Protocols.OSPF, "Chicago", ['Denver', 'KansasTTCity', 'StTTLouis', 'Chicago'], False),
-    PathReq(Protocols.OSPF, "Seattle", ['Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Seattle'], False),
-    PathReq(Protocols.OSPF, "Portland", ['Denver', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland'], False),
-    PathReq(Protocols.OSPF, "Boston", ['Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False),
-    PathReq(Protocols.OSPF, "Cleveland", ['Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland'], False),
-    PathReq(Protocols.OSPF, "Sacramento", ['Denver', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Sacramento'], False),
-    PathReq(Protocols.OSPF, "SanTTAntonio", ['Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False),
+    PathReq(Protocols.OSPF, "Seattle", ['SanTTJose', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland', 'Seattle'], False),
+    PathReq(Protocols.OSPF, "Houston", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Houston'], False),
+    PathReq(Protocols.OSPF, "Raleigh", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh'], False),
+    PathReq(Protocols.OSPF, "Denver", ['SanTTJose', 'SanTTFrancisco', 'Denver'], False),
+    PathReq(Protocols.OSPF, "Washington,TTDC", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC'], False),
+    PathReq(Protocols.OSPF, "Austin", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Austin'], False),
+    PathReq(Protocols.OSPF, "Stockton", ['SanTTJose', 'SanTTFrancisco', 'Concord', 'Stockton'], False),
+    PathReq(Protocols.OSPF, "Dallas", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas'], False),
 ]
 
 edges_cost_simple_8 = [
@@ -1089,7 +1089,7 @@ edges_cost_simple_8 = [
     ("Baltimore", "Washington,TTDC", 1),
     ("Stockton", "Sacramento", 1),
     ("Stockton", "Concord", 1),
-    ("Houston", "SanTTAntonio", 2),
+    ("Houston", "SanTTAntonio", 1),
     ("Houston", "Dallas", 1),
     ("SanTTDiego", "Anaheim", 1),
     ("SanTTDiego", "Phoenix", 1),
@@ -1099,7 +1099,7 @@ edges_cost_simple_8 = [
     ("SanTTFrancisco", "Denver", 1),
     ("SanTTFrancisco", "SanTTJose", 1),
     ("SanTTFrancisco", "Concord", 1),
-    ("Concord", "Stockton", 2),
+    ("Concord", "Stockton", 1),
     ("Concord", "SanTTFrancisco", 1),
     ("Boston", "NewTTYork", 1),
     ("Boston", "Cleveland", 1),
@@ -1118,14 +1118,14 @@ edges_cost_simple_8 = [
 ####################
 
 reqs_ecmp_8_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'KansasTTCity', [PathReq(Protocols.OSPF, "KansasTTCity", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity'], False), PathReq(Protocols.OSPF, "KansasTTCity", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'SantaTTRosa', [PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False), PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Denver', [PathReq(Protocols.OSPF, "Denver", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Denver'], False), PathReq(Protocols.OSPF, "Denver", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'Denver'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Houston', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SanTTJose', [PathReq(Protocols.OSPF, "SanTTJose", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose'], False), PathReq(Protocols.OSPF, "SanTTJose", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'SanTTJose'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'KansasTTCity', [PathReq(Protocols.OSPF, "KansasTTCity", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Denver', 'KansasTTCity'], False), PathReq(Protocols.OSPF, "KansasTTCity", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'Denver', 'KansasTTCity'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'LosTTAngeles', [PathReq(Protocols.OSPF, "LosTTAngeles", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles'], False), PathReq(Protocols.OSPF, "LosTTAngeles", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SanTTFrancisco', [PathReq(Protocols.OSPF, "SanTTFrancisco", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco'], False), PathReq(Protocols.OSPF, "SanTTFrancisco", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco'], False)], False),
 ]
 
 edges_cost_ecmp_8_2 = [
@@ -1158,7 +1158,7 @@ edges_cost_ecmp_8_2 = [
     ("Albuquerque", "Dallas", 1),
     ("SanTTAntonio", "Houston", 1),
     ("SanTTAntonio", "Austin", 1),
-    ("Atlanta", "Raleigh", 1),
+    ("Atlanta", "Raleigh", 2),
     ("Atlanta", "Tampa", 1),
     ("Atlanta", "Dallas", 1),
     ("Tampa", "Atlanta", 1),
@@ -1208,14 +1208,14 @@ edges_cost_ecmp_8_2 = [
 ]
 
 reqs_kconnected_8_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'KansasTTCity', [PathReq(Protocols.OSPF, "KansasTTCity", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity'], False), PathReq(Protocols.OSPF, "KansasTTCity", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'SantaTTRosa', [PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False), PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Denver', [PathReq(Protocols.OSPF, "Denver", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Denver'], False), PathReq(Protocols.OSPF, "Denver", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'Denver'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Houston', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['Sacramento', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'Dallas', 'Austin', 'SanTTAntonio'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SanTTJose', [PathReq(Protocols.OSPF, "SanTTJose", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose'], False), PathReq(Protocols.OSPF, "SanTTJose", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'SanTTJose'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'KansasTTCity', [PathReq(Protocols.OSPF, "KansasTTCity", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Denver', 'KansasTTCity'], False), PathReq(Protocols.OSPF, "KansasTTCity", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'Denver', 'KansasTTCity'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'LosTTAngeles', [PathReq(Protocols.OSPF, "LosTTAngeles", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles'], False), PathReq(Protocols.OSPF, "LosTTAngeles", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SanTTFrancisco', [PathReq(Protocols.OSPF, "SanTTFrancisco", ['Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco'], False), PathReq(Protocols.OSPF, "SanTTFrancisco", ['Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco'], False)], False),
 ]
 
 edges_cost_kconnected_8_2 = [
@@ -1248,7 +1248,7 @@ edges_cost_kconnected_8_2 = [
     ("Albuquerque", "Dallas", 1),
     ("SanTTAntonio", "Houston", 1),
     ("SanTTAntonio", "Austin", 1),
-    ("Atlanta", "Raleigh", 1),
+    ("Atlanta", "Raleigh", 2),
     ("Atlanta", "Tampa", 1),
     ("Atlanta", "Dallas", 1),
     ("Tampa", "Atlanta", 1),
@@ -1298,14 +1298,14 @@ edges_cost_kconnected_8_2 = [
 ]
 
 reqs_order_8_2 = [
-    PathOrderReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['SanTTDiego', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['SanTTDiego', 'Anaheim', 'LosTTAngeles', 'SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Washington,TTDC', [PathReq(Protocols.OSPF, "Washington,TTDC", ['Raleigh', 'Washington,TTDC'], False), PathReq(Protocols.OSPF, "Washington,TTDC", ['Raleigh', 'Atlanta', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['Washington,TTDC', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork', 'Boston', 'Cleveland', 'Pittsburgh'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['Washington,TTDC', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia', 'Baltimore'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Dallas', [PathReq(Protocols.OSPF, "Dallas", ['StTTLouis', 'Dallas'], False), PathReq(Protocols.OSPF, "Dallas", ['StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas'], False)], False),
     PathOrderReq(Protocols.OSPF, 'Atlanta', [PathReq(Protocols.OSPF, "Atlanta", ['Raleigh', 'Atlanta'], False), PathReq(Protocols.OSPF, "Atlanta", ['Raleigh', 'Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Concord', [PathReq(Protocols.OSPF, "Concord", ['Stockton', 'Concord'], False), PathReq(Protocols.OSPF, "Concord", ['Stockton', 'Sacramento', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Concord'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['Washington,TTDC', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['NewTTYork', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['NewTTYork', 'Boston', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'LosTTAngeles', [PathReq(Protocols.OSPF, "LosTTAngeles", ['SanTTJose', 'LosTTAngeles'], False), PathReq(Protocols.OSPF, "LosTTAngeles", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Albuquerque', [PathReq(Protocols.OSPF, "Albuquerque", ['Dallas', 'Albuquerque'], False), PathReq(Protocols.OSPF, "Albuquerque", ['Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim', 'SanTTDiego', 'Phoenix', 'Albuquerque'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Washington,TTDC', [PathReq(Protocols.OSPF, "Washington,TTDC", ['Raleigh', 'Washington,TTDC'], False), PathReq(Protocols.OSPF, "Washington,TTDC", ['Raleigh', 'Atlanta', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Stockton', [PathReq(Protocols.OSPF, "Stockton", ['Concord', 'Stockton'], False), PathReq(Protocols.OSPF, "Stockton", ['Concord', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Sacramento', 'Stockton'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Denver', [PathReq(Protocols.OSPF, "Denver", ['SanTTFrancisco', 'Denver'], False), PathReq(Protocols.OSPF, "Denver", ['SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland', 'Seattle', 'Chicago', 'StTTLouis', 'KansasTTCity', 'Denver'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['Baltimore', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['Baltimore', 'Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia'], False)], False),
 ]
 
 edges_cost_order_8_2 = [
@@ -1388,22 +1388,22 @@ edges_cost_order_8_2 = [
 ]
 
 reqs_simple_16 = [
-    PathReq(Protocols.OSPF, "SanTTDiego", ['Phoenix', 'SanTTDiego'], False),
-    PathReq(Protocols.OSPF, "Boston", ['Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False),
-    PathReq(Protocols.OSPF, "Anaheim", ['Phoenix', 'SanTTDiego', 'Anaheim'], False),
-    PathReq(Protocols.OSPF, "Chicago", ['Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'Chicago'], False),
-    PathReq(Protocols.OSPF, "Austin", ['Phoenix', 'Albuquerque', 'Dallas', 'Austin'], False),
-    PathReq(Protocols.OSPF, "Houston", ['Phoenix', 'Albuquerque', 'Dallas', 'Houston'], False),
-    PathReq(Protocols.OSPF, "Detroit", ['Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit'], False),
-    PathReq(Protocols.OSPF, "Raleigh", ['Phoenix', 'Albuquerque', 'Dallas', 'Atlanta', 'Raleigh'], False),
-    PathReq(Protocols.OSPF, "Dallas", ['Phoenix', 'Albuquerque', 'Dallas'], False),
-    PathReq(Protocols.OSPF, "Albuquerque", ['Phoenix', 'Albuquerque'], False),
-    PathReq(Protocols.OSPF, "SanTTAntonio", ['Phoenix', 'Albuquerque', 'Dallas', 'Austin', 'SanTTAntonio'], False),
-    PathReq(Protocols.OSPF, "Seattle", ['Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle'], False),
-    PathReq(Protocols.OSPF, "Concord", ['Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles', 'SanTTJose', 'SanTTFrancisco', 'Concord'], False),
-    PathReq(Protocols.OSPF, "Portland", ['Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland'], False),
-    PathReq(Protocols.OSPF, "SantaTTRosa", ['Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles', 'SanTTJose', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa'], False),
-    PathReq(Protocols.OSPF, "Denver", ['Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False),
+    PathReq(Protocols.OSPF, "Seattle", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle'], False),
+    PathReq(Protocols.OSPF, "SantaTTRosa", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False),
+    PathReq(Protocols.OSPF, "Atlanta", ['Tampa', 'Atlanta'], False),
+    PathReq(Protocols.OSPF, "Detroit", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit'], False),
+    PathReq(Protocols.OSPF, "SanTTJose", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTJose'], False),
+    PathReq(Protocols.OSPF, "Cleveland", ['Tampa', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh', 'Cleveland'], False),
+    PathReq(Protocols.OSPF, "Pittsburgh", ['Tampa', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh'], False),
+    PathReq(Protocols.OSPF, "SanTTAntonio", ['Tampa', 'Atlanta', 'Dallas', 'Houston', 'SanTTAntonio'], False),
+    PathReq(Protocols.OSPF, "SanTTRafael", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False),
+    PathReq(Protocols.OSPF, "Denver", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False),
+    PathReq(Protocols.OSPF, "Stockton", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord', 'Stockton'], False),
+    PathReq(Protocols.OSPF, "SanTTFrancisco", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco'], False),
+    PathReq(Protocols.OSPF, "KansasTTCity", ['Tampa', 'Atlanta', 'Dallas', 'StTTLouis', 'KansasTTCity'], False),
+    PathReq(Protocols.OSPF, "Anaheim", ['Tampa', 'Atlanta', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False),
+    PathReq(Protocols.OSPF, "Philadelphia", ['Tampa', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False),
+    PathReq(Protocols.OSPF, "NewTTYork", ['Tampa', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Boston', 'NewTTYork'], False),
 ]
 
 edges_cost_simple_16 = [
@@ -1415,7 +1415,7 @@ edges_cost_simple_16 = [
     ("Dallas", "Albuquerque", 1),
     ("Dallas", "StTTLouis", 1),
     ("Philadelphia", "Baltimore", 1),
-    ("Philadelphia", "NewTTYork", 1),
+    ("Philadelphia", "NewTTYork", 3),
     ("Denver", "KansasTTCity", 1),
     ("Denver", "SanTTFrancisco", 1),
     ("SanTTJose", "LosTTAngeles", 1),
@@ -1453,13 +1453,13 @@ edges_cost_simple_16 = [
     ("Raleigh", "Washington,TTDC", 1),
     ("KansasTTCity", "StTTLouis", 1),
     ("KansasTTCity", "Denver", 1),
-    ("Austin", "SanTTAntonio", 1),
+    ("Austin", "SanTTAntonio", 2),
     ("Austin", "Dallas", 1),
     ("Baltimore", "Philadelphia", 1),
     ("Baltimore", "Washington,TTDC", 1),
     ("Stockton", "Sacramento", 1),
     ("Stockton", "Concord", 1),
-    ("Houston", "SanTTAntonio", 2),
+    ("Houston", "SanTTAntonio", 1),
     ("Houston", "Dallas", 1),
     ("SanTTDiego", "Anaheim", 1),
     ("SanTTDiego", "Phoenix", 1),
@@ -1479,7 +1479,7 @@ edges_cost_simple_16 = [
     ("Cleveland", "Pittsburgh", 1),
     ("Cleveland", "Boston", 1),
     ("Cleveland", "Detroit", 1),
-    ("Portland", "SantaTTRosa", 2),
+    ("Portland", "SantaTTRosa", 1),
     ("Portland", "Seattle", 1),
     ("Seattle", "Portland", 1),
     ("Seattle", "Chicago", 1),
@@ -1488,22 +1488,22 @@ edges_cost_simple_16 = [
 ####################
 
 reqs_ecmp_16_2 = [
-    ECMPPathsReq(Protocols.OSPF, 'Detroit', [PathReq(Protocols.OSPF, "Detroit", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit'], False), PathReq(Protocols.OSPF, "Detroit", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Portland', [PathReq(Protocols.OSPF, "Portland", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland'], False), PathReq(Protocols.OSPF, "Portland", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Cleveland', [PathReq(Protocols.OSPF, "Cleveland", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland'], False), PathReq(Protocols.OSPF, "Cleveland", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Albuquerque', [PathReq(Protocols.OSPF, "Albuquerque", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque'], False), PathReq(Protocols.OSPF, "Albuquerque", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Concord', [PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False), PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Atlanta', [PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta'], False), PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Denver', [PathReq(Protocols.OSPF, "Denver", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False), PathReq(Protocols.OSPF, "Denver", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'SanTTDiego', [PathReq(Protocols.OSPF, "SanTTDiego", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego'], False), PathReq(Protocols.OSPF, "SanTTDiego", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Tampa', [PathReq(Protocols.OSPF, "Tampa", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Tampa'], False), PathReq(Protocols.OSPF, "Tampa", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Tampa'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Washington,TTDC', [PathReq(Protocols.OSPF, "Washington,TTDC", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC'], False), PathReq(Protocols.OSPF, "Washington,TTDC", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Seattle', [PathReq(Protocols.OSPF, "Seattle", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle'], False), PathReq(Protocols.OSPF, "Seattle", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'StTTLouis', [PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis'], False), PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Atlanta', [PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta'], False), PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False)], False),
     ECMPPathsReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'Sacramento'], False)], False),
     ECMPPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Chicago', [PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago'], False), PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'StTTLouis', [PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis'], False), PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'Dallas', [PathReq(Protocols.OSPF, "Dallas", ['SanTTAntonio', 'Houston', 'Dallas'], False), PathReq(Protocols.OSPF, "Dallas", ['SanTTAntonio', 'Austin', 'Dallas'], False)], False),
-    ECMPPathsReq(Protocols.OSPF, 'SanTTRafael', [PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False), PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Concord', [PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False), PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Chicago', [PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago'], False), PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SantaTTRosa', [PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False), PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'SanTTRafael', [PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False), PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False)], False),
+    ECMPPathsReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False)], False),
 ]
 
 edges_cost_ecmp_16_2 = [
@@ -1573,7 +1573,7 @@ edges_cost_ecmp_16_2 = [
     ("Concord", "SanTTFrancisco", 1),
     ("Boston", "NewTTYork", 1),
     ("Boston", "Cleveland", 1),
-    ("Washington,TTDC", "Pittsburgh", 1),
+    ("Washington,TTDC", "Pittsburgh", 3),
     ("Washington,TTDC", "Raleigh", 1),
     ("Washington,TTDC", "Baltimore", 1),
     ("Cleveland", "Pittsburgh", 1),
@@ -1586,22 +1586,22 @@ edges_cost_ecmp_16_2 = [
 ]
 
 reqs_kconnected_16_2 = [
-    KConnectedPathsReq(Protocols.OSPF, 'Detroit', [PathReq(Protocols.OSPF, "Detroit", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit'], False), PathReq(Protocols.OSPF, "Detroit", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Portland', [PathReq(Protocols.OSPF, "Portland", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland'], False), PathReq(Protocols.OSPF, "Portland", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Cleveland', [PathReq(Protocols.OSPF, "Cleveland", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland'], False), PathReq(Protocols.OSPF, "Cleveland", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Albuquerque', [PathReq(Protocols.OSPF, "Albuquerque", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque'], False), PathReq(Protocols.OSPF, "Albuquerque", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Concord', [PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False), PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Atlanta', [PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta'], False), PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Denver', [PathReq(Protocols.OSPF, "Denver", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False), PathReq(Protocols.OSPF, "Denver", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'SanTTDiego', [PathReq(Protocols.OSPF, "SanTTDiego", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego'], False), PathReq(Protocols.OSPF, "SanTTDiego", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Tampa', [PathReq(Protocols.OSPF, "Tampa", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Tampa'], False), PathReq(Protocols.OSPF, "Tampa", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Tampa'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Washington,TTDC', [PathReq(Protocols.OSPF, "Washington,TTDC", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC'], False), PathReq(Protocols.OSPF, "Washington,TTDC", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Seattle', [PathReq(Protocols.OSPF, "Seattle", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle'], False), PathReq(Protocols.OSPF, "Seattle", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'StTTLouis', [PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis'], False), PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Atlanta', [PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta'], False), PathReq(Protocols.OSPF, "Atlanta", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Boston'], False)], False),
     KConnectedPathsReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'Sacramento'], False)], False),
     KConnectedPathsReq(Protocols.OSPF, 'Anaheim', [PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False), PathReq(Protocols.OSPF, "Anaheim", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Chicago', [PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago'], False), PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'StTTLouis', [PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis'], False), PathReq(Protocols.OSPF, "StTTLouis", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'Dallas', [PathReq(Protocols.OSPF, "Dallas", ['SanTTAntonio', 'Houston', 'Dallas'], False), PathReq(Protocols.OSPF, "Dallas", ['SanTTAntonio', 'Austin', 'Dallas'], False)], False),
-    KConnectedPathsReq(Protocols.OSPF, 'SanTTRafael', [PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False), PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Concord', [PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False), PathReq(Protocols.OSPF, "Concord", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Phoenix', [PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Austin', 'Dallas', 'Albuquerque', 'Phoenix'], False), PathReq(Protocols.OSPF, "Phoenix", ['SanTTAntonio', 'Houston', 'Dallas', 'Albuquerque', 'Phoenix'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Chicago', [PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago'], False), PathReq(Protocols.OSPF, "Chicago", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SantaTTRosa', [PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False), PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'SanTTRafael', [PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Austin', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False), PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTAntonio', 'Houston', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael'], False)], False),
+    KConnectedPathsReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Houston', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['SanTTAntonio', 'Austin', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Baltimore'], False)], False),
 ]
 
 edges_cost_kconnected_16_2 = [
@@ -1671,7 +1671,7 @@ edges_cost_kconnected_16_2 = [
     ("Concord", "SanTTFrancisco", 1),
     ("Boston", "NewTTYork", 1),
     ("Boston", "Cleveland", 1),
-    ("Washington,TTDC", "Pittsburgh", 1),
+    ("Washington,TTDC", "Pittsburgh", 3),
     ("Washington,TTDC", "Raleigh", 1),
     ("Washington,TTDC", "Baltimore", 1),
     ("Cleveland", "Pittsburgh", 1),
@@ -1684,22 +1684,22 @@ edges_cost_kconnected_16_2 = [
 ]
 
 reqs_order_16_2 = [
-    PathOrderReq(Protocols.OSPF, 'Sacramento', [PathReq(Protocols.OSPF, "Sacramento", ['SantaTTRosa', 'Sacramento'], False), PathReq(Protocols.OSPF, "Sacramento", ['SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Philadelphia', [PathReq(Protocols.OSPF, "Philadelphia", ['NewTTYork', 'Philadelphia'], False), PathReq(Protocols.OSPF, "Philadelphia", ['NewTTYork', 'Boston', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Baltimore', 'Philadelphia'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['Cleveland', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['Cleveland', 'Boston', 'NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC', 'Pittsburgh'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Concord', [PathReq(Protocols.OSPF, "Concord", ['SanTTFrancisco', 'Concord'], False), PathReq(Protocols.OSPF, "Concord", ['SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Sacramento', 'Stockton', 'Concord'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Chicago', [PathReq(Protocols.OSPF, "Chicago", ['StTTLouis', 'Chicago'], False), PathReq(Protocols.OSPF, "Chicago", ['StTTLouis', 'Dallas', 'Atlanta', 'Raleigh', 'Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Detroit', 'Chicago'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Portland', [PathReq(Protocols.OSPF, "Portland", ['Seattle', 'Portland'], False), PathReq(Protocols.OSPF, "Portland", ['Seattle', 'Chicago', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTRafael', 'SantaTTRosa', 'Portland'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Pittsburgh', [PathReq(Protocols.OSPF, "Pittsburgh", ['Washington,TTDC', 'Pittsburgh'], False), PathReq(Protocols.OSPF, "Pittsburgh", ['Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork', 'Boston', 'Cleveland', 'Pittsburgh'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'StTTLouis', [PathReq(Protocols.OSPF, "StTTLouis", ['Chicago', 'StTTLouis'], False), PathReq(Protocols.OSPF, "StTTLouis", ['Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Boston', [PathReq(Protocols.OSPF, "Boston", ['Cleveland', 'Boston'], False), PathReq(Protocols.OSPF, "Boston", ['Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork', 'Boston'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SanTTAntonio', [PathReq(Protocols.OSPF, "SanTTAntonio", ['Austin', 'SanTTAntonio'], False), PathReq(Protocols.OSPF, "SanTTAntonio", ['Austin', 'Dallas', 'Houston', 'SanTTAntonio'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SanTTRafael', [PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTFrancisco', 'SanTTRafael'], False), PathReq(Protocols.OSPF, "SanTTRafael", ['SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento', 'SantaTTRosa', 'SanTTRafael'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'SanTTFrancisco', [PathReq(Protocols.OSPF, "SanTTFrancisco", ['Denver', 'SanTTFrancisco'], False), PathReq(Protocols.OSPF, "SanTTFrancisco", ['Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles', 'SanTTJose', 'SanTTFrancisco'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Cleveland', [PathReq(Protocols.OSPF, "Cleveland", ['Pittsburgh', 'Cleveland'], False), PathReq(Protocols.OSPF, "Cleveland", ['Pittsburgh', 'Washington,TTDC', 'Baltimore', 'Philadelphia', 'NewTTYork', 'Boston', 'Cleveland'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'Chicago', [PathReq(Protocols.OSPF, "Chicago", ['Seattle', 'Chicago'], False), PathReq(Protocols.OSPF, "Chicago", ['Seattle', 'Portland', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Chicago'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SanTTFrancisco', [PathReq(Protocols.OSPF, "SanTTFrancisco", ['Denver', 'SanTTFrancisco'], False), PathReq(Protocols.OSPF, "SanTTFrancisco", ['Denver', 'KansasTTCity', 'StTTLouis', 'Chicago', 'Seattle', 'Portland', 'SantaTTRosa', 'SanTTRafael', 'SanTTFrancisco'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SanTTJose', [PathReq(Protocols.OSPF, "SanTTJose", ['LosTTAngeles', 'SanTTJose'], False), PathReq(Protocols.OSPF, "SanTTJose", ['LosTTAngeles', 'Anaheim', 'SanTTDiego', 'Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'SanTTJose'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SanTTDiego', [PathReq(Protocols.OSPF, "SanTTDiego", ['Anaheim', 'SanTTDiego'], False), PathReq(Protocols.OSPF, "SanTTDiego", ['Anaheim', 'LosTTAngeles', 'SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Austin', [PathReq(Protocols.OSPF, "Austin", ['Dallas', 'Austin'], False), PathReq(Protocols.OSPF, "Austin", ['Dallas', 'Houston', 'SanTTAntonio', 'Austin'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SanTTFrancisco', [PathReq(Protocols.OSPF, "SanTTFrancisco", ['SanTTRafael', 'SanTTFrancisco'], False), PathReq(Protocols.OSPF, "SanTTFrancisco", ['SanTTRafael', 'SantaTTRosa', 'Sacramento', 'Stockton', 'Concord', 'SanTTFrancisco'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SanTTJose', [PathReq(Protocols.OSPF, "SanTTJose", ['SanTTFrancisco', 'SanTTJose'], False), PathReq(Protocols.OSPF, "SanTTJose", ['SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles', 'SanTTJose'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'LosTTAngeles', [PathReq(Protocols.OSPF, "LosTTAngeles", ['SanTTJose', 'LosTTAngeles'], False), PathReq(Protocols.OSPF, "LosTTAngeles", ['SanTTJose', 'SanTTFrancisco', 'Denver', 'KansasTTCity', 'StTTLouis', 'Dallas', 'Albuquerque', 'Phoenix', 'SanTTDiego', 'Anaheim', 'LosTTAngeles'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Houston', [PathReq(Protocols.OSPF, "Houston", ['SanTTAntonio', 'Houston'], False), PathReq(Protocols.OSPF, "Houston", ['SanTTAntonio', 'Austin', 'Dallas', 'Houston'], False)], False),
     PathOrderReq(Protocols.OSPF, 'SantaTTRosa', [PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTRafael', 'SantaTTRosa'], False), PathReq(Protocols.OSPF, "SantaTTRosa", ['SanTTRafael', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento', 'SantaTTRosa'], False)], False),
-    PathOrderReq(Protocols.OSPF, 'NewTTYork', [PathReq(Protocols.OSPF, "NewTTYork", ['Philadelphia', 'NewTTYork'], False), PathReq(Protocols.OSPF, "NewTTYork", ['Philadelphia', 'Baltimore', 'Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Boston', 'NewTTYork'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Dallas', [PathReq(Protocols.OSPF, "Dallas", ['StTTLouis', 'Dallas'], False), PathReq(Protocols.OSPF, "Dallas", ['StTTLouis', 'Chicago', 'Detroit', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Raleigh', 'Atlanta', 'Dallas'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'KansasTTCity', [PathReq(Protocols.OSPF, "KansasTTCity", ['Denver', 'KansasTTCity'], False), PathReq(Protocols.OSPF, "KansasTTCity", ['Denver', 'SanTTFrancisco', 'SanTTJose', 'LosTTAngeles', 'Anaheim', 'SanTTDiego', 'Phoenix', 'Albuquerque', 'Dallas', 'StTTLouis', 'KansasTTCity'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Washington,TTDC', [PathReq(Protocols.OSPF, "Washington,TTDC", ['Pittsburgh', 'Washington,TTDC'], False), PathReq(Protocols.OSPF, "Washington,TTDC", ['Pittsburgh', 'Cleveland', 'Boston', 'NewTTYork', 'Philadelphia', 'Baltimore', 'Washington,TTDC'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Raleigh', [PathReq(Protocols.OSPF, "Raleigh", ['Washington,TTDC', 'Raleigh'], False), PathReq(Protocols.OSPF, "Raleigh", ['Washington,TTDC', 'Pittsburgh', 'Cleveland', 'Detroit', 'Chicago', 'StTTLouis', 'Dallas', 'Atlanta', 'Raleigh'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'SantaTTRosa', [PathReq(Protocols.OSPF, "SantaTTRosa", ['Portland', 'SantaTTRosa'], False), PathReq(Protocols.OSPF, "SantaTTRosa", ['Portland', 'Seattle', 'Chicago', 'StTTLouis', 'KansasTTCity', 'Denver', 'SanTTFrancisco', 'Concord', 'Stockton', 'Sacramento', 'SantaTTRosa'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Houston', [PathReq(Protocols.OSPF, "Houston", ['Dallas', 'Houston'], False), PathReq(Protocols.OSPF, "Houston", ['Dallas', 'Austin', 'SanTTAntonio', 'Houston'], False)], False),
+    PathOrderReq(Protocols.OSPF, 'Baltimore', [PathReq(Protocols.OSPF, "Baltimore", ['Philadelphia', 'Baltimore'], False), PathReq(Protocols.OSPF, "Baltimore", ['Philadelphia', 'NewTTYork', 'Boston', 'Cleveland', 'Pittsburgh', 'Washington,TTDC', 'Baltimore'], False)], False),
 ]
 
 edges_cost_order_16_2 = [
@@ -1725,7 +1725,7 @@ edges_cost_order_16_2 = [
     ("Pittsburgh", "Cleveland", 1),
     ("Sacramento", "SantaTTRosa", 1),
     ("Sacramento", "Stockton", 1),
-    ("Chicago", "Seattle", 4),
+    ("Chicago", "Seattle", 1),
     ("Chicago", "StTTLouis", 1),
     ("Chicago", "Detroit", 1),
     ("Albuquerque", "Phoenix", 1),
@@ -1748,12 +1748,12 @@ edges_cost_order_16_2 = [
     ("Raleigh", "Atlanta", 1),
     ("Raleigh", "Washington,TTDC", 1),
     ("KansasTTCity", "StTTLouis", 1),
-    ("KansasTTCity", "Denver", 2),
+    ("KansasTTCity", "Denver", 1),
     ("Austin", "SanTTAntonio", 1),
     ("Austin", "Dallas", 1),
     ("Baltimore", "Philadelphia", 1),
     ("Baltimore", "Washington,TTDC", 1),
-    ("Stockton", "Sacramento", 1),
+    ("Stockton", "Sacramento", 2),
     ("Stockton", "Concord", 1),
     ("Houston", "SanTTAntonio", 1),
     ("Houston", "Dallas", 1),
@@ -1761,7 +1761,7 @@ edges_cost_order_16_2 = [
     ("SanTTDiego", "Phoenix", 1),
     ("LosTTAngeles", "Anaheim", 1),
     ("LosTTAngeles", "SanTTJose", 1),
-    ("SanTTFrancisco", "SanTTRafael", 1),
+    ("SanTTFrancisco", "SanTTRafael", 5),
     ("SanTTFrancisco", "Denver", 1),
     ("SanTTFrancisco", "SanTTJose", 1),
     ("SanTTFrancisco", "Concord", 1),
