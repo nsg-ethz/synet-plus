@@ -12,6 +12,7 @@ import z3
 
 from synet.topo.graph import NetworkGraph
 from synet.utils.common import ECMPPathsReq
+from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
@@ -116,6 +117,18 @@ class OSPFSyn(SynthesisComponent):
                     simple_path_cost = self._get_path_cost(rand_path)
                     self.solver.add(path_cost < simple_path_cost)
 
+    def _generate_connected_path(self, req):
+        """Generate SMT for PathOrderReq"""
+        paths = [p.path for p in req.paths]
+        src = paths[0][0]
+        dst = paths[0][-1]
+        for rand_path in nx.all_simple_paths(self.network_graph, src, dst):
+            if rand_path not in paths:
+                for path in paths:
+                    path_cost = self._get_path_cost(path)
+                    simple_path_cost = self._get_path_cost(rand_path)
+                    self.solver.add(path_cost < simple_path_cost)
+
     def push_requirements(self):
         """Push the requirements we care about to the solver"""
         # Load Graph
@@ -131,6 +144,8 @@ class OSPFSyn(SynthesisComponent):
                 self._generate_ecmp_path(req)
             elif isinstance(req, PathOrderReq):
                 self._generate_ordered_path(req)
+            elif isinstance(req, KConnectedPathsReq):
+                self._generate_connected_path(req)
             else:
                 raise ValueError("Unrecognized path requirement %s" % req)
         end = timer()
