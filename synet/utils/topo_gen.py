@@ -272,7 +272,9 @@ def get_fanout_topology(fan_out):
     sink = 'sink'
     network_graph.add_router(source)
     network_graph.add_router(sink)
-
+    if fan_out == 0:
+        network_graph.add_router_edge(source, sink)
+        network_graph.add_router_edge(sink, source)
     for index in range(0, fan_out):
         node = "R%d" % (index + 1)
         network_graph.add_router_edge(source, node)

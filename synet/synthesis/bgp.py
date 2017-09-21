@@ -11,6 +11,7 @@ from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.utils.policy import SMTRouteMap
 from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_symbolic
+from synet.utils.bgp_utils import get_propagated_info
 
 
 __author__ = "Ahmed El-Hassany"
@@ -82,14 +83,10 @@ class BGP(object):
             # Announcement that the neighbor will learn from this router
             if not self.propagation_graph.has_edge(self.node, neighbor):
                 continue
-            edge_attes = self.propagation_graph[self.node][neighbor]
-            best = edge_attes.get('best', [])
-            nonbest = edge_attes.get('nonbest', [])
-            all_anns = []
-            for prop in set(best + nonbest):
-                if prop not in all_anns:
-                    all_anns.append(prop)
+            all_anns = get_propagated_info(self.propagation_graph, neighbor,
+                                           from_node=self.node, unselected=False)
             for prop in all_anns:
+
                 ann_name = prop.ann_name
                 if neighbor not in self.neighbor_exported_ann_names:
                     self.neighbor_exported_ann_names[neighbor] = {}
