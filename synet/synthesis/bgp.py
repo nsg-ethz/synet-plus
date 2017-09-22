@@ -130,22 +130,9 @@ class BGP(object):
         ann_map = {}
         exported_names = []
         if self.network_graph.is_bgp_enabled(self.node):
-            selected = self.propagation_graph.node.get(
-                self.node, {}).get('selected', [])
+            selected = get_propagated_info(self.propagation_graph, self.node, unselected=False)
         else:
-            # IGP router that doesn't select routes
-            # So just pick all the routes that are going to be passed
-            # to neighbors
             selected = []
-            for neighbor in self.network_graph.neighbors(self.node):
-                if not self.propagation_graph.has_edge(self.node, neighbor):
-                    continue
-                edge_attes = self.propagation_graph[self.node][neighbor]
-                best = edge_attes.get('best', [])
-                nonbest = edge_attes.get('nonbest', [])
-                for prop in set(best + nonbest):
-                    if prop not in selected:
-                        selected.append(prop)
         for propagated in selected:
             exported_names.append(propagated.ann_name)
         for ann_name in exported_names:
@@ -285,6 +272,7 @@ class BGP(object):
             "get_exported_next_hop at router %s: from %s to %s",
             self.node, src_peer, dst_peer)
         next_hop = self.next_hop_map[src_peer][dst_peer]
+
         ret = self.general_ctx.next_hop_ctx.range_map[next_hop]
         self.log.debug(
             "get_exported_next_hop.return at router %s: from %s to %s: %s",
@@ -392,10 +380,8 @@ class BGP(object):
             if not self.propagation_graph.has_edge(neighbor, self.node):
                 continue
             # The announcements learned from that given neighbor
-            edge_attrs = self.propagation_graph[neighbor][self.node]
-            best = edge_attrs.get('best', [])
-            nonbest = edge_attrs.get('nonbest', [])
-            all_anns = best + nonbest
+            all_anns = get_propagated_info(
+                self.propagation_graph, self.node, from_node=neighbor)
             for prop in all_anns:
                 self.reg_learned_route(neighbor, prop)
             self.log.debug(
