@@ -55,7 +55,8 @@ def dag_can_add(dag, node):
 
 
 def dag_add_node(dag, node, is_strict=None, ordered=None,
-                 unordered=None, unselected=None, is_final=False):
+                 unordered=None, unselected=None,
+                 is_final=False, igp_pass=None):
     """Add a node to a dag"""
     if not is_strict:
         is_strict = VALUENOTSET
@@ -65,9 +66,11 @@ def dag_add_node(dag, node, is_strict=None, ordered=None,
         unordered = set([])
     if unselected is None:
         unselected = set([])
+    if igp_pass is None:
+        igp_pass = set([])
     dag.add_node(node, strict=is_strict, ordered=ordered,
                  unordered=unordered, unselected=unselected,
-                 is_final=is_final)
+                 is_final=is_final, igp_pass=igp_pass)
 
 
 class EBGPPropagation(object):
@@ -467,13 +470,12 @@ class EBGPPropagation(object):
         else:
             raise ValueError("Unrecognized req type %s" % type(req))
 
-    def compute_propagated_info(self, prefix, propagation_path, dag):
+    def compute_propagated_info(self, prefix, propagation_path, dag, prop_igp=False):
         assert isinstance(propagation_path, tuple)
         source = propagation_path[0]
         ann_name = None
         announcement = None
         # Announcements by the start node in the path
-        print "GET SYN OF", source
         anns = self.network_graph.node[source]['syn']['anns']
         for ann_name, announcement in anns.iteritems():
             if announcement.prefix == prefix and announcement.peer == source:
@@ -483,8 +485,12 @@ class EBGPPropagation(object):
         # BGP must start from BGP enabled router
         assert self.network_graph.is_bgp_enabled(source)
         can, is_igp, edges = self.can_propagate(prefix, propagation_path, dag)
-        assert can, edges
-        assert not is_igp
+        if prop_igp:
+            assert not can, edges
+            assert is_igp, edges
+        else:
+            assert can, edges
+            assert not is_igp, edges
 
         as_path = announcement.as_path + [self.network_graph.get_bgp_asnum(source)]
         path = [source]
@@ -616,7 +622,7 @@ class EBGPPropagation(object):
                 self.log.debug("  can_propagate.no protocol (%s, %s, %s)", src, dst, proto)
                 return False, False, None
         if edges and edges[-1][-1] == 'igp':
-            return False, True, None
+            return False, True, edges
         return True, False, edges
 
     def get_forwarding_dag(self, prefix, reqs):
@@ -639,7 +645,7 @@ class EBGPPropagation(object):
     def compute_bfs(self, prefix, source, propagation_dag):
         g = nx.DiGraph()
         selected = set([(source,)])
-        g.add_node(source, selected=selected, unselected=set())
+        g.add_node(source, selected=selected, unselected=set(), igp_pass=set())
         visited = set([])
         # maintain a queue of paths
         queue = list()
@@ -658,7 +664,7 @@ class EBGPPropagation(object):
                 for x, y, _ in prop_path:
                     for tmp in [x, y]:
                         if not g.has_node(tmp):
-                            g.add_node(tmp, selected=set(), unselected=set())
+                            g.add_node(tmp, selected=set(), unselected=set(), igp_pass=set())
                     print "    ADD EDGE", x, y
                     g.add_edge(x, y)
                 print "   CHECK SELECTED", prefix, node, path, propagation_dag, self._check_selected(node, path, propagation_dag)
@@ -668,6 +674,15 @@ class EBGPPropagation(object):
                 else:
                     if path not in g.node[node]['unselected']:
                         g.node[node]['unselected'].add(path)
+                if prop_path:
+                    curr = [prop_path[0][0]]
+                    for x, y, prot in prop_path:
+                        curr.append(y)
+                        if prot == 'igp':
+                            if tuple(curr) not in g.node[y]['igp_pass']:
+                                g.node[y]['igp_pass'].add(tuple(curr))
+
+
                 #if not self._check_selected(node, path, propagation_dag):
                 #    is_strict = g.node[node]['strict']
                 #    if is_empty(is_strict):
@@ -721,6 +736,9 @@ class EBGPPropagation(object):
                 for tmp_path in bfs.node[tmp_node]['unselected']:
                     if tmp_path not in propagation_dag.node[tmp_node]['unselected']:
                         propagation_dag.node[tmp_node]['unselected'].add(tmp_path)
+                for tmp_path in bfs.node[tmp_node]['igp_pass']:
+                    if tmp_path not in propagation_dag.node[tmp_node]['igp_pass']:
+                        propagation_dag.node[tmp_node]['igp_pass'].add(tmp_path)
             for x, y in bfs.edges():
                 if not propagation_dag.has_edge(x, y):
                     propagation_dag.add_edge(x, y)
@@ -743,9 +761,14 @@ class EBGPPropagation(object):
             for path in propagation_dag.node[node]['unselected']:
                 prop = self.compute_propagated_info(prefix, path, propagation_dag)
                 prop_unselected.add(prop)
+            prop_igp_pass = set([])
+            for path in propagation_dag.node[node]['igp_pass']:
+                prop = self.compute_propagated_info(prefix, path, propagation_dag, prop_igp=True)
+                prop_igp_pass.add(prop)
             propagation_dag.node[node]['prop_ordered'] = prop_ordered
             propagation_dag.node[node]['prop_unordered'] = prop_unordered
             propagation_dag.node[node]['prop_unselected'] = prop_unselected
+            propagation_dag.node[node]['prop_igp_pass'] = prop_igp_pass
         return forwarding_dag, propagation_dag
 
     def compute_dags(self):
@@ -795,7 +818,8 @@ class EBGPPropagation(object):
                 union_g.add_node(node, prefixes={})
             if 'prefixes' not in union_g.node[node]:
                 union_g.node[node]['prefixes'] = {}
-            set_attrs = ['unordered', 'unselected', 'prop_unordered', 'prop_unselected']
+            set_attrs = ['unordered', 'unselected', 'igp_pass',
+                         'prop_unordered', 'prop_unselected', 'prop_igp_pass']
             list_attrs = ['ordered', 'prop_ordered']
             if prefix not in union_g.node[node]['prefixes']:
                 union_g.node[node]['prefixes'][prefix] = dict()
@@ -820,6 +844,7 @@ class EBGPPropagation(object):
                 label += "  Ordered: %s\\n" % data['ordered']
                 label += "  Unordered: %s\\n" % data['unordered']
                 label += "  Unselected: %s\\n" % data['unselected']
+                label += "  IGP Pass: %s\\n" % data['igp_pass']
             self.union_graph.node[node]['label'] = label
         from networkx.drawing.nx_agraph import write_dot
         write_dot(self.union_graph, '/tmp/composed.dot')
