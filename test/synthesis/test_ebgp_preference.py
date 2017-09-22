@@ -41,10 +41,7 @@ class EBGPPreferenceTest(unittest.TestCase):
         if not peer:
             peer = 'ATT'
         next_hop = "%sHop" % peer
-        c1 = Community("100:16")
-        c2 = Community("100:17")
-        c3 = Community("100:18")
-        self.all_communities = (c1, c2, c3)
+        c1, c2, c3 = self.all_communities
         ann = Announcement(
             prefix='Google', peer='ATT', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2], as_path_len=2,
@@ -795,13 +792,13 @@ class EBGPPreferenceTest(unittest.TestCase):
 
     def test_ebgp_two_peers(self):
         ann_name = 'ATT_Google'
-        ann1 = self.get_ann('ATT')
-        ann2 = self.get_ann('DT')
+        peer1 = 'ATT'
+        peer2 = 'DT'
+        ann1 = self.get_ann(peer1)
+        ann2 = self.get_ann(peer2)
         sink = 'sink'
         source = 'source'
         self.anns = {'ATT_Google': ann1, 'DT_Google': ann2}
-        peer1 = 'ATT'
-        peer2 = 'DT'
         topo = self.get_fanout(0, is_ebgp=True)
         self.add_one_peer(topo, 'sink', peer1, 1000)
         self.add_one_peer(topo, 'sink', peer2, 1000)
