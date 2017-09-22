@@ -11,9 +11,14 @@ def write_dag(dag, file):
     from networkx.drawing.nx_agraph import write_dot
     for node, data in dag.nodes(data=True):
         label = "%s\\n" % node
-        label += "Ordered: %s\\n" % data.get('ordered', None)
-        label += "Unordered: %s\\n" % data.get('unordered', None)
-        label += "Unselected: %s\\n" % data.get('unselected', None)
+        if 'selected' in data:
+            label += "Selected: %s\\n" % data['selected']
+        if 'ordered' in data:
+            label += "Ordered: %s\\n" % data.get('ordered', None)
+        if 'unordered' in data:
+            label += "Unordered: %s\\n" % data.get('unordered', None)
+        if 'unselected' in data:
+            label += "Unselected: %s\\n" % data.get('unselected', None)
         dag.node[node]['label'] = label
     write_dot(dag, file)
 
