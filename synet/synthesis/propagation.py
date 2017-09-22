@@ -498,6 +498,7 @@ class EBGPPropagation(object):
         egress = source
         peer = source
         seen_ibgp = False
+        last_proto = None
         for src, dst, protocol in edges:
             assert protocol in ['ebgp', 'ibgp', 'igp'],\
                 "Unknown protocol (%s, %s, %s)" % (src, dst, protocol)
@@ -506,6 +507,8 @@ class EBGPPropagation(object):
                     protocol = 'igp'
                 else:
                     seen_ibgp = True
+                    if last_proto == 'ebgp':
+                        peer = src
             if protocol == 'ebgp':
                 if self.network_graph.is_bgp_enabled(src) and \
                         self.network_graph.is_bgp_enabled(dst):
@@ -520,6 +523,7 @@ class EBGPPropagation(object):
                 egress = dst
 
             path.append(dst)
+            last_proto = protocol
         return PropagatedInfo(
             egress=egress, ann_name=ann_name, peer=peer,
             as_path=as_path, as_path_len=len(as_path), path=path)
@@ -793,7 +797,6 @@ class EBGPPropagation(object):
         self.propagation_dags = {}
         for net, reqs in net_reqs.iteritems():
             forwarding, propagation = self.compute_dag(net, reqs)
-            print "COMPUTED DAG", propagation.nodes()
             self.forwarding_dags[net] = forwarding
             self.propagation_dags[net] = propagation
 
@@ -841,10 +844,10 @@ class EBGPPropagation(object):
             label = "%s\\n" % node
             for prefix, data in self.union_graph.node[node]['prefixes'].iteritems():
                 label += "Prefix: %s\\n" % prefix
-                label += "  Ordered: %s\\n" % data['ordered']
-                label += "  Unordered: %s\\n" % data['unordered']
-                label += "  Unselected: %s\\n" % data['unselected']
-                label += "  IGP Pass: %s\\n" % data['igp_pass']
+                label += "  Ordered: %s\\n" % data['prop_ordered']
+                label += "  Unordered: %s\\n" % data['prop_unordered']
+                label += "  Unselected: %s\\n" % data['prop_unselected']
+                label += "  IGP Pass: %s\\n" % data['prop_igp_pass']
             self.union_graph.node[node]['label'] = label
         from networkx.drawing.nx_agraph import write_dot
         write_dot(self.union_graph, '/tmp/composed.dot')
