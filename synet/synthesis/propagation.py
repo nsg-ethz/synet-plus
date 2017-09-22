@@ -83,8 +83,6 @@ class EBGPPropagation(object):
         self.log = logging.getLogger('%s.%s' % (
             self.__module__, self.__class__.__name__))
         assert isinstance(network_graph, NetworkGraph)
-        if allow_igp:
-            assert False
         self.network_graph = network_graph
         self.reqs = []
         self.parallel = parallel
@@ -102,12 +100,16 @@ class EBGPPropagation(object):
         self.next_hop_list = []
         for node in self.next_hop_map:
             for neighbor in self.next_hop_map[node]:
-                for next_hop in self.next_hop_map[node][neighbor]:
-                    if next_hop not in self.next_hop_list:
-                        self.next_hop_list.append(next_hop)
+                next_hop = self.next_hop_map[node][neighbor]
+                if next_hop not in self.next_hop_list:
+                    self.next_hop_list.append(next_hop)
         # Adding reqs
         for req in reqs:
             self.add_path_req(req)
+
+        for node in self.network_graph.routers_iter():
+            if 'syn' not in self.network_graph.node[node]:
+                self.network_graph.node[node]['syn'] = {'anns': {}}
 
         self.compute_dags()
         self.union_graphs()
@@ -121,8 +123,6 @@ class EBGPPropagation(object):
         for node in self.network_graph.routers_iter():
             #if not self.network_graph.is_bgp_enabled(node):
             #    continue
-            if 'syn' not in self.network_graph.node[node]:
-                self.network_graph.node[node]['syn'] = {}
             box = BGP(
                 node=node,
                 network_graph=self.network_graph,
@@ -269,9 +269,6 @@ class EBGPPropagation(object):
         # Peers
         read_list = [x.peer for x in all_anns.values() if not is_empty(x.peer)]
         peer_list = list(set(read_list + peer_list))
-        assert peer_list
-        for p in peer_list:
-            assert isinstance(p, basestring)
         (peer_sort, peers) = z3.EnumSort('PeerSort', peer_list)
         peer_map = dict([(str(p), p) for p in peers])
         peer_map = peer_map
@@ -476,6 +473,7 @@ class EBGPPropagation(object):
         ann_name = None
         announcement = None
         # Announcements by the start node in the path
+        print "GET SYN OF", source
         anns = self.network_graph.node[source]['syn']['anns']
         for ann_name, announcement in anns.iteritems():
             if announcement.prefix == prefix and announcement.peer == source:
@@ -640,23 +638,8 @@ class EBGPPropagation(object):
 
     def compute_bfs(self, prefix, source, propagation_dag):
         g = nx.DiGraph()
-        source_path = tuple([source,])
-        source_ordered = set([source_path,])
-
-        if propagation_dag.has_node(source):
-            atts = propagation_dag.node[source]
-            dag_add_node(
-                propagation_dag, source,
-                is_strict=atts['strict'],
-                ordered=atts['ordered'],
-                unordered=atts['unordered'],
-                unselected=atts['unselected'],
-                is_final=atts['is_final'])
-        else:
-            dag_add_node(propagation_dag, source, is_strict=True)
-
-        if source_ordered not in propagation_dag.node[source]['ordered']:
-            propagation_dag.node[source]['ordered'].append(source_ordered)
+        selected = set([(source,)])
+        g.add_node(source, selected=selected, unselected=set())
         visited = set([])
         # maintain a queue of paths
         queue = list()
@@ -669,38 +652,34 @@ class EBGPPropagation(object):
             node = path[-1]
             if self.network_graph.is_bgp_enabled(node):
                 can, is_igp, prop_path = self.can_propagate(prefix, path, propagation_dag)
-                print " CHECK CAN", prefix, path, propagation_dag, "RET", can, is_igp, prop_path
-                if can:
-                    print "  CAN", prefix, node, prop_path
-                    for x, y, _ in prop_path:
-                        for tmp in [x, y]:
-                            if not g.has_node(tmp):
-                                if propagation_dag.has_node(tmp):
-                                    atts = propagation_dag.node[tmp]
-                                    dag_add_node(
-                                        g, tmp,
-                                        is_strict=atts['strict'],
-                                        ordered=atts['ordered'],
-                                        unordered=atts['unordered'],
-                                        unselected=atts['unselected'],
-                                        is_final=atts['is_final'])
-                                else:
-                                    dag_add_node(g, tmp, is_final=False)
-                        print "    ADD EDGE", x, y
-                        g.add_edge(x, y)
-                    print "   CHECK SELECTED", prefix, node, path, propagation_dag, self._check_selected(node, path, propagation_dag)
-                    if not self._check_selected(node, path, propagation_dag):
-                        is_strict = g.node[node]['strict']
-                        if is_empty(is_strict):
-                            is_strict = True
-                        if is_strict is True:
-                            if path not in g.node[node]['unselected']:
-                                g.node[node]['unselected'].add(path)
-                        elif is_empty(is_strict) or is_strict is False:
-                            if path not in g.node[node]['unordered']:
-                                g.node[node]['unordered'].add(path)
-                        else:
-                            raise ValueError("Unknown strict value %s->%s" % (node, is_strict))
+                if not can:
+                    continue
+                print "  CAN", prefix, node, prop_path
+                for x, y, _ in prop_path:
+                    for tmp in [x, y]:
+                        if not g.has_node(tmp):
+                            g.add_node(tmp, selected=set(), unselected=set())
+                    print "    ADD EDGE", x, y
+                    g.add_edge(x, y)
+                print "   CHECK SELECTED", prefix, node, path, propagation_dag, self._check_selected(node, path, propagation_dag)
+                if self._check_selected(node, path, propagation_dag):
+                    if path not in g.node[node]['selected']:
+                        g.node[node]['selected'].add(path)
+                else:
+                    if path not in g.node[node]['unselected']:
+                        g.node[node]['unselected'].add(path)
+                #if not self._check_selected(node, path, propagation_dag):
+                #    is_strict = g.node[node]['strict']
+                #    if is_empty(is_strict):
+                #        is_strict = True
+                #    if is_strict is True:
+                #        if path not in g.node[node]['unselected']:
+                #            g.node[node]['unselected'].add(path)
+                #    elif is_empty(is_strict) or is_strict is False:
+                #        if path not in g.node[node]['selected']:
+                #            g.node[node]['selected'].add(path)
+                #    else:
+                #        raise ValueError("Unknown strict value %s->%s" % (node, is_strict))
 
             # enumerate all adjacent nodes, construct a new path
             # and push it into the queue
@@ -712,7 +691,6 @@ class EBGPPropagation(object):
                 new_path = tuple(new_path)
                 if new_path not in visited:
                     queue.append(new_path)
-
         write_dag(g, "/tmp/out.dot")
         return g
 
@@ -736,7 +714,16 @@ class EBGPPropagation(object):
         # Do BFS to compute any additional propagation
         for source in self.prefix_peers[prefix]:
             print "In source", source, "for prefix", prefix
-            propagation_dag = self.compute_bfs(prefix, source, propagation_dag)
+            bfs = self.compute_bfs(prefix, source, propagation_dag)
+            for tmp_node in bfs.node:
+                if not propagation_dag.has_node(tmp_node):
+                    dag_add_node(propagation_dag, tmp_node)
+                for tmp_path in bfs.node[tmp_node]['unselected']:
+                    if tmp_path not in propagation_dag.node[tmp_node]['unselected']:
+                        propagation_dag.node[tmp_node]['unselected'].add(tmp_path)
+            for x, y in bfs.edges():
+                if not propagation_dag.has_edge(x, y):
+                    propagation_dag.add_edge(x, y)
         write_dag(propagation_dag, "/tmp/%s_bfs.dot" % prefix)
         for node in propagation_dag.nodes_iter():
             prop_ordered = []
