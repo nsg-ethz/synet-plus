@@ -19,12 +19,15 @@ def write_dag(dag, file):
             label += "Unordered: %s\\n" % data.get('unordered', None)
         if 'unselected' in data:
             label += "Unselected: %s\\n" % data.get('unselected', None)
+        if 'igp_pass' in data:
+            label += "PASS IGP: %s\\n" % data.get('igp_pass', None)
         dag.node[node]['label'] = label
     write_dot(dag, file)
 
 
 def get_propagated_info(propagation_graph, node,
-                        prefix=None, from_node=None, unselected=True):
+                        prefix=None, from_node=None,
+                        unselected=True, from_peer=None, igp_pass=True):
     all_props = []
     for net, data in propagation_graph.node[node]['prefixes'].iteritems():
         if prefix and net != prefix:
@@ -37,14 +40,21 @@ def get_propagated_info(propagation_graph, node,
         if unselected:
             for prop in data['prop_unselected']:
                 all_props.append(prop)
-    if not from_node:
-        return all_props
+        if igp_pass:
+            for prop in data['prop_igp_pass']:
+                all_props.append(prop)
+    #if not from_node:
+    #    return all_props
     ret = []
     for prop in all_props:
-        if len(prop.path) < 2:
-            continue
-        if prop.path[-2] != from_node:
-            continue
+        if from_node:
+            if len(prop.path) < 2:
+                continue
+            if prop.path[-2] != from_node:
+                continue
+        if from_peer:
+            if prop.peer != from_peer:
+                continue
         ret.append(prop)
     return ret
 
