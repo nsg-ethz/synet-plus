@@ -507,8 +507,7 @@ class BGP(object):
         other_path = other_propagated.path
         return self.allow_igp
 
-    def prefix_select(self, prefix, best_propagated, backup_propagated,
-                      nonbest_propagated):
+    def set_best_values(self, prefix, best_propagated):
         """Synthesize Selection function for a given prefix"""
         self.log.debug("prefix_select %s at %s, best=%s", prefix, self.node, best_propagated)
         best_peer = best_propagated.peer
@@ -516,15 +515,12 @@ class BGP(object):
             best_neighbor = best_propagated.path[-2]
         else:
             best_neighbor = None
+
         best_ann_name = best_propagated.ann_name
         best_ann_var = self.general_ctx.announcements_map[best_ann_name]
         curr_peer = self.node
         best_ctx = self.get_imported_ctx(curr_peer, best_neighbor, best_peer)
         name = "%s_sel_%s" % (self.node, best_ann_name)
-        as_len_enabled = self.get_as_len_enabled()
-        const_set = []
-        const_selection = []
-
         # First assert that the learned perfix has the same attributes
         # As the one selected (because the the shim context)
         for value_ctx in self.selected_ctx.ctx_names:
@@ -537,119 +533,135 @@ class BGP(object):
                 for comm in ctx1:
                     c = ctx1[comm].get_var(best_ann_var) == ctx2[comm].get_var(best_ann_var)
                     self.constraints["%s_c_%s" % (name, comm.name)] = c
-
         # Assert that the selected prefix is permitted
         t_c = self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True
         self.constraints["%s_permitted" % name] = t_c
 
-        for (neighbor, prop_other) in nonbest_propagated:
-            self.log.debug("select at %s: %s over %s", self.node, best_propagated, prop_other)
-            peer = prop_other.peer
-            other_ann_name = prop_other.ann_name
-            s_ctx = self.selected_ctx
-            o_ctx = self.get_imported_ctx(curr_peer, neighbor, peer)
-            other_ann_var = self.general_ctx.announcements_map[other_ann_name]
+    def selector_func(self, prefix, neighbor, best_propagated, other_propagated):
+        """Synthesize Selection function for a given prefix"""
+        self.log.debug("prefix_select %s at %s, best=%s", prefix, self.node, best_propagated)
+        best_peer = best_propagated.peer
+        if best_propagated.path:
+            best_neighbor = best_propagated.path[-2]
+        else:
+            best_neighbor = None
 
-            s_localpref = s_ctx.local_pref_ctx.get_var(best_ann_var)
-            o_localpref = o_ctx.local_pref_ctx.get_var(other_ann_var)
+        best_ann_name = best_propagated.ann_name
+        best_ann_var = self.general_ctx.announcements_map[best_ann_name]
+        curr_peer = self.node
+        best_ctx = self.get_imported_ctx(curr_peer, best_neighbor, best_peer)
+        name = "%s_sel_%s" % (self.node, best_ann_name)
+        as_len_enabled = self.get_as_len_enabled()
+        const_set = []
+        const_selection = []
 
-            s_aslen = s_ctx.as_path_len_ctx.get_var(best_ann_var)
-            o_aslen = o_ctx.as_path_len_ctx.get_var(other_ann_var)
+        self.log.debug("select at %s: %s over %s", self.node, best_propagated, other_propagated)
+        peer = other_propagated.peer
+        other_ann_name = other_propagated.ann_name
+        s_ctx = self.selected_ctx
+        o_ctx = self.get_imported_ctx(curr_peer, neighbor, peer)
+        other_ann_var = self.general_ctx.announcements_map[other_ann_name]
 
-            s_origin = s_ctx.origin_ctx.get_var(best_ann_var)
-            o_origin = o_ctx.origin_ctx.get_var(other_ann_var)
+        s_localpref = s_ctx.local_pref_ctx.get_var(best_ann_var)
+        o_localpref = o_ctx.local_pref_ctx.get_var(other_ann_var)
 
-            igp_origin = o_ctx.origin_ctx.range_map[
-                BGP_ATTRS_ORIGIN.IGP]
-            ebgp_origin = o_ctx.origin_ctx.range_map[
-                BGP_ATTRS_ORIGIN.EBGP]
-            incomplete_origin = o_ctx.origin_ctx.range_map[
-                BGP_ATTRS_ORIGIN.INCOMPLETE]
-            best_as_num = self.network_graph.get_bgp_asnum(best_peer)
-            other_as_num = self.network_graph.get_bgp_asnum(peer)
-            node_as_num = self.network_graph.get_bgp_asnum(self.node)
-            other_permitted = o_ctx.permitted_ctx.get_var(other_ann_var)
+        s_aslen = s_ctx.as_path_len_ctx.get_var(best_ann_var)
+        o_aslen = o_ctx.as_path_len_ctx.get_var(other_ann_var)
 
-            # Selection based on origin
-            select_origin = z3.Or(
-                # IGP is the lowest
-                z3.And(s_origin == igp_origin,
-                       o_origin != igp_origin),
-                # EGP over incomplete
-                z3.And(s_origin == ebgp_origin,
-                       o_origin == incomplete_origin))
-            # Selection based on AS Path len
-            select_as_path_len = z3.And(
-                as_len_enabled == True,  # Can we use AS Path len
-                s_aslen < o_aslen)
-            # Prefer eBGP routes over iBGP
-            select_ebgp = z3.And(node_as_num != best_as_num,
-                                 node_as_num == other_as_num)
-            # IGP
-            select_igp = self.get_select_igp(best_propagated, prop_other)
-            use_igp = z3.Const("use_igp_%s" % name, z3.BoolSort())
-            self.constraints["%s_use_igp" % name] = \
-                use_igp == self.can_used_igp(best_propagated, prop_other)
+        s_origin = s_ctx.origin_ctx.get_var(best_ann_var)
+        o_origin = o_ctx.origin_ctx.get_var(other_ann_var)
 
-            # The BGP selection process
-            const_selection.append(
-                z3.Or(
-                    # 1) Permitted
-                    other_permitted == False,
-                    # 2) If Permitted, local pref
-                    z3.And(other_permitted,
-                           s_localpref > o_localpref),
-                    # 3) AS Path Length
-                    z3.And(other_permitted,
-                           s_localpref == o_localpref,
-                           select_as_path_len == True),
-                    # 4) Origin Code IGP < EGP < Incomplete
-                    z3.And(other_permitted,
-                           s_localpref == o_localpref,
-                           select_as_path_len == False,
-                           select_origin == True),
-                    # 5) TODO: MED Selection
-                    # 6) Prefer eBGP over iBGP paths.
-                    z3.And(
-                        other_permitted,
-                        s_localpref == o_localpref,
-                        select_as_path_len == False,
-                        select_origin == False,
-                        select_ebgp == True),
-                    # 7) Path with the lowest IGP metric to the BGP next hop.
-                    z3.And(
-                        other_permitted,
-                        s_localpref == o_localpref,
-                        select_as_path_len == False,
-                        select_origin == False,
-                        select_ebgp == False,
-                        select_igp == True,
-                        use_igp == True,
-                    ),
-                    # TODO (AH): More selection process
+        igp_origin = o_ctx.origin_ctx.range_map[
+            BGP_ATTRS_ORIGIN.IGP]
+        ebgp_origin = o_ctx.origin_ctx.range_map[
+            BGP_ATTRS_ORIGIN.EBGP]
+        incomplete_origin = o_ctx.origin_ctx.range_map[
+            BGP_ATTRS_ORIGIN.INCOMPLETE]
+        best_as_num = self.network_graph.get_bgp_asnum(best_peer)
+        other_as_num = self.network_graph.get_bgp_asnum(peer)
+        node_as_num = self.network_graph.get_bgp_asnum(self.node)
+        other_permitted = o_ctx.permitted_ctx.get_var(other_ann_var)
 
-                    # 8) Determine if multiple paths
-                    #    require installation in the
-                    #    routing table for BGP Multipath.
-                    #      Continue, if bestpath is not yet selected.
-                    # 9) Prefer the route that comes from the BGP router
-                    #    with the lowest router ID.
-                ))
-            # Make sure all variables are bound to a value
-            # (not just the best route)
-            if other_ann_name != best_ann_name:
-                for value_ctx in self.selected_ctx.ctx_names:
-                    if value_ctx != 'communities_ctx':
-                        ctx1 = getattr(s_ctx, value_ctx)
-                        ctx2 = getattr(o_ctx, value_ctx)
-                        const_set.append(ctx1.get_var(other_ann_var) ==
-                                         ctx2.get_var(other_ann_var))
-                    else:
-                        ctx1 = getattr(self.selected_ctx, value_ctx)
-                        ctx2 = getattr(o_ctx, value_ctx)
-                        for comm in ctx1:
-                            const_set.append(ctx1[comm].get_var(other_ann_var) ==
-                                             ctx2[comm].get_var(other_ann_var))
+        # Selection based on origin
+        select_origin = z3.Or(
+            # IGP is the lowest
+            z3.And(s_origin == igp_origin,
+                   o_origin != igp_origin),
+            # EGP over incomplete
+            z3.And(s_origin == ebgp_origin,
+                   o_origin == incomplete_origin))
+        # Selection based on AS Path len
+        select_as_path_len = z3.And(
+            as_len_enabled == True,  # Can we use AS Path len
+            s_aslen < o_aslen)
+        # Prefer eBGP routes over iBGP
+        select_ebgp = z3.And(node_as_num != best_as_num,
+                             node_as_num == other_as_num)
+        # IGP
+        select_igp = self.get_select_igp(best_propagated, other_propagated)
+        use_igp = z3.Const("use_igp_%s" % name, z3.BoolSort())
+        self.constraints["%s_use_igp" % name] = \
+            use_igp == self.can_used_igp(best_propagated, other_propagated)
+
+        # The BGP selection process
+        const_selection.append(
+            z3.Or(
+                # 1) Permitted
+                other_permitted == False,
+                # 2) If Permitted, local pref
+                z3.And(other_permitted,
+                       s_localpref > o_localpref),
+                # 3) AS Path Length
+                z3.And(other_permitted,
+                       s_localpref == o_localpref,
+                       select_as_path_len == True),
+                # 4) Origin Code IGP < EGP < Incomplete
+                z3.And(other_permitted,
+                       s_localpref == o_localpref,
+                       select_as_path_len == False,
+                       select_origin == True),
+                # 5) TODO: MED Selection
+                # 6) Prefer eBGP over iBGP paths.
+                z3.And(
+                    other_permitted,
+                    s_localpref == o_localpref,
+                    select_as_path_len == False,
+                    select_origin == False,
+                    select_ebgp == True),
+                # 7) Path with the lowest IGP metric to the BGP next hop.
+                z3.And(
+                    other_permitted,
+                    s_localpref == o_localpref,
+                    select_as_path_len == False,
+                    select_origin == False,
+                    select_ebgp == False,
+                    select_igp == True,
+                    use_igp == True,
+                ),
+                # TODO (AH): More selection process
+
+                # 8) Determine if multiple paths
+                #    require installation in the
+                #    routing table for BGP Multipath.
+                #      Continue, if bestpath is not yet selected.
+                # 9) Prefer the route that comes from the BGP router
+                #    with the lowest router ID.
+            ))
+        # Make sure all variables are bound to a value
+        # (not just the best route)
+        if other_ann_name != best_ann_name:
+            for value_ctx in self.selected_ctx.ctx_names:
+                if value_ctx != 'communities_ctx':
+                    ctx1 = getattr(s_ctx, value_ctx)
+                    ctx2 = getattr(o_ctx, value_ctx)
+                    const_set.append(ctx1.get_var(other_ann_var) ==
+                                     ctx2.get_var(other_ann_var))
+                else:
+                    ctx1 = getattr(self.selected_ctx, value_ctx)
+                    ctx2 = getattr(o_ctx, value_ctx)
+                    for comm in ctx1:
+                        const_set.append(ctx1[comm].get_var(other_ann_var) ==
+                                         ctx2[comm].get_var(other_ann_var))
 
         self.constraints["%s_set" % name] = z3.And(*const_set)
         self.constraints[name] = z3.And(*const_selection)
@@ -662,15 +674,13 @@ class BGP(object):
         self._set_denied_prefixes(ann_name_best, prefix_ann_name_peers)
         for prefix, best_propagated in ann_name_best.iteritems():
             nonbest = []
+            self.set_best_values(prefix, best_propagated)
             for (neighbor, prop_other) in prefix_ann_name_peers[prefix]:
-
                 if best_propagated.peer == prop_other.peer and \
                                 prop_other.ann_name == best_propagated.ann_name and \
                                 best_propagated.path == prop_other.path:
                     continue
-                nonbest.append((neighbor, prop_other))
-            self.prefix_select(prefix=prefix, best_propagated=best_propagated,
-                               backup_propagated=[], nonbest_propagated=nonbest)
+                self.selector_func(prefix, neighbor, best_propagated, prop_other)
 
     def syn_igp_path(self, prefix, propagated, segment, from_peer):
         prefixes = self.propagation_graph.node[self.node]['prefixes']
