@@ -914,13 +914,20 @@ class SMTSetLocalPref(SMTSetVal):
         :param context: SMTContext
         """
         assert is_empty(localpref) or isinstance(localpref, int)
+
+        def eval_model(model, var):
+            try:
+                return model.eval(var).as_long()
+            except Exception as err:
+                raise RuntimeError("Couldn't eval %s: %s" % (var, err.message))
+
         super(SMTSetLocalPref, self).__init__(
             name=name,
             value=localpref,
             match=match,
             value_ctx=context.local_pref_ctx,
             config_class=ActionSetLocalPref,
-            model_val=lambda model, var: model.eval(var).as_long(),
+            model_val=eval_model,
             context=context
         )
 
