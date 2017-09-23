@@ -227,7 +227,6 @@ class EBGPTest(SMTSetup):
         p.set_model(solver.model())
         print r1.get_config()
 
-
     def test_small_order(self):
         g = self.get_g_one_router_two_peers()
         youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['R1', 'ATT'], False)
@@ -285,8 +284,8 @@ class EBGPTest(SMTSetup):
 
         reqs = []
         for prefix in prefixs:
-            req1 = PathReq(Protocols.BGP, prefix, ['R1', 'ATT'], True)
-            req2 = PathReq(Protocols.BGP, prefix, ['R2', 'ATT'], True)
+            req1 = PathReq(Protocols.BGP, prefix, ['R1', 'ATT'], False)
+            req2 = PathReq(Protocols.BGP, prefix, ['R2', 'ATT'], False)
             reqs.append(req1)
             reqs.append(req2)
 

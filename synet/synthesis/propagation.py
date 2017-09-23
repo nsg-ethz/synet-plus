@@ -363,21 +363,7 @@ class EBGPPropagation(object):
         if not dag.has_node(source):
             dag_add_node(dag, source)
 
-
         def add_p(src, dst, curr_propagation):
-            #if path_order >= 0:
-            #    dst_curr_order = dag.node[dst]['ordered']
-            #    dst_is_strict = dag.node[dst]['strict']
-            #    if path_order == len(dst_curr_order):
-            #        dst_curr_order.append(set([tuple(curr_path), ]))
-            #    else:
-            #        if ecmp:
-            #            if curr_path not in dst_curr_order[path_order]:
-            #                dst_curr_order[path_order].add(curr_path)
-            #        else:
-            #            if not dst_is_strict:
-            #                dst_curr_order.append(set([tuple(curr_path), ]))
-            #    print "  new dst order", dst, dag.node[dst]['ordered']
             if path_order >= 0:
                 # Req Path is ordered
                 curr_order = dag.node[dst]['ordered']
@@ -386,13 +372,6 @@ class EBGPPropagation(object):
                     # Make sure it's the same path we're adding
                     is_err = False
                     if curr_propagation not in curr_order[path_order]:
-                        # if dag_can_add(dag, src):
-                        #    curr_order = curr_order[:path_order] + \
-                        #                 [set([curr_propagation])] + \
-                        #                 curr_order[path_order:]
-                        #    dag.node[src]['ordered'] = curr_order
-                        # else:
-                        #    is_err = True
                         if ecmp:
                             curr_order[path_order].add(curr_propagation)
                         else:
@@ -453,7 +432,7 @@ class EBGPPropagation(object):
         :return: None
         """
         if isinstance(req, PathReq):
-            path = self.add_path_req_to_dag(req, dag, 0, req.strict, ecmp=False)
+            path = self.add_path_req_to_dag(req, dag, 0, strict=req.strict, ecmp=False)
         elif isinstance(req, PathOrderReq):
             for index, path_req in enumerate(req.paths):
                 self.add_path_req_to_dag(path_req, dag, index, req.strict, ecmp=False)
@@ -735,7 +714,7 @@ class EBGPPropagation(object):
             bfs = self.compute_bfs(prefix, source, propagation_dag)
             for tmp_node in bfs.node:
                 if not propagation_dag.has_node(tmp_node):
-                    dag_add_node(propagation_dag, tmp_node)
+                    dag_add_node(propagation_dag, tmp_node, is_strict=False)
                 for tmp_path in bfs.node[tmp_node]['unselected']:
                     if tmp_path not in propagation_dag.node[tmp_node]['unselected']:
                         propagation_dag.node[tmp_node]['unselected'].add(tmp_path)
@@ -839,7 +818,7 @@ class EBGPPropagation(object):
                          'prop_unordered', 'prop_unselected', 'prop_igp_pass']
             list_attrs = ['ordered', 'prop_ordered']
             if prefix not in union_g.node[node]['prefixes']:
-                union_g.node[node]['prefixes'][prefix] = dict()
+                union_g.node[node]['prefixes'][prefix] = dict(strict=False)
                 for attr in set_attrs:
                     union_g.node[node]['prefixes'][prefix][attr] = set([])
                 for attr in list_attrs:
@@ -851,6 +830,8 @@ class EBGPPropagation(object):
                 old = union_g.node[node]['prefixes'][prefix][attr]
                 new_val = propagation.node[node][attr]
                 union_g.node[node]['prefixes'][prefix][attr] = old.union(new_val)
+            if propagation.node[node]['strict'] is True:
+                union_g.node[node]['prefixes'][prefix]['strict'] = True
         return union_g
 
     def print_union(self):

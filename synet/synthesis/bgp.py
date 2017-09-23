@@ -695,6 +695,18 @@ class BGP(object):
                     #  Unselected
                     for other_prop in unselected:
                         self.selector_func(prefix, high_prop, other_prop)
+            # Unselected will be denied in strict
+            for denied in unselected:
+                if self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['strict']:
+                    self.log.debug("  _set_unselected %s %s: %s" % (self.node, prefix, denied))
+                    peer = denied.peer
+                    ann_name = denied.ann_name
+                    imported_ctx = self.get_imported_ctx(self.node, denied.path[-2], denied.peer)
+                    ann_var = self.general_ctx.announcements_map[ann_name]
+                    name = '%s_deny_%s_from_%s' % (self.node, ann_name, peer)
+                    permitted = imported_ctx.permitted_ctx
+                    const = z3.And(permitted.get_var(ann_var) == False)
+                    self.constraints[name] = const
 
     def syn_igp_path(self, prefix, propagated, segment, from_peer):
         prefixes = self.propagation_graph.node[self.node]['prefixes']
