@@ -537,7 +537,7 @@ class BGP(object):
         t_c = self.selected_ctx.permitted_ctx.get_var(best_ann_var) == True
         self.constraints["%s_permitted" % name] = t_c
 
-    def selector_func(self, prefix, neighbor, best_propagated, other_propagated):
+    def selector_func(self, prefix, best_propagated, other_propagated):
         """Synthesize Selection function for a given prefix"""
         self.log.debug("prefix_select %s at %s, best=%s", prefix, self.node, best_propagated)
         best_peer = best_propagated.peer
@@ -545,7 +545,7 @@ class BGP(object):
             best_neighbor = best_propagated.path[-2]
         else:
             best_neighbor = None
-
+        other_neighbor = other_propagated.path[-2]
         best_ann_name = best_propagated.ann_name
         best_ann_var = self.general_ctx.announcements_map[best_ann_name]
         curr_peer = self.node
@@ -559,7 +559,7 @@ class BGP(object):
         peer = other_propagated.peer
         other_ann_name = other_propagated.ann_name
         s_ctx = self.selected_ctx
-        o_ctx = self.get_imported_ctx(curr_peer, neighbor, peer)
+        o_ctx = self.get_imported_ctx(curr_peer, other_neighbor, peer)
         other_ann_var = self.general_ctx.announcements_map[other_ann_name]
 
         s_localpref = s_ctx.local_pref_ctx.get_var(best_ann_var)
@@ -672,15 +672,29 @@ class BGP(object):
             "select_fun at %s for ann_names: %s",
             self.node, self.ann_name_best)
         self._set_denied_prefixes(ann_name_best, prefix_ann_name_peers)
+        prefixes = [str(tmp) for tmp in ann_name_best]
         for prefix, best_propagated in ann_name_best.iteritems():
-            nonbest = []
-            self.set_best_values(prefix, best_propagated)
-            for (neighbor, prop_other) in prefix_ann_name_peers[prefix]:
-                if best_propagated.peer == prop_other.peer and \
-                                prop_other.ann_name == best_propagated.ann_name and \
-                                best_propagated.path == prop_other.path:
-                    continue
-                self.selector_func(prefix, neighbor, best_propagated, prop_other)
+            ordered = self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['prop_ordered']
+            unordered = self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['prop_unordered']
+            unselected = self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['prop_unselected']
+            for best_ecmp in ordered[0]:
+                self.set_best_values(prefix, best_ecmp)
+            for high_ecmp, low_ecmp in zip(ordered[0::1], ordered[1::1]):
+                for high_path in high_ecmp:
+                    for low_path in low_ecmp:
+                        if len(high_path.path) < 2:
+                            raise ValueError("Cannot have ECMP with path length less than two: %s", high_path)
+                        if len(low_path.path) < 2:
+                            raise ValueError("Cannot have ECMP with path length less than two: %s", high_path)
+                        self.selector_func(prefix, high_path, low_path)
+            for ecmp in ordered:
+                for high_prop in ecmp:
+                    #  Unordered
+                    for other_prop in unordered:
+                        self.selector_func(prefix, high_prop, other_prop)
+                    #  Unselected
+                    for other_prop in unselected:
+                        self.selector_func(prefix, high_prop, other_prop)
 
     def syn_igp_path(self, prefix, propagated, segment, from_peer):
         prefixes = self.propagation_graph.node[self.node]['prefixes']

@@ -3,6 +3,7 @@ from nose.plugins.attrib import attr
 import time
 
 import z3
+from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 from synet.topo.graph import NetworkGraph
@@ -222,6 +223,35 @@ class EBGPTest(SMTSetup):
         solver = z3.Solver()
         p.add_constraints(solver)
         ret = solver.check()
+        self.assertEquals(ret, z3.sat, solver.unsat_core())
+        p.set_model(solver.model())
+        print r1.get_config()
+
+
+    def test_small_order(self):
+        g = self.get_g_one_router_two_peers()
+        youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['R1', 'ATT'], False)
+        google_p1 = PathReq(Protocols.BGP, 'Google', ['R1', 'DT'], False)
+        google_p2 = PathReq(Protocols.BGP, 'Google', ['R1', 'ATT'], False)
+        google_req = PathOrderReq(Protocols.BGP, 'Google', [google_p1, google_p2], False)
+        reqs = [
+            youtube_req1,
+            google_req,
+        ]
+        self.load_import_route_maps(g, 'R1', 'ATT', VALUENOTSET)
+        self.load_import_route_maps(g, 'R1', 'DT', VALUENOTSET)
+
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
+
+        p = EBGPPropagation(reqs, g)
+        r1 = p.network_graph.node['R1']['syn']['box']
+        p.synthesize()
+
+        solver = z3.Solver()
+        p.add_constraints(solver)
+        ret = solver.check()
+        print solver.to_smt2()
         self.assertEquals(ret, z3.sat, solver.unsat_core())
         p.set_model(solver.model())
         print r1.get_config()
