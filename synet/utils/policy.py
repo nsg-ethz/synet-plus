@@ -877,15 +877,15 @@ class SMTSetVal(SMTAction):
             #        self.value_ctx.get_var(tmp)
             #    ))
 
-            check = z3.And([self.match.match_fun(tmp) == True for tmp in self.value_ctx.announcement_var_map])
+            check = z3.And([self.match.match_fun(tmp) == True for tmp in self.value_ctx.announcements_var_map])
             constraint = [
                 self._action_fun(tmp) == z3.If(
                     check == True,
                     self._action_val,
-                    self.value_ctx.get_var(tmp)) for tmp in self.value_ctx.announcement_var_map]
+                    self.value_ctx.get_var(tmp)) for tmp in self.value_ctx.announcements_var_map]
 
-            name = "%s_set_action_val_all"
-            self.constraints[name] = constraint
+            name = "%s_set_action_val_all" % self.name
+            self.constraints[name] = z3.And(constraint)
         for name, constraint in self.constraints.iteritems():
             solver.assert_and_track(constraint, name)
         return self.constraints
@@ -1507,7 +1507,6 @@ class SMTSetPermitted(SMTAction):
         new_var = z3.Const(val_name, f_range)
         f_name = "%s_fun" % self.name
         self._action_fun = z3.Function(f_name, domain, f_range)
-
         # If value is empty, convert it to z3 variable
         if is_empty(self._value):
             self._action_val = new_var
@@ -1560,15 +1559,16 @@ class SMTSetPermitted(SMTAction):
             #        self.value_ctx.get_var(tmp)
             #    ))
 
-            check = z3.And([self.match.match_fun(tmp) == True for tmp in self.value_ctx.announcement_var_map])
+            check = z3.And([
+                self.match.match_fun(tmp) == True for tmp in self.value_ctx.announcements_var_map])
             constraint = [
                 self._action_fun(tmp) == z3.If(
                     check == True,
                     False,
-                    self.value_ctx.get_var(tmp)) for tmp in self.value_ctx.announcement_var_map]
+                    self.value_ctx.get_var(tmp)) for tmp in self.value_ctx.announcements_var_map]
 
-            name = "%s_set_action_val_all"
-            self.constraints[name] = constraint
+            name = "%s_set_action_val_all" % self.name
+            self.constraints[name] = z3.And(constraint)
         for name, constraint in self.constraints.iteritems():
             solver.assert_and_track(constraint, name)
         return self.constraints

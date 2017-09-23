@@ -1882,14 +1882,14 @@ class SMTRouteMapTest(SMTSetup):
             cs2 = dict(cs2)
 
             ann1 = Announcement(
-                prefix=name1, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
-                as_path=[1, 2, 5], as_path_len=3, next_hop='M', local_pref=100,
+                prefix=name1, peer='M', origin=BGP_ATTRS_ORIGIN.EBGP,
+                as_path=[1, 2, 5], as_path_len=3, next_hop='MHop', local_pref=100,
                 communities=cs1, permitted=True)
             self.anns[name1] = ann1
 
             ann2 = Announcement(
                 prefix=name1, peer='N', origin=BGP_ATTRS_ORIGIN.EBGP,
-                as_path=[1, 2, 5], as_path_len=3, next_hop='N', local_pref=100,
+                as_path=[1, 2, 5], as_path_len=3, next_hop='NHop', local_pref=100,
                 communities=cs2, permitted=True)
             self.anns[name2] = ann2
 
@@ -1900,7 +1900,7 @@ class SMTRouteMapTest(SMTSetup):
         c1_l = CommunityList(1, Access.permit, [VALUENOTSET])
         matches1 = [MatchCommunitiesList(c1_l)]
         actions1 = [ActionSetLocalPref(VALUENOTSET)]
-        matches2 = [MatchNextHop('M')]
+        matches2 = [MatchNextHop('MHop')]
         actions2 = [ActionSetLocalPref(VALUENOTSET)]
         line1 = RouteMapLine(matches=matches1,
                              actions=actions1,
@@ -1966,7 +1966,7 @@ class SMTRouteMapTest(SMTSetup):
         )
         new_route_map1 = RouteMap(name=route_map1.name, lines=[new_line1, default_line])
         new_line2 = RouteMapLine(
-            matches=[MatchNextHop('M')],
+            matches=[MatchNextHop('MHop')],
             actions=[ActionSetLocalPref(50)],
             access=Access.permit,
             lineno=10
