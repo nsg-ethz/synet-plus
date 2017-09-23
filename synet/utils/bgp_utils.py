@@ -27,7 +27,7 @@ def write_dag(dag, file):
 
 def get_propagated_info(propagation_graph, node,
                         prefix=None, from_node=None,
-                        unselected=True, from_peer=None, igp_pass=True):
+                        unselected=True, from_peer=None, igp_pass=False):
     all_props = []
     for net, data in propagation_graph.node[node]['prefixes'].iteritems():
         if prefix and net != prefix:
@@ -138,7 +138,7 @@ class PropagatedInfo(object):
         return self._path
 
     def __str__(self):
-        return "Prop<%s, %s, %s, %s, %s, %s>" % (
+        return "Prop<Egress:%s, %s, Peer:%s, %s, %s, %s>" % (
             self.egress,
             self.ann_name,
             self.peer,
