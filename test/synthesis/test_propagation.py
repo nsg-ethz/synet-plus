@@ -141,8 +141,8 @@ class PropagationTest(unittest.TestCase):
 
     def test_small(self):
         g = self.get_g_two_routers_one_peer()
-        youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['ATT', 'R1', 'R2'], False)
-        google_req1 = PathReq(Protocols.BGP, 'Google', ['ATT', 'R1', 'R2'], False)
+        youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['R2', 'R1', 'ATT'], False)
+        google_req1 = PathReq(Protocols.BGP, 'Google', ['R2', 'R1', 'ATT'], False)
         reqs = [
             youtube_req1,
             google_req1,
@@ -190,7 +190,6 @@ class PropagationTest(unittest.TestCase):
                 communities=comms, permitted=True)
             self.anns[ann_name2] = ann2
         self.all_communities = set(all_communities)
-        self.anns = self.anns
 
         g = self.get_g_two_routers_two_peers()
 
@@ -218,12 +217,11 @@ class PropagationTest(unittest.TestCase):
 
         reqs = []
         for prefix in prefixs:
-            req1 = PathReq(Protocols.BGP, prefix, ['ATT', 'R1', 'R2'], False)
+            req1 = PathReq(Protocols.BGP, prefix, ['R2', 'R1', 'ATT'], False)
             reqs.append(req1)
 
-        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn = ConnectedSyn([], g, full=True)
         connected_syn.synthesize()
-
         start = time.time()
         p = EBGPPropagation(reqs, g)
         p.synthesize()
