@@ -1863,7 +1863,7 @@ class SMTRouteMap(SMTAction):
         local_pref_sort = self.ctx.as_path_len_ctx.fun_range_sort
         local_pref_fun = z3.Function('%s_local_pref_fun' % self.name, ann_sort, local_pref_sort)
 
-        permitted_sort = self.ctx.as_path_len_ctx.fun_range_sort
+        permitted_sort = self.ctx.permitted_ctx.fun_range_sort
         permitted_fun = z3.Function('%s_permitted_fun' % self.name, ann_sort, permitted_sort)
 
         wprefix = SMTPrefixWrapper(
