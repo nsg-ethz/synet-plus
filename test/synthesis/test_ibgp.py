@@ -20,6 +20,7 @@ from synet.utils.common import Protocols
 from synet.utils.common import PathReq
 from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
+from synet.utils.topo_gen import get_fanout_topology
 
 
 __author__ = "Ahmed El-Hassany"
@@ -35,6 +36,8 @@ class iBGPTest(unittest.TestCase):
             g.add_router(node)
 
         g.set_bgp_asnum('R1', asnum)
+        g.set_bgp_asnum('R2', asnum)
+        g.set_bgp_asnum('R3', asnum)
         g.set_bgp_asnum('R4', asnum)
 
         g.add_router_edge('R1', 'R2')
@@ -46,10 +49,17 @@ class iBGPTest(unittest.TestCase):
         g.add_router_edge('R4', 'R2')
         g.add_router_edge('R4', 'R3')
 
-        g.add_bgp_neighbor(router_a='R1',
-                           router_b='R4',
-                           router_a_iface=VALUENOTSET,
-                           router_b_iface=VALUENOTSET)
+        for src in g.local_routers_iter():
+            for dst in g.local_routers_iter():
+                if src == dst:
+                    continue
+                if dst in g.get_bgp_neighbors(src):
+                    continue
+
+                g.add_bgp_neighbor(router_a=src,
+                                   router_b=dst,
+                                   router_a_iface=VALUENOTSET,
+                                   router_b_iface=VALUENOTSET)
         return g
 
     def get_announcements(self, num_anns, num_communities):
@@ -91,15 +101,17 @@ class iBGPTest(unittest.TestCase):
             PathReq(Protocols.BGP, ann.prefix, ['R3', 'R2', 'ATT'], False),
             PathReq(Protocols.BGP, ann.prefix, ['R4', 'R2', 'ATT'], False),
         ]
-        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn = ConnectedSyn([], g, full=True)
         connected_syn.synthesize()
 
-        p = EBGPPropagation(reqs, g)
+        p = EBGPPropagation(reqs, g, allow_igp=True)
         p.synthesize()
+        sctx = z3.Context()
         solver = z3.Solver()
+
         p.add_constraints(solver)
         ret = solver.check()
-        self.assertEquals(ret, z3.sat)
+        self.assertEquals(ret, z3.sat, solver.unsat_core())
         model = solver.model()
         p.set_model(model)
         for node in g.routers_iter():
@@ -117,6 +129,8 @@ class iBGPTest(unittest.TestCase):
             PathReq(Protocols.BGP, ann.prefix, ['R4', 'R2', 'ATT'], False),
             PathReq(Protocols.BGP, ann.prefix, ['R3','ATT'], False),
             PathReq(Protocols.BGP, ann.prefix, ['R1', 'R3', 'ATT'], False),
+            #
+            PathReq(Protocols.BGP, ann.prefix, ['R3', 'ATT'], False),
         ]
 
         # R1 Import from R3
@@ -144,11 +158,13 @@ class iBGPTest(unittest.TestCase):
         connected_syn = ConnectedSyn(reqs, g)
         connected_syn.synthesize()
 
-        p = EBGPPropagation(reqs, g)
+        p = EBGPPropagation(reqs, g, allow_igp=True)
         p.synthesize()
         solver = z3.Solver()
         p.add_constraints(solver)
         ret = solver.check()
+        if ret == z3.unsat:
+            print solver.unsat_core()
         self.assertEquals(ret, z3.sat)
         model = solver.model()
         p.set_model(model)
@@ -167,6 +183,10 @@ class iBGPTest(unittest.TestCase):
         syn1.synthesize()
         reqs = [
             PathReq(Protocols.BGP, ann.prefix, ['R4', 'R2', 'R1', 'ATT'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R2', 'R1', 'ATT'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R3', 'R1', 'ATT'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R1', 'ATT'], False),
+            #PathReq(Protocols.BGP, ann.prefix, ['ATT'], False),
         ]
         # Actual iBGP
         p = EBGPPropagation(reqs, g, allow_igp=False)
@@ -174,6 +194,9 @@ class iBGPTest(unittest.TestCase):
         solver = z3.Solver()
         p.add_constraints(solver)
         ret = solver.check()
+        if ret == z3.sat:
+            print solver.model()
+        #print solver.to_smt2()
         self.assertEquals(ret, z3.unsat)
 
     def test_igp_correct(self):
@@ -187,6 +210,8 @@ class iBGPTest(unittest.TestCase):
         syn1.synthesize()
         reqs = [
             PathReq(Protocols.BGP, ann.prefix, ['R4', 'R2', 'R1', 'ATT'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R2', 'R1', 'ATT'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R3', 'R1', 'ATT'], False),
         ]
         # Actual iBGP
         p = EBGPPropagation(reqs, g, allow_igp=True)
@@ -194,4 +219,43 @@ class iBGPTest(unittest.TestCase):
         solver = z3.Solver()
         p.add_constraints(solver)
         ret = solver.check()
+        self.assertEquals(ret, z3.sat, solver.unsat_core())
+        p.set_model(solver.model())
+        p.update_network_graph()
+        for router in p.boxes:
+            print router.get_config()
+        print solver.model()
+
+    def test_small(self):
+        source = 'source'
+        sink = 'sink'
+        peer = 'ATT'
+        topo = get_fanout_topology(0)
+        topo.add_peer(peer)
+        topo.add_peer_edge(sink, peer)
+        topo.add_peer_edge(peer, sink)
+        topo.set_bgp_asnum(source, 100)
+        topo.set_bgp_asnum(sink, 100)
+        topo.set_bgp_asnum(peer, 2000)
+        topo.add_bgp_neighbor(source, sink, VALUENOTSET, VALUENOTSET)
+        topo.add_bgp_neighbor(peer, sink, VALUENOTSET, VALUENOTSET)
+        anns = self.get_announcements(1, 2)
+        ann_name = anns.keys()[0]
+        ann = anns[ann_name]
+        topo.add_bgp_advertise(peer, ann)
+        conn = ConnectedSyn([], topo, full=True)
+        conn.synthesize()
+
+        req = PathReq(Protocols.BGP, ann.prefix, [source, sink, peer], True)
+        p = EBGPPropagation([req], topo)
+        p.synthesize()
+        solver = z3.Solver()
+        p.add_constraints(solver, track=False)
+        ret = solver.check()
+        if ret == z3.unsat:
+            print solver.unsat_core()
+            print solver.to_smt2()
         self.assertEquals(ret, z3.sat)
+        # assert False, "Just print"
+        p.set_model(solver.model())
+        p.update_network_graph()

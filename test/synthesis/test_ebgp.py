@@ -19,19 +19,8 @@ from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchCommunitiesList
 
-from synet.utils.smt_context import SMTASPathWrapper
-from synet.utils.smt_context import SMTASPathLenWrapper
-from synet.utils.smt_context import SMTContext
-from synet.utils.smt_context import SMTCommunityWrapper
-from synet.utils.smt_context import SMTLocalPrefWrapper
-from synet.utils.smt_context import SMTNexthopWrapper
-from synet.utils.smt_context import SMTOriginWrapper
-from synet.utils.smt_context import SMTPeerWrapper
-from synet.utils.smt_context import SMTPrefixWrapper
-from synet.utils.smt_context import SMTPermittedWrapper
-from synet.utils.smt_context import get_as_path_key
-from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import VALUENOTSET
+from synet.utils.bgp_utils import ConflictingPreferences
 
 from synet.synthesis.connected import ConnectedSyn
 from synet.synthesis.propagation import EBGPPropagation
@@ -79,7 +68,6 @@ class SMTSetup(unittest.TestCase):
 
     def get_solver(self):
         return z3.Solver()
-
 
 
 @attr(speed='fast')
@@ -221,8 +209,8 @@ class EBGPTest(SMTSetup):
             youtube_req1,
             google_req1,
         ]
-        self.load_import_route_maps(g, 'R1', 'ATT', 100)
-        self.load_import_route_maps(g, 'R1', 'DT', 200)
+        self.load_import_route_maps(g, 'R1', 'ATT', VALUENOTSET)
+        self.load_import_route_maps(g, 'R1', 'DT', VALUENOTSET)
 
         connected_syn = ConnectedSyn(reqs, g)
         connected_syn.synthesize()
@@ -242,7 +230,7 @@ class EBGPTest(SMTSetup):
     def test_triangle(self):
         # Communities
         num_comms = 5
-        num_prefixs = 100
+        num_prefixs = 2
         all_communities = []
         anns = {}
         prefixs = []
@@ -267,8 +255,8 @@ class EBGPTest(SMTSetup):
 
         reqs = []
         for prefix in prefixs:
-            req1 = PathReq(Protocols.BGP, prefix, ['R1', 'ATT'], False)
-            req2 = PathReq(Protocols.BGP, prefix, ['R2', 'ATT'], False)
+            req1 = PathReq(Protocols.BGP, prefix, ['R1', 'ATT'], True)
+            req2 = PathReq(Protocols.BGP, prefix, ['R2', 'ATT'], True)
             reqs.append(req1)
             reqs.append(req2)
 
@@ -368,12 +356,12 @@ class EBGPTest(SMTSetup):
         g.add_bgp_import_route_map('R2', 'ATT', rmap.name)
 
         reqs = []
-        req1 = PathReq(Protocols.BGP, prefixs[0], ['ATT', 'R1', 'R2'], False)
+        req1 = PathReq(Protocols.BGP, prefixs[0], ['R2', 'R1', 'ATT'], False)
         reqs.append(req1)
 
         for prefix in prefixs[1:]:
-            req1 = PathReq(Protocols.BGP, prefix, ['ATT', 'R1'], False)
-            req2 = PathReq(Protocols.BGP, prefix, ['ATT', 'R2'], False)
+            req1 = PathReq(Protocols.BGP, prefix, ['R1', 'ATT'], False)
+            req2 = PathReq(Protocols.BGP, prefix, ['R2', 'ATT'], False)
             reqs.append(req1)
             reqs.append(req2)
 
@@ -400,7 +388,7 @@ class EBGPTest(SMTSetup):
         print "SMT Solve Time", smt_time, "Seconds"
         #print solver.to_smt2()
         #print solver.unsat_core()
-        self.assertEquals(ret, z3.sat)
+        self.assertEquals(ret, z3.sat, solver.unsat_core())
         p.set_model(solver.model())
         r1 = p.network_graph.node['R1']['syn']['box']
         r2 = p.network_graph.node['R2']['syn']['box']
@@ -525,13 +513,14 @@ class EBGPTest(SMTSetup):
         connected_syn = ConnectedSyn(reqs, g)
         connected_syn.synthesize()
 
-        p = EBGPPropagation(reqs, g)
-        p.synthesize()
+        with self.assertRaises(ConflictingPreferences):
+            p = EBGPPropagation(reqs, g)
+            p.synthesize()
 
-        solver = z3.Solver()
-        p.add_constraints(solver)
-        ret = solver.check()
-        self.assertEquals(ret, z3.unsat)
+            solver = z3.Solver()
+            p.add_constraints(solver)
+            ret = solver.check()
+            self.assertEquals(ret, z3.unsat)
 
     def test_diamond_correct(self):
         self.anns = {'ATT_Google': self.anns['ATT_Google']}
