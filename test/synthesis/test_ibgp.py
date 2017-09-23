@@ -18,6 +18,7 @@ from synet.topo.graph import NetworkGraph
 
 from synet.utils.common import Protocols
 from synet.utils.common import PathReq
+from synet.utils.common import ECMPPathsReq
 from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
 from synet.utils.topo_gen import get_fanout_topology
@@ -259,3 +260,33 @@ class iBGPTest(unittest.TestCase):
         # assert False, "Just print"
         p.set_model(solver.model())
         p.update_network_graph()
+
+    def test_ecmp(self):
+        g = self.get_diamond(100)
+        anns = self.get_announcements(1, 1)
+        ann = anns.values()[0]
+        self.get_add_one_peer(g, ['R1'], anns.values())
+
+        # Just to force synthesizing interfaces
+        syn1 = ConnectedSyn([], g, full=True)
+        syn1.synthesize()
+        reqs = [
+            ECMPPathsReq(Protocols.BGP, ann.prefix, [
+                PathReq(Protocols.BGP, ann.prefix, ['R4', 'R2', 'R1', 'ATT'], False),
+                PathReq(Protocols.BGP, ann.prefix, ['R4', 'R3', 'R1', 'ATT'], False),
+            ], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R2', 'R1', 'ATT'], False),
+            PathReq(Protocols.BGP, ann.prefix, ['R3', 'R1', 'ATT'], False),
+        ]
+        # Actual iBGP
+        p = EBGPPropagation(reqs, g, allow_igp=True)
+        p.synthesize()
+        solver = z3.Solver()
+        p.add_constraints(solver)
+        ret = solver.check()
+        self.assertEquals(ret, z3.sat, solver.unsat_core())
+        p.set_model(solver.model())
+        p.update_network_graph()
+        for router in p.boxes:
+            print router.get_config()
+        print solver.model()
