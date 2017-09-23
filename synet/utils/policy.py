@@ -1860,7 +1860,7 @@ class SMTRouteMap(SMTAction):
         next_hop_map = self.ctx.next_hop_ctx.range_map
         next_hop_fun = z3.Function('%s_next_hop_fun' % self.name, ann_sort, next_hop_sort)
 
-        local_pref_sort = self.ctx.as_path_len_ctx.fun_range_sort
+        local_pref_sort = self.ctx.local_pref_ctx.fun_range_sort
         local_pref_fun = z3.Function('%s_local_pref_fun' % self.name, ann_sort, local_pref_sort)
 
         permitted_sort = self.ctx.permitted_ctx.fun_range_sort
