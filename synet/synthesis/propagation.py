@@ -478,16 +478,16 @@ class EBGPPropagation(object):
         # Announcements by the start node in the path
         anns = self.network_graph.node[source]['syn']['anns']
         for ann_name, announcement in anns.iteritems():
-            if announcement.prefix == prefix and announcement.peer == source:
+            if str(announcement.prefix) == prefix and str(announcement.peer) == source:
                 break
-        assert announcement
+        assert announcement, "No announcement for prefix '%s' at the end of the path: %s\\n\tAll anns %s" % (prefix, str(propagation_path), str(anns))
 
         # BGP must start from BGP enabled router
         assert self.network_graph.is_bgp_enabled(source)
         can, is_igp, edges = self.can_propagate(prefix, propagation_path, dag)
         if prop_igp:
-            assert not can, edges
-            assert is_igp, edges
+            #assert not can, edges
+            assert edges[-1][-1] in ['igp', 'ibgp'], edges
         else:
             assert can, edges
             assert not is_igp, edges
@@ -686,7 +686,6 @@ class EBGPPropagation(object):
                             if tuple(curr) not in g.node[y]['igp_pass']:
                                 g.node[y]['igp_pass'].add(tuple(curr))
 
-
                 #if not self._check_selected(node, path, propagation_dag):
                 #    is_strict = g.node[node]['strict']
                 #    if is_empty(is_strict):
@@ -746,6 +745,21 @@ class EBGPPropagation(object):
             for x, y in bfs.edges():
                 if not propagation_dag.has_edge(x, y):
                     propagation_dag.add_edge(x, y)
+        for tmp_node, attrs in propagation_dag.nodes_iter(data=True):
+            final_igp_pass = set()
+            for tmp_path in attrs['igp_pass']:
+                selected = True
+                if tmp_path in attrs['unselected']:
+                    selected = True
+                elif tmp_path in attrs['unordered']:
+                    selected = True
+                else:
+                    for t2 in attrs['ordered']:
+                        if tmp_path in t2:
+                            selected = True
+                if selected:
+                    final_igp_pass.add(tmp_path)
+            propagation_dag.node[tmp_node]['igp_pass'] = final_igp_pass
         write_dag(propagation_dag, "/tmp/%s_bfs.dot" % prefix)
         for node in propagation_dag.nodes_iter():
             prop_ordered = []
