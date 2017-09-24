@@ -777,3 +777,24 @@ class NetworkGraph(nx.DiGraph):
     def write_graphml(self, out_file):
         """Write graphml file"""
         nx.write_graphml(self.get_print_graph(), out_file)
+
+    def write_propane(self, out_file):
+        """Output propane style topology file"""
+        out = '<topology asn="%d">\n' % 5
+        for node in sorted(self.routers_iter()):
+            internal = 'true' if self.is_local_router(node) else 'false'
+            if self.is_bgp_enabled(node):
+                asnum = self.get_bgp_asnum(node)
+                out += '  <node internal="%s" asn="%d" name="%s"></node>\n' % (internal, asnum, node)
+            else:
+                out += '  <node internal="%s" name="%s"></node>\n' % (internal, node)
+        seen = []
+        for src, dst in self.edges_iter():
+            if (src, dst) in seen:
+                continue
+            out += '  <edge source="%s" target="%s"></edge>\n' % (src, dst)
+            seen.append((src, dst))
+            seen.append((dst, src))
+        out += '</topology>\n'
+        with open(out_file, 'w') as fd:
+            fd.write(out)
