@@ -679,8 +679,9 @@ class BGP(object):
             ordered = self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['prop_ordered']
             unordered = self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['prop_unordered']
             unselected = self.propagation_graph.node[self.node]['prefixes'][str(prefix)]['prop_unselected']
-            for best_ecmp in ordered[0]:
-                self.set_best_values(prefix, best_ecmp)
+            if ordered:
+                for best_ecmp in ordered[0]:
+                    self.set_best_values(prefix, best_ecmp)
             for high_ecmp, low_ecmp in zip(ordered[0::1], ordered[1::1]):
                 for high_path in high_ecmp:
                     for low_path in low_ecmp:
