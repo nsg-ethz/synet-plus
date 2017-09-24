@@ -29,6 +29,8 @@ def get_propagated_info(propagation_graph, node,
                         prefix=None, from_node=None,
                         unselected=True, from_peer=None, igp_pass=False):
     all_props = []
+    if not propagation_graph.has_node(node):
+        return []
     for net, data in propagation_graph.node[node]['prefixes'].iteritems():
         if prefix and net != prefix:
             continue
