@@ -573,3 +573,37 @@ class EBGPTest(SMTSetup):
         p.add_constraints(solver)
         ret = solver.check()
         self.assertEquals(ret, z3.sat)
+
+    def test_order(self):
+        g = self.get_g_one_router_two_peers()
+        g.add_router('R2')
+        g.set_bgp_asnum('R2', 500)
+        g.add_router_edge('R1', 'R2')
+        g.add_router_edge('R2', 'R1')
+        g.add_bgp_neighbor('R1', 'R2', VALUENOTSET, VALUENOTSET)
+
+        youtube_req1 = PathReq(Protocols.BGP, 'YouTube', ['R2', 'R1', 'ATT'], False)
+        google_p1 = PathReq(Protocols.BGP, 'Google', ['R2', 'R1', 'DT'], False)
+        google_p2 = PathReq(Protocols.BGP, 'Google', ['R2', 'R1', 'ATT'], False)
+        google_req = PathOrderReq(Protocols.BGP, 'Google', [google_p1, google_p2], False)
+        reqs = [
+            youtube_req1,
+            google_req,
+        ]
+        self.load_import_route_maps(g, 'R1', 'ATT', VALUENOTSET)
+        self.load_import_route_maps(g, 'R1', 'DT', VALUENOTSET)
+
+        connected_syn = ConnectedSyn(reqs, g)
+        connected_syn.synthesize()
+
+        p = EBGPPropagation(reqs, g)
+        r1 = p.network_graph.node['R1']['syn']['box']
+        p.synthesize()
+
+        solver = z3.Solver()
+        p.add_constraints(solver)
+        ret = solver.check()
+        #print solver.to_smt2()
+        self.assertEquals(ret, z3.sat, solver.unsat_core())
+        #p.set_model(solver.model())
+        #print r1.get_config()
