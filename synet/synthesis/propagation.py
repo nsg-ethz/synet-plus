@@ -377,11 +377,6 @@ class EBGPPropagation(object):
                         else:
                             is_err = True
                     if is_err:
-                        err = "Conflicting requirements for path preference " \
-                              "at {}: currently learning {} (preference {}) " \
-                              "from {} while new reqs learning from {}.".format(
-                            dst, path_req.dst_net, path_order, curr_order[path_order],
-                            curr_propagation)
                         raise ConflictingPreferences(
                             node=dst, current_order=curr_order[path_order], new_pref=path_order,
                             new_req=path_req,
@@ -390,7 +385,12 @@ class EBGPPropagation(object):
                 else:
                     # No path with the same preference exists
                     # Make sure, that the node is allowed to accept other paths
-                    if not dag_can_add(dag, dst) and dst != source:
+                    exists = False
+                    for tt in curr_order:
+                        if curr_propagation in tt:
+                            exists = True
+                            break
+                    if not exists and not dag_can_add(dag, dst) and dst != source:
                         err = "Cannot add to %s" % dst
                         raise NotValidBGPPropagation(err)
 
