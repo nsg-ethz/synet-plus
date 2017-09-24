@@ -546,11 +546,13 @@ class BGP(object):
         else:
             best_neighbor = None
         other_neighbor = other_propagated.path[-2]
+        if best_propagated.peer == other_propagated.peer:
+            return
         best_ann_name = best_propagated.ann_name
         best_ann_var = self.general_ctx.announcements_map[best_ann_name]
         curr_peer = self.node
         best_ctx = self.get_imported_ctx(curr_peer, best_neighbor, best_peer)
-        name = "%s_sel_%s" % (self.node, best_ann_name)
+        name = "%s_sel_%s_from_%s_over_%s" % (self.node, best_ann_name, best_neighbor, other_neighbor)
         as_len_enabled = self.get_as_len_enabled()
         const_set = []
         const_selection = []
