@@ -919,7 +919,8 @@ class SMTSetLocalPref(SMTSetVal):
             try:
                 return model.eval(var).as_long()
             except Exception as err:
-                raise RuntimeError("Couldn't eval %s: %s" % (var, err.message))
+                return 100
+                #raise RuntimeError("Couldn't eval %s: %s" % (var, err.message))
 
         super(SMTSetLocalPref, self).__init__(
             name=name,
