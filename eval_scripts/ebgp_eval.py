@@ -368,7 +368,7 @@ def gen_kconnected(topo, ospf_reqs, all_communities):
     return all_reqs
 
 
-def gen_ecmp(topo, ospf_reqs, all_communities):
+def gen_ecmp2(topo, ospf_reqs, all_communities):
     # Assigning iBGP
     asnum = 10
     for node in sorted(topo.local_routers_iter()):
@@ -450,6 +450,137 @@ def gen_ecmp(topo, ospf_reqs, all_communities):
     return all_reqs
 
 
+
+def gen_ecmp(topo, ospf_reqs, all_communities):
+    assign_ebgp(topo)
+    peer_asnum = 10000
+    all_reqs = []
+
+    syn_vals = []
+    deny_map = {}
+    pref_map = {}
+    route_map_lines = {}
+    export_route_maps = {}
+    comm_subg = {}
+    for index, req in enumerate(ospf_reqs):
+        subg = nx.DiGraph()
+        egress = req.paths[0].path[-1]
+        peer = "Peer%s_%d" % (egress, index)
+        topo.add_peer(peer)
+        peer_asnum += 10
+        topo.set_bgp_asnum(peer, peer_asnum)
+        topo.add_peer_edge(peer, egress)
+        topo.add_peer_edge(egress, peer)
+        topo.add_bgp_neighbor(peer, egress, VALUENOTSET, VALUENOTSET)
+
+        peer_comm = all_communities[index]
+        comm_subg[peer_comm] = nx.DiGraph()
+        subg.add_edge(egress, peer, rank=0)
+        comm_subg[peer_comm].add_edge(egress, peer, rank=0)
+        set_comm = ActionSetCommunity([peer_comm])
+        set_pref = ActionSetLocalPref(VALUENOTSET)
+        #syn_vals.append(partial(syn_pref, set_pref, VALUENOTSET))
+        line = RouteMapLine(matches=[], actions=[set_comm, set_pref], access=VALUENOTSET, lineno=10)
+        syn_vals.append(partial(set_access, line=line, access=Access.permit))
+        if egress not in route_map_lines:
+            route_map_lines[egress] = {}
+        if peer not in route_map_lines[egress]:
+            route_map_lines[egress][peer] = []
+        route_map_lines[egress][peer] = [line] + route_map_lines[egress][peer]
+        cs = dict([(c, False) for c in all_communities])
+        prefix = 'P_%s' % (peer,)
+        ann = Announcement(
+            prefix=prefix,
+            peer=peer,
+            origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2], as_path_len=2,
+            next_hop='%sHop' % peer, local_pref=100,
+            communities=cs, permitted=True)
+        topo.add_bgp_advertise(peer, ann)
+        sub = []
+        covered_nodes = [peer]
+        for rank, path in enumerate(req.paths):
+            covered_nodes.extend(path.path)
+            for src, dst in zip(path.path[0::1], path.path[1::1]):
+                subg.add_edge(src, dst, rank=rank)
+                comm_subg[peer_comm].add_edge(src, dst, rank=rank)
+            sub.append(PathReq(Protocols.BGP, prefix, path.path + [peer], False))
+        bgp_req = PathOrderReq(Protocols.BGP, prefix, sub, False)
+        all_reqs.append(bgp_req)
+        write_dot(subg, '/tmp/subg.dot')
+
+    for node in topo:
+        for from_node, _ in topo.in_edges_iter(node):
+            if topo.is_peer(node):
+                continue
+            lineno = 10
+            lines = []
+            for comm in all_communities:
+                if comm_subg[comm].has_node(node) and comm_subg[comm].out_degree(node) > 1:
+                    clist = CommunityList("t_%s_import_%s_%s" % (node, from_node, comm), Access.permit, [VALUENOTSET])
+                    match = MatchCommunitiesList(clist)
+                    syn_vals.append(partial(set_comms, match=match, comms=[peer_comm]))
+                    set_pref = ActionSetLocalPref(VALUENOTSET)
+                    if comm_subg[comm].has_edge(node, from_node):
+                        syn_vals.append(partial(syn_pref, set_pref, 200))
+                    else:
+                        syn_vals.append(partial(syn_pref, set_pref, 100))
+                    line = RouteMapLine(matches=[match], actions=[set_pref], access=VALUENOTSET, lineno=lineno)
+                    lineno += 10
+                    syn_vals.append(partial(set_access, line=line, access=Access.permit))
+                    lines.append(line)
+                if node not in route_map_lines:
+                    route_map_lines[node] = {}
+                if from_node not in route_map_lines[node]:
+                    route_map_lines[node][from_node] = []
+                route_map_lines[node][from_node].extend(lines)
+
+        for _, to_node in topo.out_edges_iter(node):
+            if topo.is_peer(node):
+                continue
+            lineno = 10
+            lines = []
+            for comm in all_communities:
+                if not comm_subg[comm].has_node(node):
+                    continue
+                clist = CommunityList("t_%s_export_%s_%s" % (node, to_node, comm), Access.permit, [VALUENOTSET])
+                match = MatchCommunitiesList(clist)
+                syn_vals.append(partial(set_comms, match=match, comms=[comm]))
+                line = RouteMapLine(matches=[match], actions=[], access=VALUENOTSET, lineno=lineno)
+                lineno += 10
+                if comm_subg[comm].has_edge(to_node, node):
+                    syn_vals.append(partial(set_access, line=line, access=Access.permit))
+                else:
+                    syn_vals.append(partial(set_access, line=line, access=Access.deny))
+                lines.append(line)
+            if node not in export_route_maps:
+                export_route_maps[node] = {}
+            if from_node not in export_route_maps[node]:
+                export_route_maps[node][to_node] = []
+                export_route_maps[node][to_node].extend(lines)
+
+    for node in route_map_lines:
+        for from_node, lines in route_map_lines[node].iteritems():
+            if not lines:
+                continue
+            rname = "RMap_%s_from_%s" % (node, from_node)
+            #if rname == 'RMap_Lille_from_London':
+            #    assert False, lines
+            rmap = RouteMap(rname, lines=lines)
+            topo.add_route_map(node, rmap)
+            topo.add_bgp_import_route_map(node, from_node, rname)
+    for node in export_route_maps:
+        for to_node, lines in export_route_maps[node].iteritems():
+            if not lines:
+                continue
+            rname = "RMap_%s_to_%s" % (node, to_node)
+            rmap = RouteMap(rname, lines=lines)
+            topo.add_route_map(node, rmap)
+            topo.add_bgp_export_route_map(node, to_node, rname)
+    return all_reqs, syn_vals
+
+
+
 def main():
     #setup_logging()
     parser = argparse.ArgumentParser(description='EBGP baseline experiment.')
@@ -511,6 +642,8 @@ def main():
     else:
         raise ValueError("Unknow req type %s", req_type)
 
+    print "SYNVALS", len(syn_vals)
+    exit()
     if fixed == 1.0:
         sample = len(syn_vals)
     else:
