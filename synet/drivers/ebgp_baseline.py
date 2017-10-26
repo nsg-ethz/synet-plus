@@ -101,7 +101,8 @@ def assign_setup_bgp(graph, first_asnum, asnum_inc=10):
         if not graph.is_router(dst):
             continue
         # Establish peering
-        graph.add_bgp_neighbor(src, dst, VALUENOTSET, VALUENOTSET)
+        if dst not in graph.get_bgp_neighbors(src):
+            graph.add_bgp_neighbor(src, dst, VALUENOTSET, VALUENOTSET)
 
 
 def set_announcements(graph, num_prefixes, communities):
@@ -203,7 +204,7 @@ def main():
     reqs, inner_route_maps = get_shortest_path_reqs(g, peers, communities)
     print "Inner route maps", len(inner_route_maps), "lines", sum([len(rmap.lines) for rmap in inner_route_maps])
     print "Connected Synthesizes"
-    connected_syn = ConnectedSyn(reqs, g)
+    connected_syn = ConnectedSyn([], g, full=True)
     connected_syn.synthesize()
     print "STARTING PROPAGATION"
     start = time.time()
