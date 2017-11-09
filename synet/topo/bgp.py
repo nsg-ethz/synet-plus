@@ -28,6 +28,9 @@ class Announcement(object):
     """
     Carry BGP Announcement information
     """
+    attributes = [
+        'prefix', 'peer', 'origin', 'as_path', 'as_path_len', 'next_hop',
+        'local_pref', 'communities', 'permitted']
 
     def __init__(self, prefix, peer, origin,
                  as_path, as_path_len, next_hop, local_pref, communities,
