@@ -253,6 +253,16 @@ class SolverContextTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             var = ctx.create_fresh_var(z3.IntSort(), name=var.name, value=10)
 
+    def test_create_var_prefix(self):
+        # Arrange
+        ctx = SolverContext()
+        prefix = 'CustPrefix'
+        # Act
+        var = ctx.create_fresh_var(z3.IntSort(), value=10, name_prefix=prefix)
+        # Assert
+        self.assertTrue(isinstance(var, SMTVar))
+        self.assertTrue(var.name.startswith(prefix))
+
     def test_fresh_const_name(self):
         ctx = SolverContext()
         name1 = ctx.fresh_constraint_name()
@@ -260,6 +270,20 @@ class SolverContextTest(unittest.TestCase):
         self.assertTrue(isinstance(name1, basestring))
         self.assertTrue(isinstance(name2, basestring))
         self.assertFalse(name1 == name2)
+
+    def test_fresh_const_name_prefix(self):
+        # Arrange
+        ctx = SolverContext()
+        prefix = 'CustPrefix'
+        # Act
+        name1 = ctx.fresh_constraint_name(prefix=prefix)
+        name2 = ctx.fresh_constraint_name(prefix=prefix)
+        # Assert
+        self.assertTrue(isinstance(name1, basestring))
+        self.assertTrue(isinstance(name2, basestring))
+        self.assertFalse(name1 == name2)
+        self.assertTrue(name1.startswith(prefix))
+        self.assertTrue(name2.startswith(prefix))
 
     def test_register_const(self):
         # Arrange

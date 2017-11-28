@@ -284,14 +284,16 @@ class SolverContext(object):
         """Get the EnumType object of the given type name"""
         return self._enum_types[name]
 
-    def fresh_var_name(self):
+    def fresh_var_name(self, prefix=None):
         """
         Creates a fresh name for the next variable
         :return: basestring new variable name
         """
-        name = "Var%d" % self._next_varnum.next()
+        if not prefix:
+            prefix = 'Var'
+        name = "%s%d" % (prefix, self._next_varnum.next())
         while name in self._vars:
-            name = "Var%d" % self._next_varnum.next()
+            name = "%s%d" % (prefix, self._next_varnum.next())
         return name
 
     def _register_var(self, var):
@@ -309,7 +311,7 @@ class SolverContext(object):
             raise ValueError(err)
         self._vars[var.name] = var
 
-    def create_fresh_var(self, vsort, name=None, value=None):
+    def create_fresh_var(self, vsort, name=None, name_prefix=None, value=None):
         """
         Create new Z3 Variable
         :raise ValueError: if the variable is duplicated
@@ -318,7 +320,7 @@ class SolverContext(object):
         :return: z3 Variable
         """
         if not name:
-            name = self.fresh_var_name()
+            name = self.fresh_var_name(name_prefix)
         if name in self._vars:
             err = "Variable name '%s' is already registered" % name
             raise ValueError(err)
@@ -326,25 +328,28 @@ class SolverContext(object):
         self._register_var(var)
         return var
 
-    def fresh_constraint_name(self):
+    def fresh_constraint_name(self, prefix=None):
         """
        Creates a fresh name for tracking the next constraint
        :return: basestring new variable name
        """
-        name = "Const%d" % self._next_constnum.next()
+        if not prefix:
+            prefix = 'Const'
+        name = "%s%d" % (prefix, self._next_constnum.next())
         while name in self._vars:
-            name = "Const%d" % self._next_constnum.next()
+            name = "%s%d" % (prefix, self._next_constnum.next())
         return name
 
-    def register_constraint(self, constraints, name=None, **info):
+    def register_constraint(self, constraints, name=None, name_prefix=None, **info):
         """
         :param constraints:
         :param name:
+        :param name_prefix: a prefix to make generate names easier to read
         :param info:
         :return: name
         """
         if not name:
-            name = self.fresh_constraint_name()
+            name = self.fresh_constraint_name(prefix=name_prefix)
         if name in self._tracked:
             err = "Constraint %s is already registered with the " \
                   "constraints: %s while the new constraints are: %s" % (
