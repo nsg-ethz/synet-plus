@@ -289,6 +289,18 @@ class SMTMatchOrigin(SMTMatchAttribute):
         super(SMTMatchOrigin, self).__init__('origin', value, announcements, ctx)
 
 
+class SMTMatchNextHop(SMTMatchAttribute):
+    """Short cut to match on Announcement.next_hop"""
+
+    def __init__(self, value, announcements, ctx):
+        """
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: List of announcements
+        :param ctx: to register new constraints and create fresh vars"""
+        super(SMTMatchNextHop, self).__init__(
+            'next_hop', value, announcements, ctx)
+
+
 class SMTMatchASPath(SMTMatchAttribute):
     """Short cut to match on Announcement.as_path"""
 
