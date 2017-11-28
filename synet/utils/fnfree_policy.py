@@ -345,6 +345,17 @@ class SMTMatchLocalPref(SMTMatchAttribute):
         super(SMTMatchLocalPref, self).__init__('local_pref', value, announcements, ctx)
 
 
+class SMTMatchMED(SMTMatchAttribute):
+    """Short cut to match on Announcement.med"""
+
+    def __init__(self, value, announcements, ctx):
+        """
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: List of announcements
+        :param ctx: to register new constraints and create fresh vars"""
+        super(SMTMatchMED, self).__init__('med', value, announcements, ctx)
+
+
 class SMTMatchPermitted(SMTMatchAttribute):
     """Short cut to match on Announcement.permitted"""
 
@@ -532,3 +543,17 @@ class SMTSetNextHop(SMTAction):
         """
         super(SMTSetNextHop, self).__init__(
             match, 'next_hop', value, announcements, ctx)
+
+
+class SMTSetMED(SMTAction):
+    """Short cut to set the value of Announcement.med"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetMED, self).__init__(
+            match, 'med', value, announcements, ctx)

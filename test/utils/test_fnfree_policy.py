@@ -20,6 +20,7 @@ from synet.utils.fnfree_policy import SMTMatchPeer
 from synet.utils.fnfree_policy import SMTMatchPermitted
 from synet.utils.fnfree_policy import SMTMatchPrefix
 from synet.utils.fnfree_policy import SMTMatchSelectOne
+from synet.utils.fnfree_policy import SMTMatchMED
 from synet.utils.fnfree_policy import SMTMatchNextHop
 from synet.utils.fnfree_policy import SMTSetASPath
 from synet.utils.fnfree_policy import SMTSetASPathLen
@@ -28,6 +29,7 @@ from synet.utils.fnfree_policy import SMTSetOrigin
 from synet.utils.fnfree_policy import SMTSetPeer
 from synet.utils.fnfree_policy import SMTSetPermitted
 from synet.utils.fnfree_policy import SMTSetPrefix
+from synet.utils.fnfree_policy import SMTSetMED
 from synet.utils.fnfree_policy import SMTSetNextHop
 from synet.utils.fnfree_smt_context import ASPATH_SORT
 from synet.utils.fnfree_smt_context import BGP_ORIGIN_SORT
@@ -607,6 +609,92 @@ class TestSMTMatchPeer(unittest.TestCase):
         self.assertFalse(match1.get_value())
         self.assertEquals(p1_sym.get_value(), concrete_anns[0].peer)
         self.assertNotEquals(p1_sym.get_value(), concrete_anns[1].peer)
+
+
+@attr(speed='fast')
+class TestSMTMatchMED(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=20,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_match_concrete(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        vsort = z3.IntSort()
+        # Provide concrete value for the match
+        val = concrete_anns[0].med
+        sym = ctx.create_fresh_var(vsort, value=val)
+        # Act
+        match = SMTMatchMED(sym, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        ann0_value = match.is_match(sym_anns[0]).get_value()
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertTrue(ann1_is_concrete)
+        self.assertTrue(ann0_value)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+    def test_match_sym(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        match = SMTMatchMED(None, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.value.get_value(), concrete_anns[0].med)
+        self.assertNotEquals(match.value.get_value(), concrete_anns[1].med)
 
 
 @attr(speed='fast')
@@ -1843,3 +1931,75 @@ class TestSMTSetNextHop(unittest.TestCase):
         self.assertEquals(action.value.get_value(), concrete_anns[0].next_hop)
         self.assertEquals(new_anns[0].next_hop.get_value(), concrete_anns[0].next_hop)
         self.assertEquals(new_anns[1].next_hop.get_value(), concrete_anns[0].next_hop)
+
+
+@attr(speed='fast')
+class TestSMTSetMED(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_int_concrete(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = SMTMatchAll(ctx)
+        vsort = z3.IntSort()
+        value = ctx.create_fresh_var(vsort, value=100)
+        # Act
+        action = SMTSetMED(match, value, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].med.get_value(), 100)
+        self.assertEquals(new_anns[1].med.get_value(), 100)
+
+    def test_int_sym(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = SMTMatchAll(ctx)
+        # Act
+        action = SMTSetMED(match, None, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].med.var == 100)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.value.get_value(), 100)
+        self.assertEquals(new_anns[0].med.get_value(), 100)
+        self.assertEquals(new_anns[1].med.get_value(), 100)
