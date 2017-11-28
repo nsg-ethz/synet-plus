@@ -151,6 +151,9 @@ class Community(object):
             val = self.value
         return "Comm_%s" % val
 
+    def __hash__(self):
+        return hash(self.value)
+
     def __eq__(self, other):
         return self.value == getattr(other, 'value', other)
 
