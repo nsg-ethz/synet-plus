@@ -53,13 +53,13 @@ class TestSMTMatchAttribute(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -192,13 +192,13 @@ class TestSMTMatchCommunity(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -250,13 +250,13 @@ class TestSMTMatchAnd(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -346,13 +346,13 @@ class TestSMTMatchOr(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -443,13 +443,13 @@ class TestSMTMatchPrefix(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -531,13 +531,13 @@ class TestSMTMatchPeer(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -619,13 +619,13 @@ class TestSMTMatchNextHop(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -705,13 +705,13 @@ class TestSMTMatchAsPath(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -794,13 +794,13 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -881,13 +881,13 @@ class TestSMTMatchPermitted(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=False)
         return ann1, ann2
 
@@ -967,13 +967,13 @@ class TestSMTMatchOrigin(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -1055,13 +1055,13 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: False, c2: True, c3: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=100,
+            next_hop='Hop2', local_pref=100, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
         return ann1, ann2
 
@@ -1161,13 +1161,13 @@ class TestAction(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1278,13 +1278,13 @@ class TestSMTSetLocalPref(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1349,13 +1349,13 @@ class TestSMTSetPrefix(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1421,13 +1421,13 @@ class TestSMTSetPeer(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1493,13 +1493,13 @@ class TestSMTSetOrigin(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1565,13 +1565,13 @@ class TestSMTSetPermitted(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1637,13 +1637,13 @@ class TestSMTSetASPath(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1711,13 +1711,13 @@ class TestSMTSetASPathLen(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2
@@ -1783,13 +1783,13 @@ class TestSMTSetNextHop(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110,
+            next_hop='Hop2', local_pref=110, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
         return ann1, ann2

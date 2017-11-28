@@ -30,10 +30,10 @@ class Announcement(object):
     """
     attributes = [
         'prefix', 'peer', 'origin', 'as_path', 'as_path_len', 'next_hop',
-        'local_pref', 'communities', 'permitted']
+        'local_pref', 'med', 'communities', 'permitted']
 
     def __init__(self, prefix, peer, origin,
-                 as_path, as_path_len, next_hop, local_pref, communities,
+                 as_path, as_path_len, next_hop, local_pref, med, communities,
                  permitted):
         """
         :param prefix: the prefix that's being announced
@@ -57,6 +57,7 @@ class Announcement(object):
                 peer router which sent the advertisement to this AS.
         :param local_pref: is only used in updates sent to the IBGP Peers,
                 It is not passed on to the BGP peers in other autonomous systems.
+        :param med: MED value, int
         :param communities: dict Community values: Community->True/False
         :param permitted: Access.permit or Access.deny
         """
@@ -71,6 +72,7 @@ class Announcement(object):
         self.as_path_len = as_path_len
         self.next_hop = next_hop
         self.local_pref = local_pref
+        self.med = med
         self.communities = communities
         self.permitted = permitted
         self.__setattr__ = self._disable_mutations

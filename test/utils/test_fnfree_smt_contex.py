@@ -345,13 +345,13 @@ class ReadAnnouncementsTest(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8], as_path_len=VALUENOTSET,
-            next_hop='Hop2', local_pref=VALUENOTSET,
+            next_hop='Hop2', local_pref=VALUENOTSET, med=10,
             communities={c1: False, c2: False, c3: VALUENOTSET},
             permitted=True)
         return ann1, ann2
@@ -398,13 +398,13 @@ class AnnouncementsContextTest(unittest.TestCase):
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
-            next_hop='Hop1', local_pref=100,
+            next_hop='Hop1', local_pref=100, med=10,
             communities={c1: True, c2: False, c3: False}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[9, 2, 5, 7, 8], as_path_len=VALUENOTSET,
-            next_hop='Hop2', local_pref=VALUENOTSET,
+            next_hop='Hop2', local_pref=VALUENOTSET, med=10,
             communities={c1: False, c2: False, c3: VALUENOTSET},
             permitted=True)
         return ann1, ann2

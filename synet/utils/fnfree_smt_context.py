@@ -60,6 +60,7 @@ def read_announcements(announcements, smt_ctx):
             ('as_path_len', z3.IntSort(), None),
             ('next_hop', NEXT_HOP_SORT, None),
             ('local_pref', z3.IntSort(), None),
+            ('med', z3.IntSort(), None),
             ('permitted', z3.BoolSort(), None),
         ]
         for attr, vsort, conv in all_attrs:
