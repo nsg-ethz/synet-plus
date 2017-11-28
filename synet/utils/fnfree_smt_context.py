@@ -175,6 +175,11 @@ class SMTVar(object):
         self._is_concrete = is_concrete
         self._value = value
 
+    def __str__(self):
+        return "SMTVar({}, {}, {})".format(
+            self.name, self.vsort,
+            self.get_value() if self.is_concrete else '?')
+
     def __hash__(self):
         return hash((self.name, self.get_var().get_id()))
 
