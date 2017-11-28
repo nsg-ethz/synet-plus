@@ -348,18 +348,25 @@ class SMTMatchPermitted(SMTMatchAttribute):
 class SMTAction(object):
     """Action to change one attribute in the announcement"""
 
-    def __init__(self, match, attribute, value, announcements, smt_ctx):
-        assert isinstance(smt_ctx, SolverContext)
-        assert isinstance(value, SMTVar)
+    def __init__(self, match, attribute, value, announcements, ctx):
+        assert isinstance(ctx, SolverContext)
+        assert attribute in Announcement.attributes
         assert hasattr(match, 'is_match')
         assert announcements
-        assert attribute in Announcement.attributes
+        if value is None:
+            vsort = getattr(announcements[0], attribute).vsort
+            value = ctx.create_fresh_var(vsort)
+        assert isinstance(value, SMTVar)
+        attr_sort = getattr(announcements[0], attribute).vsort
+        err = "Type mismatch of attribute and value %s != %s" % (
+            attr_sort, value.vsort)
+        assert attr_sort == value.vsort, err
         self.match = match
         self.attribute = attribute
         self.value = value
         self._old_announcements = announcements
         self._announcements = None
-        self.smt_ctx = smt_ctx
+        self.smt_ctx = ctx
         self.execute()
 
     @property
@@ -401,3 +408,115 @@ class SMTAction(object):
         if constraints:
             self.smt_ctx.register_constraint(z3.And(*constraints))
         self._announcements = self._old_announcements.create_new(announcements, self)
+
+
+class SMTSetLocalPref(SMTAction):
+    """Short cut to set the value of Announcement.local_pref"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetLocalPref, self).__init__(
+            match, 'local_pref', value, announcements, ctx)
+
+
+class SMTSetPrefix(SMTAction):
+    """Short cut to set the value of Announcement.prefix"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetPrefix, self).__init__(
+            match, 'prefix', value, announcements, ctx)
+
+
+class SMTSetPeer(SMTAction):
+    """Short cut to set the value of Announcement.peer"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetPeer, self).__init__(
+            match, 'peer', value, announcements, ctx)
+
+
+class SMTSetOrigin(SMTAction):
+    """Short cut to set the value of Announcement.origin"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetOrigin, self).__init__(
+            match, 'origin', value, announcements, ctx)
+
+
+class SMTSetPermitted(SMTAction):
+    """Short cut to set the value of Announcement.permitted"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetPermitted, self).__init__(
+            match, 'permitted', value, announcements, ctx)
+
+
+class SMTSetASPath(SMTAction):
+    """Short cut to set the value of Announcement.as_path"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetASPath, self).__init__(
+            match, 'as_path', value, announcements, ctx)
+
+
+class SMTSetASPathLen(SMTAction):
+    """Short cut to set the value of Announcement.as_path_len"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetASPathLen, self).__init__(
+            match, 'as_path_len', value, announcements, ctx)
+
+
+class SMTSetNextHop(SMTAction):
+    """Short cut to set the value of Announcement.next_hop"""
+
+    def __init__(self, match, value, announcements, ctx):
+        """
+        :param match: SMTMatch object
+        :param value: Symbolic Var, or None to create one by default
+        :param announcements: AnnouncementsContext
+        :param ctx: SolverContext
+        """
+        super(SMTSetNextHop, self).__init__(
+            match, 'next_hop', value, announcements, ctx)
