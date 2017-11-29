@@ -387,7 +387,33 @@ class SMTMatchPermitted(SMTMatchAttribute):
             'permitted', value, announcements, ctx)
 
 
-class SMTSetAttribute(object):
+class SMTAction(object):
+    """Parent action class"""
+
+    @property
+    def old_announcements(self):
+        raise NotImplementedError()
+
+    @property
+    def announcements(self):
+        raise NotImplementedError()
+
+    @property
+    def attributes(self):
+        """Set of attributes affected by this action"""
+        raise NotImplementedError()
+
+    @property
+    def communities(self):
+        """Set of communities affected by this action"""
+        raise NotImplementedError()
+
+    def execute(self):
+        """Partial evaluate the action and generate new announcements set"""
+        raise NotImplementedError()
+
+
+class SMTSetAttribute(SMTAction):
     """Action to change one attribute in the announcement"""
 
     def __init__(self, match, attribute, value, announcements, ctx):
@@ -419,6 +445,14 @@ class SMTSetAttribute(object):
     @property
     def old_announcements(self):
         return self._old_announcements
+
+    @property
+    def attributes(self):
+        return set([self.attribute])
+
+    @property
+    def communities(self):
+        return set([])
 
     def execute(self):
         if self._announcements:
