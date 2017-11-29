@@ -31,7 +31,8 @@ class SMTMatchAll(SMTMatch):
 
     def __init__(self, ctx):
         self.ctx = ctx
-        self.match_var = ctx.create_fresh_var(z3.BoolSort(), value=True)
+        self.match_var = ctx.create_fresh_var(
+            z3.BoolSort(),name_prefix='match_all_', value=True)
 
     def is_match(self, announcement):
         return self.match_var
@@ -42,14 +43,15 @@ class SMTMatchNone(SMTMatch):
 
     def __init__(self, ctx):
         self.ctx = ctx
-        self.match_var = ctx.create_fresh_var(z3.BoolSort(), value=False)
+        self.match_var = ctx.create_fresh_var(
+            z3.BoolSort(), name_prefix='match_none_', value=False)
 
     def is_match(self, announcements):
         return self.match_var
 
 
 class SMTMatchAnd(SMTMatch):
-    """Combine Matches in Or expression"""
+    """Combine Matches in `Or` expression"""
 
     def __init__(self, matches, announcements, ctx):
         self.matches = matches
@@ -66,10 +68,12 @@ class SMTMatchAnd(SMTMatch):
             value = None
             if is_concrete:
                 value = all([result.get_value() for result in results])
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), value=value)
+            match_var = self.ctx.create_fresh_var(
+                z3.BoolSort(), name_prefix='match_and_', value=value)
             if not is_concrete:
                 constraint = z3.And([result.var == True for result in results])
-                self.ctx.register_constraint(match_var.var == constraint)
+                self.ctx.register_constraint(
+                    match_var.var == constraint, name_prefix='const_and_')
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
@@ -97,10 +101,12 @@ class SMTMatchOr(SMTMatch):
             value = None
             if is_concrete:
                 value = any([result.get_value() for result in results])
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), value=value)
+            match_var = self.ctx.create_fresh_var(
+                z3.BoolSort(), name_prefix='match_or_', value=value)
             if not is_concrete:
                 constraint = z3.Or([result.var == True for result in results])
-                self.ctx.register_constraint(match_var.var == constraint)
+                self.ctx.register_constraint(
+                    match_var.var == constraint, name_prefix='const_or_')
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
@@ -130,26 +136,28 @@ class SMTMatchSelectOne(SMTMatch):
                 if attr == 'communities':
                     for community in self.announcements[0].communities:
                         # Match only when community is set
-                        match_val = self.ctx.create_fresh_var(
-                            z3.BoolSort(), value=True)
                         match = SMTMatchCommunity(
-                            community, match_val, self.announcements, self.ctx)
+                            community, None, self.announcements, self.ctx)
                 else:
                     # Extract he z3 type of the given attribute
                     asort = getattr(announcements[0], attr).vsort
                     # Symbolic match value
-                    match_val = self.ctx.create_fresh_var(asort, value=None)
                     match = SMTMatchAttribute(
-                        attr, match_val, self.announcements, self.ctx)
+                        attr, None, self.announcements, self.ctx)
                 matches.append(match)
 
         # Create map for the different matches
         self.matches = {}
-        self.index_var = self.ctx.create_fresh_var(z3.IntSort())
+        self.index_var = self.ctx.create_fresh_var(
+            z3.IntSort(), name_prefix='SelectOne_index_')
         for index, match in enumerate(matches):
             self.matches[index] = match
         # Make index in the range of number of matches
-        self.ctx.register_constraint(self.index_var.var < index + 1)
+        self.ctx.register_constraint(
+            z3.And(
+                self.index_var >= 0,
+                self.index_var.var < index + 1),
+            name_prefix='SelectOne_index_range_')
 
     def _get_match(self, announcement, current_index=0):
         """Recursively construct a match"""
@@ -167,7 +175,8 @@ class SMTMatchSelectOne(SMTMatch):
             var = self.ctx.create_fresh_var(z3.BoolSort())
             self.matched_announcements[announcement] = var
             constraint = var.var == self._get_match(announcement)
-            self.ctx.register_constraint(constraint)
+            self.ctx.register_constraint(
+                constraint, name_prefix='SelectOne_match_')
         return self.matched_announcements[announcement]
 
     def get_used_match(self):
@@ -190,7 +199,9 @@ class SMTMatchAttribute(SMTMatch):
         assert attribute in Announcement.attributes
         if value is None:
             asort = getattr(announcements[0], attribute).vsort
-            value = ctx.create_fresh_var(asort)
+            value = ctx.create_fresh_var(
+                asort,
+                name_prefix='Match_attr_%s_' % attribute)
         assert isinstance(value, SMTVar)
         attr_sort = getattr(announcements[0], attribute).vsort
         err = "Type mismatch of attribute and value %s != %s" % (
@@ -210,9 +221,14 @@ class SMTMatchAttribute(SMTMatch):
             value = None
             if not is_symbolic(constraint):
                 value = constraint
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), value=value)
+            match_var = self.ctx.create_fresh_var(
+                z3.BoolSort(),
+                name_prefix='match_%s_var_' % self.attribute,
+                value=value)
             if is_symbolic(constraint):
-                self.ctx.register_constraint(match_var.var == constraint)
+                self.ctx.register_constraint(
+                    match_var.var == constraint,
+                    name_prefix='const_match_%s_' % self.attribute)
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
@@ -232,7 +248,10 @@ class SMTMatchCommunity(SMTMatch):
         assert announcements, "Cannot match on empty announcements"
         assert community in announcements[0].communities
         if not value:
-            value = ctx.create_fresh_var(z3.BoolSort(), value=True)
+            value = ctx.create_fresh_var(
+                z3.BoolSort(),
+                name_prefix='Match_Community_var_',
+                value=True)
         assert isinstance(value, SMTVar)
         self.ctx = ctx
         self.value = value
@@ -378,7 +397,8 @@ class SMTAction(object):
         assert announcements
         if value is None:
             vsort = getattr(announcements[0], attribute).vsort
-            value = ctx.create_fresh_var(vsort)
+            prefix = 'Set_%s_val' % attribute
+            value = ctx.create_fresh_var(vsort, name_prefix=prefix)
         assert isinstance(value, SMTVar)
         attr_sort = getattr(announcements[0], attribute).vsort
         err = "Type mismatch of attribute and value %s != %s" % (
@@ -418,7 +438,8 @@ class SMTAction(object):
                             new_var = getattr(announcement, attr)
                     else:
                         new_var = self.smt_ctx.create_fresh_var(
-                            attr_var.vsort, value=self.value)
+                            attr_var.vsort, value=self.value,
+                            name_prefix='Action%sVal' % attr)
                         constraint = z3.If(is_match.var,
                                            new_var.var == self.value,
                                            new_var.var == attr_var.var)
