@@ -387,7 +387,7 @@ class SMTMatchPermitted(SMTMatchAttribute):
             'permitted', value, announcements, ctx)
 
 
-class SMTAction(object):
+class SMTSetAttribute(object):
     """Action to change one attribute in the announcement"""
 
     def __init__(self, match, attribute, value, announcements, ctx):
@@ -454,7 +454,7 @@ class SMTAction(object):
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
-class SMTSetOne(SMTAction):
+class SMTSetOne(SMTSetAttribute):
     """
     Chose a SINGLE match object to meet the requirements
     """
@@ -480,7 +480,7 @@ class SMTSetOne(SMTAction):
                     pass
                 else:
                     # Extract he z3 type of the given attribute
-                    action = SMTAction(
+                    action = SMTSetAttribute(
                         match, attr, None, self.old_announcements, self.ctx)
                     actions.append(action)
 
@@ -544,7 +544,7 @@ class SMTSetOne(SMTAction):
         return match
 
 
-class SMTSetLocalPref(SMTAction):
+class SMTSetLocalPref(SMTSetAttribute):
     """Short cut to set the value of Announcement.local_pref"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -558,7 +558,7 @@ class SMTSetLocalPref(SMTAction):
             match, 'local_pref', value, announcements, ctx)
 
 
-class SMTSetPrefix(SMTAction):
+class SMTSetPrefix(SMTSetAttribute):
     """Short cut to set the value of Announcement.prefix"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -572,7 +572,7 @@ class SMTSetPrefix(SMTAction):
             match, 'prefix', value, announcements, ctx)
 
 
-class SMTSetPeer(SMTAction):
+class SMTSetPeer(SMTSetAttribute):
     """Short cut to set the value of Announcement.peer"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -586,7 +586,7 @@ class SMTSetPeer(SMTAction):
             match, 'peer', value, announcements, ctx)
 
 
-class SMTSetOrigin(SMTAction):
+class SMTSetOrigin(SMTSetAttribute):
     """Short cut to set the value of Announcement.origin"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -600,7 +600,7 @@ class SMTSetOrigin(SMTAction):
             match, 'origin', value, announcements, ctx)
 
 
-class SMTSetPermitted(SMTAction):
+class SMTSetPermitted(SMTSetAttribute):
     """Short cut to set the value of Announcement.permitted"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -614,7 +614,7 @@ class SMTSetPermitted(SMTAction):
             match, 'permitted', value, announcements, ctx)
 
 
-class SMTSetASPath(SMTAction):
+class SMTSetASPath(SMTSetAttribute):
     """Short cut to set the value of Announcement.as_path"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -628,7 +628,7 @@ class SMTSetASPath(SMTAction):
             match, 'as_path', value, announcements, ctx)
 
 
-class SMTSetASPathLen(SMTAction):
+class SMTSetASPathLen(SMTSetAttribute):
     """Short cut to set the value of Announcement.as_path_len"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -642,7 +642,7 @@ class SMTSetASPathLen(SMTAction):
             match, 'as_path_len', value, announcements, ctx)
 
 
-class SMTSetNextHop(SMTAction):
+class SMTSetNextHop(SMTSetAttribute):
     """Short cut to set the value of Announcement.next_hop"""
 
     def __init__(self, match, value, announcements, ctx):
@@ -656,7 +656,7 @@ class SMTSetNextHop(SMTAction):
             match, 'next_hop', value, announcements, ctx)
 
 
-class SMTSetMED(SMTAction):
+class SMTSetMED(SMTSetAttribute):
     """Short cut to set the value of Announcement.med"""
 
     def __init__(self, match, value, announcements, ctx):

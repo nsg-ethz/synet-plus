@@ -6,7 +6,7 @@ from nose.plugins.attrib import attr
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
-from synet.utils.fnfree_policy import SMTAction
+from synet.utils.fnfree_policy import SMTSetAttribute
 from synet.utils.fnfree_policy import SMTMatchASPath
 from synet.utils.fnfree_policy import SMTMatchASPathLen
 from synet.utils.fnfree_policy import SMTMatchAll
@@ -1277,7 +1277,7 @@ class TestAction(unittest.TestCase):
         match = SMTMatchAll(ctx)
         pref = ctx.create_fresh_var(z3.IntSort(), value=200)
         # Act
-        action = SMTAction(match, 'local_pref', pref, sym_anns, ctx)
+        action = SMTSetAttribute(match, 'local_pref', pref, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
@@ -1297,7 +1297,7 @@ class TestAction(unittest.TestCase):
         value = ctx.create_fresh_var(z3.IntSort())
         match = SMTMatchAll(ctx)
         # Act
-        action = SMTAction(match, 'local_pref', value, sym_anns, ctx)
+        action = SMTSetAttribute(match, 'local_pref', value, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
@@ -1322,7 +1322,7 @@ class TestAction(unittest.TestCase):
         sym_val = prefix_sort.get_symbolic_value('Prefix1')
         p1_sym = ctx.create_fresh_var(prefix_sort, value=sym_val)
         # Act
-        action = SMTAction(match, 'prefix', p1_sym, sym_anns, ctx)
+        action = SMTSetAttribute(match, 'prefix', p1_sym, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
@@ -1344,7 +1344,7 @@ class TestAction(unittest.TestCase):
         sym_val = prefix_sort.get_symbolic_value('Prefix1')
         p1_sym = ctx.create_fresh_var(prefix_sort)
         # Act
-        action = SMTAction(match, 'prefix', p1_sym, sym_anns, ctx)
+        action = SMTSetAttribute(match, 'prefix', p1_sym, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
