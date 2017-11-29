@@ -25,6 +25,7 @@ from synet.utils.fnfree_policy import SMTMatchNextHop
 from synet.utils.fnfree_policy import SMTSetASPath
 from synet.utils.fnfree_policy import SMTSetASPathLen
 from synet.utils.fnfree_policy import SMTSetLocalPref
+from synet.utils.fnfree_policy import SMTSetOne
 from synet.utils.fnfree_policy import SMTSetOrigin
 from synet.utils.fnfree_policy import SMTSetPeer
 from synet.utils.fnfree_policy import SMTSetPermitted
@@ -2004,3 +2005,88 @@ class TestSMTSetMED(unittest.TestCase):
         self.assertEquals(action.value.get_value(), 100)
         self.assertEquals(new_anns[0].med.get_value(), 100)
         self.assertEquals(new_anns[1].med.get_value(), 100)
+
+
+@attr(speed='fast')
+class TestSMTSetOne(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_concrete(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = SMTMatchAll(ctx)
+        vsort = z3.IntSort()
+        local_pref = ctx.create_fresh_var(vsort, value=200)
+        med = ctx.create_fresh_var(vsort, value=300)
+        action1 = SMTSetLocalPref(match, local_pref, sym_anns, ctx)
+        action2 = SMTSetMED(match, med, sym_anns, ctx)
+        # Act
+        action = SMTSetOne(match, sym_anns, ctx, actions=[action1, action2])
+        action.execute()
+        new_anns = action.announcements
+        solver = z3.Solver()
+        solver.assert_and_track(new_anns[0].med.var == med.get_value(), 'Req')
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertEquals(action.get_used_action(), action2)
+        self.assertEquals(new_anns[0].local_pref.get_value(), concrete_anns[0].local_pref)
+        self.assertEquals(new_anns[1].local_pref.get_value(), concrete_anns[1].local_pref)
+        self.assertEquals(new_anns[0].med.get_value(), med.get_value())
+        self.assertEquals(new_anns[1].med.get_value(), med.get_value())
+
+    def test_sym(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = SMTMatchAll(ctx)
+        vsort = z3.IntSort()
+        action1 = SMTSetLocalPref(match, None, sym_anns, ctx)
+        action2 = SMTSetMED(match, None, sym_anns, ctx)
+        # Act
+        action = SMTSetOne(match, sym_anns, ctx, actions=[action1, action2])
+        action.execute()
+        new_anns = action.announcements
+        solver = z3.Solver()
+        solver.assert_and_track(new_anns[0].med.var == 300, 'Req')
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertEquals(action.get_used_action(), action2)
+        self.assertEquals(new_anns[0].local_pref.get_value(), concrete_anns[0].local_pref)
+        self.assertEquals(new_anns[1].local_pref.get_value(), concrete_anns[1].local_pref)
+        self.assertEquals(new_anns[0].med.get_value(), 300)
+        self.assertEquals(new_anns[1].med.get_value(), 300)

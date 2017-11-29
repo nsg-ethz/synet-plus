@@ -454,6 +454,96 @@ class SMTAction(object):
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
+class SMTSetOne(SMTAction):
+    """
+    Chose a SINGLE match object to meet the requirements
+    """
+
+    def __init__(self, match, announcements, ctx, actions=None):
+        """
+        :param announcements:
+        :param ctx:
+        :param actions: List of SMTMatch objects to use one of them
+                        if None, then all attributes are going to be used.
+        """
+        assert isinstance(ctx, SolverContext)
+        assert announcements, 'Cannot match on empty announcements'
+        self._old_announcements = announcements
+        self._announcements = None
+        self.ctx = ctx
+
+        if not actions:
+            # By default all attributes are allowed
+            actions = []
+            for attr in Announcement.attributes:
+                if attr == 'communities':
+                    pass
+                else:
+                    # Extract he z3 type of the given attribute
+                    action = SMTAction(
+                        match, attr, None, self.old_announcements, self.ctx)
+                    actions.append(action)
+
+        # Create map for the different actions
+        self.actions = {}
+        self.index_var = self.ctx.create_fresh_var(
+            z3.IntSort(), name_prefix='SetOneIndex_')
+        for index, action in enumerate(actions):
+            self.actions[index] = action
+        # Make index in the range of number of actions
+        index_range = z3.And(self.index_var.var >=0 , self.index_var.var < index + 1)
+        self.ctx.register_constraint(index_range, name_prefix='setone_index_max_')
+
+    def _get_actions(self, ann_index, attribute, default, index=0):
+        """Recursively construct a match"""
+        if index not in self.actions:
+            # Base case
+            return default
+        else:
+            action = self.actions[index]
+            value = getattr(action.announcements[ann_index], attribute)
+            index_check = self.index_var.var == index
+            next_attr = self._get_actions(ann_index, attribute, default, index + 1)
+            return z3.If(index_check, value.var, next_attr)
+
+    def execute(self):
+        new_anns = []
+        # Execute the previous actions
+        for action in self.actions.values():
+            action.execute()
+        # IF all previous actions are simple Attribute setters
+        # then partial eval is more possible
+        a_attrs = [getattr(action, 'attribute', None) for action in self.actions.values()]
+        attr_only = None not in a_attrs
+        for index, old_ann in enumerate(self.old_announcements):
+            new_values = {}
+            for attr in Announcement.attributes:
+                old_var = getattr(old_ann, attr)
+                if attr_only and attr not in a_attrs:
+                    new_values[attr] = old_var
+                else:
+                    if attr == 'communities':
+                        raise NotImplementedError("Communities Setter is not implemented")
+                    else:
+                        if attr_only and attr not in a_attrs:
+                            new_values[attr] = old_var
+                        else:
+                            prefix = 'setone_%s_var_' % attr
+                            new_var = self.ctx.create_fresh_var(
+                                old_var.vsort, name_prefix=prefix)
+                            value = self._get_actions(index, attr, new_var.var)
+                            prefix = 'setone_%s_' % attr
+                            self.ctx.register_constraint(
+                                new_var.var == value, name_prefix=prefix)
+                            new_values[attr] = new_var
+            new_anns.append(Announcement(**new_values))
+        self._announcements = self.old_announcements.create_new(new_anns, self)
+
+    def get_used_action(self):
+        match = self.actions[self.index_var.get_value()]
+        return match
+
+
 class SMTSetLocalPref(SMTAction):
     """Short cut to set the value of Announcement.local_pref"""
 
