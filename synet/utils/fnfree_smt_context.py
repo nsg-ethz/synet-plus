@@ -243,9 +243,15 @@ class SMTVar(object):
             if self._is_enum:
                 self._value = value
             elif isinstance(value, z3.BoolRef):
-                self._value = z3.is_true(value)
+                try:
+                    self._value = z3.is_true(value)
+                except AttributeError:
+                    pass
             elif value.is_int:
-                self._value = value.as_long()
+                try:
+                    self._value = value.as_long()
+                except AttributeError:
+                    pass
             else:
                 err = "Currently only support enums and ints"
                 raise NotImplementedError(err)
