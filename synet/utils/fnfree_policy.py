@@ -32,7 +32,7 @@ class SMTMatchAll(SMTMatch):
     def __init__(self, ctx):
         self.ctx = ctx
         self.match_var = ctx.create_fresh_var(
-            z3.BoolSort(),name_prefix='match_all_', value=True)
+            z3.BoolSort(), name_prefix='match_all_', value=True)
 
     def is_match(self, announcement):
         return self.match_var
@@ -46,7 +46,7 @@ class SMTMatchNone(SMTMatch):
         self.match_var = ctx.create_fresh_var(
             z3.BoolSort(), name_prefix='match_none_', value=False)
 
-    def is_match(self, announcements):
+    def is_match(self, announcement):
         return self.match_var
 
 
@@ -139,8 +139,6 @@ class SMTMatchSelectOne(SMTMatch):
                         match = SMTMatchCommunity(
                             community, None, self.announcements, self.ctx)
                 else:
-                    # Extract he z3 type of the given attribute
-                    asort = getattr(announcements[0], attr).vsort
                     # Symbolic match value
                     match = SMTMatchAttribute(
                         attr, None, self.announcements, self.ctx)
@@ -164,11 +162,10 @@ class SMTMatchSelectOne(SMTMatch):
         if current_index not in self.matches:
             # Base case
             return z3.And(self.index_var.var == current_index, False)
-        else:
-            match_var = self.matches[current_index].is_match(announcement).var
-            index_check = self.index_var.var == current_index
-            next_attr = self._get_match(announcement, current_index + 1)
-            return z3.If(index_check, match_var, next_attr)
+        match_var = self.matches[current_index].is_match(announcement).var
+        index_check = self.index_var.var == current_index
+        next_attr = self._get_match(announcement, current_index + 1)
+        return z3.If(index_check, match_var, next_attr)
 
     def is_match(self, announcement):
         if announcement not in self.matched_announcements:
@@ -194,6 +191,7 @@ class SMTMatchAttribute(SMTMatch):
         :param announcements: List of announcements
         :param ctx: to register new constraints and create fresh vars
         """
+        super(SMTMatchAttribute, self).__init__()
         assert isinstance(ctx, SolverContext)
         assert announcements, 'Cannot match on empty announcements'
         assert attribute in Announcement.attributes
@@ -342,17 +340,6 @@ class SMTMatchASPathLen(SMTMatchAttribute):
         super(SMTMatchASPathLen, self).__init__('as_path_len', value, announcements, ctx)
 
 
-class SMTMatchNextHop(SMTMatchAttribute):
-    """Short cut to match on Announcement.next_hop"""
-
-    def __init__(self, value, announcements, ctx):
-        """
-        :param value: Symbolic Var, or None to create one by default
-        :param announcements: List of announcements
-        :param ctx: to register new constraints and create fresh vars"""
-        super(SMTMatchNextHop, self).__init__('next_hop', value, announcements, ctx)
-
-
 class SMTMatchLocalPref(SMTMatchAttribute):
     """Short cut to match on Announcement.local_pref"""
 
@@ -417,6 +404,7 @@ class SMTSetAttribute(SMTAction):
     """Action to change one attribute in the announcement"""
 
     def __init__(self, match, attribute, value, announcements, ctx):
+        super(SMTSetAttribute, self).__init__()
         assert isinstance(ctx, SolverContext)
         assert attribute in Announcement.attributes
         assert hasattr(match, 'is_match')
@@ -525,20 +513,21 @@ class SMTSetOne(SMTSetAttribute):
         for index, action in enumerate(actions):
             self.actions[index] = action
         # Make index in the range of number of actions
-        index_range = z3.And(self.index_var.var >=0 , self.index_var.var < index + 1)
-        self.ctx.register_constraint(index_range, name_prefix='setone_index_max_')
+        index_range = z3.And(self.index_var.var >= 0,
+                             self.index_var.var < index + 1)
+        self.ctx.register_constraint(index_range,
+                                     name_prefix='setone_index_max_')
 
     def _get_actions(self, ann_index, attribute, default, index=0):
         """Recursively construct a match"""
         if index not in self.actions:
             # Base case
             return default
-        else:
-            action = self.actions[index]
-            value = getattr(action.announcements[ann_index], attribute)
-            index_check = self.index_var.var == index
-            next_attr = self._get_actions(ann_index, attribute, default, index + 1)
-            return z3.If(index_check, value.var, next_attr)
+        action = self.actions[index]
+        value = getattr(action.announcements[ann_index], attribute)
+        index_check = self.index_var.var == index
+        next_attr = self._get_actions(ann_index, attribute, default, index + 1)
+        return z3.If(index_check, value.var, next_attr)
 
     def execute(self):
         new_anns = []
