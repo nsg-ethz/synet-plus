@@ -431,9 +431,10 @@ class TestSMTMatchOr(unittest.TestCase):
         self.assertFalse(ann1_is_concrete)
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(match_prefix.value.get_value(), 'Prefix1')
-        self.assertEquals(match_pref.value.get_value(), 110)
-
+        values = [match_prefix.value.get_value(), match_pref.value.get_value()]
+        v1 = [concrete_anns[0].prefix, concrete_anns[1].local_pref]
+        v2 = [concrete_anns[1].prefix, concrete_anns[0].local_pref]
+        self.assertTrue(values == v1 or values == v2)
 
 @attr(speed='fast')
 class TestSMTMatchPrefix(unittest.TestCase):
