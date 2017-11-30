@@ -476,6 +476,87 @@ class SMTSetAttribute(SMTAction):
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
+class SMTSetCommunity(SMTAction):
+    """Action to change one attribute in the announcement"""
+
+    def __init__(self, match, community, value, announcements, ctx):
+        super(SMTSetCommunity, self).__init__()
+        assert isinstance(ctx, SolverContext)
+        assert hasattr(match, 'is_match')
+        assert community in announcements[0].communities
+        assert announcements
+        if value is None:
+            prefix = 'Set_community_val_'
+            value = ctx.create_fresh_var(
+                z3.BoolSort(), name_prefix=prefix, value=True)
+        assert isinstance(value, SMTVar)
+        err = "Value is not of type BoolSort %s" % (value.vsort)
+        assert z3.BoolSort() == value.vsort, err
+        self.match = match
+        self.community = community
+        self.value = value
+        self._old_announcements = announcements
+        self._announcements = None
+        self.smt_ctx = ctx
+        self.execute()
+
+    @property
+    def announcements(self):
+        return self._announcements
+
+    @property
+    def old_announcements(self):
+        return self._old_announcements
+
+    @property
+    def attributes(self):
+        return set(['communities'])
+
+    @property
+    def communities(self):
+        return set([self.community])
+
+    def execute(self):
+        if self._announcements:
+            return
+        constraints = []
+        announcements = []
+        for announcement in self._old_announcements:
+            new_vals = {}
+            for attr in announcement.attributes:
+                attr_var = getattr(announcement, attr)
+                if attr != 'communities':
+                    # Other attributes stay the same
+                    new_vals[attr] = attr_var
+                else:
+                    new_comms = {}
+                    for community, old_var in announcement.communities.iteritems():
+                        if community != self.community:
+                            # Other communities stay the same
+                            new_comms[community] = old_var
+                        else:
+                            is_match = self.match.is_match(announcement)
+                            if is_match.is_concrete:
+                                # Partial eval
+                                new_var = self.value if is_match.get_value() else old_var
+                            else:
+                                # No partial eval
+                                new_var = self.smt_ctx.create_fresh_var(
+                                    z3.BoolSort(), value=self.value,
+                                    name_prefix='set_community_%s_val' % attr)
+                                constraint = z3.If(is_match.var,
+                                                   new_var.var == self.value,
+                                                   new_var.var == attr_var.var)
+                                constraints.append(constraint)
+                            new_comms[community] = new_var
+                    new_vals[attr] = new_comms
+            new_ann = Announcement(**new_vals)
+            announcements.append(new_ann)
+        if constraints:
+            self.smt_ctx.register_constraint(z3.And(*constraints))
+        self._announcements = self._old_announcements.create_new(announcements, self)
+
+
 class SMTSetOne(SMTSetAttribute):
     """
     Chose a SINGLE match object to meet the requirements
