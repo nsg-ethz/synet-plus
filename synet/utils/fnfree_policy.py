@@ -569,6 +569,7 @@ class SMTSetOne(SMTSetAttribute):
         :param actions: List of SMTMatch objects to use one of them
                         if None, then all attributes are going to be used.
         """
+        super(SMTSetOne, self).__init__()
         assert isinstance(ctx, SolverContext)
         assert announcements, 'Cannot match on empty announcements'
         self._old_announcements = announcements
