@@ -610,8 +610,10 @@ class SMTSetOne(SMTAction):
             z3.IntSort(), name_prefix='SetOneIndex_')
         index = itertools.count(0)
         for action in actions:
-            err = 'All actions must have the same match'
-            assert action.match == self.match, err
+            err1 = 'All actions must have the same match'
+            assert action.match == self.match, err1
+            err2 = 'All actions must have the same announcements'
+            assert action.old_announcements == self.old_announcements, err2
             self.actions[index.next()] = action
         # Make index in the range of number of actions
         index_range = z3.And(self.index_var.var >= 0,
