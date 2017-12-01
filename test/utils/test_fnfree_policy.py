@@ -2120,7 +2120,7 @@ class TestSMTSetOne(unittest.TestCase):
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         ctx.set_model(solver.model())
         action = action.get_used_action()
-        self.assertIsInstance(action, SMTSetAttribute)
+        self.assertIsInstance(action, SMTSetMED)
         self.assertEquals(new_anns[0].local_pref.get_value(), concrete_anns[0].local_pref)
         self.assertEquals(new_anns[1].local_pref.get_value(), concrete_anns[1].local_pref)
         self.assertEquals(action.value.get_value(), med)

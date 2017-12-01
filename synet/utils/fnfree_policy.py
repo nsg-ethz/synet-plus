@@ -3,10 +3,12 @@ Synthesize policies .. aka route maps for the moment
 """
 
 import copy
+import functools
 import itertools
 import z3
 
 from synet.topo.bgp import Announcement
+from synet.topo.bgp import Community
 from synet.utils.fnfree_smt_context import SMTVar
 from synet.utils.fnfree_smt_context import SolverContext
 from synet.utils.fnfree_smt_context import is_symbolic
@@ -138,13 +140,20 @@ class SMTMatchSelectOne(SMTMatch):
                 if attr == 'communities':
                     for community in self.announcements[0].communities:
                         # Match only when community is set
-                        match = SMTMatchCommunity(
-                            community, None, self.announcements, self.ctx)
+                        match = attribute_match_factory(
+                            community,
+                            value=None,
+                            announcements=self.announcements,
+                            ctx=self.ctx)
+                        matches.append(match)
                 else:
                     # Symbolic match value
-                    match = SMTMatchAttribute(
-                        attr, None, self.announcements, self.ctx)
-                matches.append(match)
+                    match = attribute_match_factory(
+                        attr,
+                        value=None,
+                        announcements=self.announcements,
+                        ctx=self.ctx)
+                    matches.append(match)
 
         # Create map for the different matches
         self.matches = {}
@@ -587,8 +596,8 @@ class SMTSetOne(SMTAction):
                     pass
                 else:
                     # Extract he z3 type of the given attribute
-                    action = SMTSetAttribute(
-                        match, attr, None, self.old_announcements, self.ctx)
+                    action = attribute_set_factory(
+                        attr, match, None, self.old_announcements, self.ctx)
                     actions.append(action)
 
         # Create map for the different actions
@@ -826,3 +835,59 @@ class SMTSetMED(SMTSetAttribute):
         """
         super(SMTSetMED, self).__init__(
             match, 'med', value, announcements, ctx)
+
+
+def attribute_match_factory(attribute, value=None, announcements=None, ctx=None):
+    """
+    Given an attribute name or Community value return the right match class
+    If announcements and ctx are set, then a concrete object is returned
+    """
+    match_map = {
+        'prefix': SMTMatchPrefix,
+        'peer': SMTMatchPeer,
+        'origin': SMTMatchOrigin,
+        'as_path': SMTMatchASPath,
+        'as_path_len': SMTMatchASPathLen,
+        'next_hop': SMTMatchNextHop,
+        'local_pref': SMTMatchLocalPref,
+        'permitted': SMTMatchPermitted,
+        'med': SMTMatchMED,
+    }
+    if attribute in match_map:
+        klass = match_map[attribute]
+    elif isinstance(attribute, Community):
+        klass = functools.partial(SMTMatchCommunity, community=attribute)
+    else:
+        raise ValueError("Unrecognized attribute or community '%s'" % attribute)
+
+    if announcements and ctx:
+        return klass(value=value, announcements=announcements, ctx=ctx)
+    return klass
+
+
+def attribute_set_factory(attribute, match=None, value=None, announcements=None, ctx=None):
+    """
+    Given an attribute name or Community value return the right match class
+    If announcements and ctx are set, then a concrete object is returned
+    """
+    match_map = {
+        'prefix': SMTSetPrefix,
+        'peer': SMTSetPeer,
+        'origin': SMTSetOrigin,
+        'as_path': SMTSetASPath,
+        'as_path_len': SMTSetASPathLen,
+        'next_hop': SMTSetNextHop,
+        'local_pref': SMTSetLocalPref,
+        'permitted': SMTSetPermitted,
+        'med': SMTSetMED,
+    }
+    if attribute in match_map:
+        klass = match_map[attribute]
+    elif isinstance(attribute, Community):
+        klass = functools.partial(SMTSetCommunity, community=attribute)
+    else:
+        raise ValueError("Unrecognized attribute or community '%s'" % attribute)
+
+    if match and announcements and ctx:
+        return klass(match=match, value=value, announcements=announcements, ctx=ctx)
+    return klass
