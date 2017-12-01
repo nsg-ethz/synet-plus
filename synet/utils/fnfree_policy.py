@@ -2,6 +2,8 @@
 Synthesize policies .. aka route maps for the moment
 """
 
+import copy
+import itertools
 import z3
 
 from synet.topo.bgp import Announcement
@@ -557,7 +559,7 @@ class SMTSetCommunity(SMTAction):
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
-class SMTSetOne(SMTSetAttribute):
+class SMTSetOne(SMTAction):
     """
     Chose a SINGLE match object to meet the requirements
     """
@@ -575,6 +577,7 @@ class SMTSetOne(SMTSetAttribute):
         self._old_announcements = announcements
         self._announcements = None
         self.ctx = ctx
+        self.match = match
 
         if not actions:
             # By default all attributes are allowed
@@ -592,16 +595,41 @@ class SMTSetOne(SMTSetAttribute):
         self.actions = {}
         self.index_var = self.ctx.create_fresh_var(
             z3.IntSort(), name_prefix='SetOneIndex_')
-        for index, action in enumerate(actions):
-            self.actions[index] = action
+        index = itertools.count(0)
+        for action in actions:
+            err = 'All actions must have the same match'
+            assert action.match == self.match, err
+            self.actions[index.next()] = action
         # Make index in the range of number of actions
         index_range = z3.And(self.index_var.var >= 0,
-                             self.index_var.var < index + 1)
+                             self.index_var.var < index.next())
         self.ctx.register_constraint(index_range,
                                      name_prefix='setone_index_max_')
 
+    @property
+    def old_announcements(self):
+        return self._old_announcements
+
+    @property
+    def announcements(self):
+        return self._announcements
+
+    @property
+    def attributes(self):
+        return reduce(
+            set.union,
+            [getattr(a, 'attributes', set([None])) for a in self.actions.values()])
+
+    @property
+    def communities(self):
+        return reduce(
+            set.union,
+            [getattr(a, 'communities') for a in self.actions.values()])
+
     def _get_actions(self, ann_index, attribute, default, index=0):
-        """Recursively construct a match"""
+        """
+        Recursively construct a match for an attribute (other than communities
+        """
         if index not in self.actions:
             # Base case
             return default
@@ -611,6 +639,18 @@ class SMTSetOne(SMTSetAttribute):
         next_attr = self._get_actions(ann_index, attribute, default, index + 1)
         return z3.If(index_check, value.var, next_attr)
 
+    def _get_communities(self, ann_index, community, default, index=0):
+        """Recursively construct a match for a given community"""
+        if index not in self.actions:
+            # Base case
+            return default
+        action = self.actions[index]
+        value = action.announcements[ann_index].communities[community]
+        index_check = self.index_var.var == index
+        next_attr = self._get_communities(
+            ann_index, community, default, index + 1)
+        return z3.If(index_check, value.var, next_attr)
+
     def execute(self):
         new_anns = []
         # Execute the previous actions
@@ -618,33 +658,46 @@ class SMTSetOne(SMTSetAttribute):
             action.execute()
         # IF all previous actions are simple Attribute setters
         # then partial eval is more possible
-        a_attrs = [getattr(action, 'attribute', None) for action in self.actions.values()]
-        attr_only = None not in a_attrs
+        attr_only = None not in self.attributes
         for index, old_ann in enumerate(self.old_announcements):
             new_values = {}
             for attr in Announcement.attributes:
                 old_var = getattr(old_ann, attr)
-                if attr_only and attr not in a_attrs:
+                # Parial evaluation
+                if attr_only and attr not in self.attributes:
+                    # This attribute is not changed by any of the actions
+                    # Thus stays the same
                     new_values[attr] = old_var
                 else:
+                    # This attribute can be changed by at least one action
                     if attr == 'communities':
-                        raise NotImplementedError("Communities Setter is not implemented")
-                    else:
-                        if attr_only and attr not in a_attrs:
-                            new_values[attr] = old_var
-                        else:
-                            prefix = 'setone_%s_var_' % attr
+                        # Shallow copy
+                        new_comms = copy.copy(getattr(old_ann, attr))
+                        for community in self.communities:
+                            prefix = 'setone_community_var_'
                             new_var = self.ctx.create_fresh_var(
-                                old_var.vsort, name_prefix=prefix)
-                            value = self._get_actions(index, attr, new_var.var)
+                                z3.BoolSort(), name_prefix=prefix)
+                            value = self._get_communities(
+                                index, community, new_var.var)
                             prefix = 'setone_%s_' % attr
                             self.ctx.register_constraint(
                                 new_var.var == value, name_prefix=prefix)
-                            new_values[attr] = new_var
+                            new_comms[community] = new_var
+                        new_values[attr] = new_comms
+                    else:
+                        prefix = 'setone_%s_var_' % attr
+                        new_var = self.ctx.create_fresh_var(
+                            old_var.vsort, name_prefix=prefix)
+                        value = self._get_actions(index, attr, new_var.var)
+                        prefix = 'setone_%s_' % attr
+                        self.ctx.register_constraint(
+                            new_var.var == value, name_prefix=prefix)
+                        new_values[attr] = new_var
             new_anns.append(Announcement(**new_values))
         self._announcements = self.old_announcements.create_new(new_anns, self)
 
     def get_used_action(self):
+        """Return the used action object"""
         match = self.actions[self.index_var.get_value()]
         return match
 

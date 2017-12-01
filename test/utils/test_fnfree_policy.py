@@ -2014,6 +2014,7 @@ class TestSMTSetOne(unittest.TestCase):
         c1 = Community("100:16")
         c2 = Community("100:17")
         c3 = Community("100:18")
+        self.communities = [c1, c2, c3]
 
         ann1 = Announcement(
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
@@ -2065,32 +2066,66 @@ class TestSMTSetOne(unittest.TestCase):
         self.assertEquals(new_anns[0].med.get_value(), med.get_value())
         self.assertEquals(new_anns[1].med.get_value(), med.get_value())
 
-    def test_sym(self):
+    def test_concrete_community(self):
         # Arrange
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
         vsort = z3.IntSort()
-        action1 = SMTSetLocalPref(match, None, sym_anns, ctx)
-        action2 = SMTSetMED(match, None, sym_anns, ctx)
+        local_pref = ctx.create_fresh_var(vsort, value=200)
+        med = ctx.create_fresh_var(vsort, value=300)
+        set_pref = SMTSetLocalPref(match, local_pref, sym_anns, ctx)
+        set_med = SMTSetMED(match, med, sym_anns, ctx)
+        comm = self.communities[0]
+        set_comm = SMTSetCommunity(match, comm, None, sym_anns, ctx)
         # Act
-        action = SMTSetOne(match, sym_anns, ctx, actions=[action1, action2])
+        action = SMTSetOne(match, sym_anns, ctx, actions=[set_pref, set_med, set_comm])
         action.execute()
         new_anns = action.announcements
         solver = z3.Solver()
-        solver.assert_and_track(new_anns[0].med.var == 300, 'Req')
+        solver.assert_and_track(new_anns[0].communities[comm].var == True, 'Req1')
+        solver.assert_and_track(new_anns[1].communities[comm].var == True, 'Req2')
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
         is_sat = solver.check()
         # Assert
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         ctx.set_model(solver.model())
-        self.assertEquals(action.get_used_action(), action2)
+        self.assertEquals(action.get_used_action(), set_comm)
+        self.assertEquals(new_anns[0].communities[comm].get_value(), set_comm.value.get_value())
+        self.assertEquals(new_anns[1].communities[comm].get_value(), set_comm.value.get_value())
         self.assertEquals(new_anns[0].local_pref.get_value(), concrete_anns[0].local_pref)
         self.assertEquals(new_anns[1].local_pref.get_value(), concrete_anns[1].local_pref)
-        self.assertEquals(new_anns[0].med.get_value(), 300)
-        self.assertEquals(new_anns[1].med.get_value(), 300)
+        self.assertEquals(new_anns[0].med.get_value(), concrete_anns[0].med)
+        self.assertEquals(new_anns[1].med.get_value(), concrete_anns[1].med)
+
+    def test_sym(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = SMTMatchAll(ctx)
+        med = 300
+        # Act
+        action = SMTSetOne(match, sym_anns, ctx)
+        action.execute()
+        new_anns = action.announcements
+        solver = z3.Solver()
+        solver.assert_and_track(new_anns[0].med.var == med, 'Req')
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        action = action.get_used_action()
+        self.assertIsInstance(action, SMTSetAttribute)
+        self.assertEquals(new_anns[0].local_pref.get_value(), concrete_anns[0].local_pref)
+        self.assertEquals(new_anns[1].local_pref.get_value(), concrete_anns[1].local_pref)
+        self.assertEquals(action.value.get_value(), med)
+        self.assertEquals(new_anns[0].med.get_value(), action.value.get_value())
+        self.assertEquals(new_anns[1].med.get_value(), action.value.get_value())
 
 
 @attr(speed='fast')
