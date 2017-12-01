@@ -2160,7 +2160,7 @@ class TestSMTSetOne(unittest.TestCase):
 
 
 @attr(speed='fast')
-class TestSMTCommunity(unittest.TestCase):
+class TestSMTSetCommunity(unittest.TestCase):
     def get_anns(self):
         c1 = Community("100:16")
         c2 = Community("100:17")
@@ -2188,7 +2188,7 @@ class TestSMTCommunity(unittest.TestCase):
     def get_sym(self, concrete_anns, ctx):
         return read_announcements(concrete_anns, ctx)
 
-    def test_int_concrete(self):
+    def test_concrete(self):
         # Arrange
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
@@ -2208,15 +2208,16 @@ class TestSMTCommunity(unittest.TestCase):
         self.assertEquals(new_anns[0].communities[community].get_value(), True)
         self.assertEquals(new_anns[1].communities[community].get_value(), True)
 
-    def test_int_sym(self):
+    def test_sym(self):
         # Arrange
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
         community = self.communities[0]
+        value = ctx.create_fresh_var(z3.BoolSort())
         # Act
-        action = SMTSetCommunity(match, community, None, sym_anns, ctx)
+        action = SMTSetCommunity(match, community, value, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
