@@ -593,7 +593,11 @@ class SMTSetOne(SMTAction):
             actions = []
             for attr in Announcement.attributes:
                 if attr == 'communities':
-                    pass
+                    for community in self.old_announcements[0].communities:
+                        action = attribute_set_factory(
+                            community, match, None,
+                            self.old_announcements, self.ctx)
+                        actions.append(action)
                 else:
                     # Extract he z3 type of the given attribute
                     action = attribute_set_factory(
