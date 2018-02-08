@@ -41,6 +41,15 @@ ORIGIN_TYPE = "as_origin"
 AS_NUM = 'AS'
 
 
+def flatten(data):
+    """
+    takes [['A', 'B', 'C'], ['A', 'B']] and return ['A', 'B', 'C', 'A', 'B']
+    :param data: list of lists
+    :return: flat list
+    """
+    return [item for sublist in data for item in sublist]
+
+
 def path_exists(path, graph):
     """Return True if the path exists in the graph"""
     return False not in [graph.has_edge(x, y) for x, y in zip(path[0::1], path[1::1])]
