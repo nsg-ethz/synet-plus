@@ -431,6 +431,7 @@ class SolverContext(object):
                      if not is_empty(x.next_hop)]
         next_hope_list = list(set(read_list + next_hope_list))
         ctx.create_enum_type(NEXT_HOP_SORT, next_hope_list)
+        ctx.communities = announcements[0].communities.keys()
         return ctx
 
 
