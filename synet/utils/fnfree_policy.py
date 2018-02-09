@@ -1009,13 +1009,16 @@ class SMTActions(SMTAbstractAction):
     """Synthesize list of actions"""
 
     def __init__(self, match, actions, announcements, ctx):
-        self.match = match
         self.actions = actions
         self.smt_actions = []
         self.ctx = ctx
         self._old_announcements = announcements
         self._announcements = None
-        self.smt_match = SMTMatch(self.match, self.announcements, self.ctx)
+        if isinstance(match, Match) or match is None:
+            self.smt_match = SMTMatch(match, self._old_announcements, self.ctx)
+        else:
+            assert isinstance(match, SMTAbstractMatch), match
+            self.smt_match = match
         self.action_dispatch = {
             ActionSetLocalPref: self._set_local_pref,
             ActionSetCommunity: self._set_communities,
