@@ -159,6 +159,9 @@ class Community(object):
     def __eq__(self, other):
         return self.value == getattr(other, 'value', other)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         if self.is_new_format:
             val = self.get_new_format()
@@ -373,6 +376,49 @@ class MatchLocalPref(Match):
         self._match = value
 
 
+class MatchAsPath(Match):
+    def __init__(self, as_path):
+        assert as_path == VALUENOTSET or isinstance(as_path, Iterable)
+        self._match = as_path
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+
+class ActionPermitted(Action):
+    def __init__(self, access):
+        assert access == VALUENOTSET or isinstance(access, Access)
+        self._value = access
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetLocalPref(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
 class ActionSetLocalPref(Action):
     def __init__(self, localpref):
         assert localpref == VALUENOTSET or isinstance(localpref, int)
@@ -474,7 +520,7 @@ class ActionSetCommunity(Action):
         """
         assert isinstance(communities, Iterable)
         for community in communities:
-            assert isinstance(community, Community)
+            assert is_empty(community) or isinstance(community, Community)
         self._communities = communities
         self._additive = additive
 
