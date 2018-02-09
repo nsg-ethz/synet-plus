@@ -18,6 +18,7 @@ from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchLocalPref
 from synet.topo.bgp import MatchPeer
 from synet.topo.bgp import MatchNextHop
+from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.utils.fnfree_policy import SMTActions
 from synet.utils.fnfree_policy import SMTSetAttribute
@@ -48,6 +49,7 @@ from synet.utils.fnfree_policy import SMTSetPermitted
 from synet.utils.fnfree_policy import SMTSetPrefix
 from synet.utils.fnfree_policy import SMTSetMED
 from synet.utils.fnfree_policy import SMTSetNextHop
+from synet.utils.fnfree_policy import SMTRouteMap
 from synet.utils.fnfree_policy import SMTRouteMapLine
 from synet.utils.fnfree_smt_context import ASPATH_SORT
 from synet.utils.fnfree_smt_context import BGP_ORIGIN_SORT
@@ -2855,5 +2857,81 @@ class TestSMTRouteMapLine(unittest.TestCase):
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
         self.assertEquals(action.smt_actions.smt_actions[1].value.get_value(), 'Hop1')
+        self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
+        self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+
+
+@attr(speed='fast')
+class TestSMTRouteMap(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_concrete_next_hop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionSetNextHop('Hop1')
+        rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
+        rmap = RouteMap(name='r1', lines=[rline])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
+        self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+
+    def test_sym_next_hop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionSetNextHop(VALUENOTSET)
+        rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
+        rmap = RouteMap(name='r1', lines=[rline])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.smt_lines[0].smt_actions.smt_actions[1].value.get_value(), 'Hop1')
         self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
         self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')

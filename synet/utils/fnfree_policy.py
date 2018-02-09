@@ -1111,7 +1111,7 @@ class SMTRouteMapLine(SMTAbstractAction):
         """
         :param name: name for z3 vars
         :param line: RouteMapLine
-        :param context: SMTContext
+        :param ctx: SMTContext
         """
         self.ctx = ctx
         self.line = line
@@ -1129,6 +1129,32 @@ class SMTRouteMapLine(SMTAbstractAction):
                                   [self.permitted_action] + line.actions,
                                   self.old_announcements, self.ctx)
         self._announcements = self.smt_actions.announcements
+
+    @property
+    def announcements(self):
+        return self._announcements
+
+    @property
+    def old_announcements(self):
+        return self._old_announcements
+
+    def execute(self):
+        pass
+
+
+class SMTRouteMap(SMTAbstractAction):
+    """Synthesize RouteMap"""
+
+    def __init__(self, route_map, announcements, ctx):
+        self.route_map = route_map
+        self.ctx = ctx
+        self._old_announcements = announcements
+        self.smt_lines = []
+        for i, line in enumerate(self.route_map.lines):
+            box = SMTRouteMapLine(line, self._old_announcements, self.ctx)
+            self.smt_lines.append(box)
+        self._announcements = self.smt_lines[-1].announcements
+        assert len(self.smt_lines) == 1, 'Only one line is supported'
 
     @property
     def announcements(self):
