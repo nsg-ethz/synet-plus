@@ -30,7 +30,7 @@ def is_empty(var):
     """Return true if the variable is VALUENOTSET"""
     if hasattr(var, 'get_id'):
         return False
-    return str(var) == VALUENOTSET
+    return str(var) == VALUENOTSET or var is None
 
 
 def is_symbolic(var):
