@@ -3,7 +3,11 @@ import unittest
 import z3
 from nose.plugins.attrib import attr
 
+from synet.topo.bgp import ActionSetNextHop
+from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import Access
+from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
@@ -14,6 +18,7 @@ from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchLocalPref
 from synet.topo.bgp import MatchPeer
 from synet.topo.bgp import MatchNextHop
+from synet.utils.fnfree_policy import SMTActions
 from synet.utils.fnfree_policy import SMTSetAttribute
 from synet.utils.fnfree_policy import SMTMatch
 from synet.utils.fnfree_policy import SMTMatchASPath
@@ -2148,7 +2153,7 @@ class TestSMTSetOne(unittest.TestCase):
         comm = self.communities[0]
         # Act
         action = SMTSetOne(match, sym_anns, ctx)
-        action.execute()
+        #action.execute()
         new_anns = action.announcements
         solver = z3.Solver()
         solver.assert_and_track(new_anns[0].communities[comm].var == True, 'Req1')
@@ -2571,3 +2576,208 @@ class TestSMTMatch(unittest.TestCase):
         self.assertFalse(match1.get_value())
         self.assertEquals(match.smt_match.matches[0].get_used_match().value.get_value(), 'Prefix1')
         self.assertEquals(match.smt_match.matches[1].get_used_match().value.get_value(), 'Prefix1')
+
+
+@attr(speed='fast')
+class TestSMTActions(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_concrete_next_hop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionSetNextHop('Hop1')
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
+        self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+
+    def test_sym_next_hop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionSetNextHop(VALUENOTSET)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.smt_actions[0].value.get_value(), 'Hop1')
+        self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
+        self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+
+    def test_concrete_local_pref(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionSetLocalPref(200)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
+        self.assertEquals(new_anns[1].local_pref.get_value(), 200)
+
+    def test_sym_local_pref(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionSetLocalPref(VALUENOTSET)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].local_pref.var == 200)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.smt_actions[0].value.get_value(), 200)
+        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
+        self.assertEquals(new_anns[1].local_pref.get_value(), 200)
+
+    def test_concrete_permitted(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionPermitted(Access.deny)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].permitted.get_value(), False)
+        self.assertEquals(new_anns[1].permitted.get_value(), False)
+
+    def test_sym_local_permitted(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        raction = ActionPermitted(VALUENOTSET)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].permitted.var == False)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.smt_actions[0].value.get_value(), False)
+        self.assertEquals(new_anns[0].permitted.get_value(), False)
+        self.assertEquals(new_anns[1].permitted.get_value(), False)
+
+    def test_concrete_community(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        c = Community("100:16")
+        raction = ActionSetCommunity([c], additive=True)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].communities[c].get_value(), True)
+        self.assertEquals(new_anns[1].communities[c].get_value(), True)
+
+    def test_sym_community(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        c = Community("100:16")
+        raction = ActionSetCommunity([VALUENOTSET], additive=True)
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].communities[c].var == True)
+        # FIXME: Check if one is enough!!!!
+        solver.add(new_anns[1].communities[c].var == True)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = solver.check()
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.smt_actions[0].get_used_action().value.get_value(), True)
+        self.assertEquals(new_anns[0].communities[c].get_value(), True)
+        self.assertEquals(new_anns[1].communities[c].get_value(), True)

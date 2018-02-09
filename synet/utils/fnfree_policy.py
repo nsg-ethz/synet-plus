@@ -1003,3 +1003,99 @@ class SMTMatch(SMTAbstractMatch):
             match = self._get_community_match(community)
             matches.append(match)
         self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
+
+
+class SMTActions(SMTAbstractAction):
+    """Synthesize list of actions"""
+
+    def __init__(self, match, actions, announcements, ctx):
+        self.match = match
+        self.actions = actions
+        self.smt_actions = []
+        self.ctx = ctx
+        self._old_announcements = announcements
+        self._announcements = None
+        self.smt_match = SMTMatch(self.match, self.announcements, self.ctx)
+        self.action_dispatch = {
+            ActionSetLocalPref: self._set_local_pref,
+            ActionSetCommunity: self._set_communities,
+            ActionSetNextHop: self._set_next_hop,
+            ActionPermitted: self._set_access,
+        }
+        self.execute()
+
+    def execute(self):
+        if self._announcements:
+            return
+        prev_ann_ctx = self.old_announcements
+        for action in self.actions:
+            smt_action = self.action_dispatch[type(action)](action, prev_ann_ctx)
+            if isinstance(smt_action, list):
+                self.smt_actions.extend(smt_action)
+                prev_ann_ctx = smt_action[-1].announcements
+
+            else:
+                self.smt_actions.append(smt_action)
+                prev_ann_ctx = smt_action.announcements
+        self._announcements = self.smt_actions[-1].announcements
+        assert self._announcements != self.old_announcements
+
+    @property
+    def announcements(self):
+        return self._announcements
+
+    @property
+    def old_announcements(self):
+        return self._old_announcements
+
+    def _set_access(self, action, anns):
+        value = action.value if not is_empty(action.value) else None
+        vsort = z3.BoolSort()
+        if value:
+            value = True if value == Access.permit else False
+        var = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        return SMTSetPermitted(self.smt_match, var, anns, self.ctx)
+
+    def _set_community(self, community, anns):
+        community = community if not is_empty(community) else None
+        vsort = z3.BoolSort()
+        if community:
+            var = self.ctx.create_fresh_var(vsort=vsort, value=True)
+            return SMTSetCommunity(self.smt_match, community, var, anns, self.ctx)
+        else:
+            actions = []
+            for community in self.ctx.communities:
+                var = self.ctx.create_fresh_var(vsort=vsort, value=True)
+                tmp = SMTSetCommunity(self.smt_match, community, var, anns, self.ctx)
+                actions.append(tmp)
+            return SMTSetOne(self.smt_match, anns, self.ctx, actions)
+
+    def _set_communities(self, action, anns):
+        tmp = []
+        prev_anns = anns
+        if action.additive == False:
+            for comm in self.ctx.communities:
+                var = self.ctx.create_fresh_var(z3.BoolSort(), value=False)
+                a = SMTSetCommunity(self.match, comm, var, prev_anns, self.ctx)
+                prev_anns = a.announcements
+                tmp.append(a)
+        for comm in action.communities:
+            a = self._set_community(comm, prev_anns)
+            prev_anns = a.announcements
+            print "AAA", a, prev_anns
+            tmp.append(a)
+        return tmp
+
+    def _set_local_pref(self, action, anns):
+        value = action.value if not is_empty(action.value) else None
+        vsort = z3.IntSort()
+        var = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        return SMTSetLocalPref(self.smt_match, var, anns, self.ctx)
+
+    def _set_next_hop(self, action, anns):
+        value = action.value if not is_empty(action.value) else None
+        vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
+        if value:
+            value = vsort.get_symbolic_value(value)
+        var = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        return SMTSetNextHop(self.smt_match, var, anns, self.ctx)
