@@ -1102,3 +1102,41 @@ class SMTActions(SMTAbstractAction):
             value = vsort.get_symbolic_value(value)
         var = self.ctx.create_fresh_var(vsort=vsort, value=value)
         return SMTSetNextHop(self.smt_match, var, anns, self.ctx)
+
+
+class SMTRouteMapLine(SMTAbstractAction):
+    """Synthesize one RouteMapLine"""
+
+    def __init__(self, line, announcements, ctx):
+        """
+        :param name: name for z3 vars
+        :param line: RouteMapLine
+        :param context: SMTContext
+        """
+        self.ctx = ctx
+        self.line = line
+        self._old_announcements = announcements
+
+        if line.matches:
+            self.smt_match = SMTMatchAnd(
+                [SMTMatch(match, self.old_announcements, self.ctx) for match in line.matches])
+        else:
+            self.smt_match = SMTMatch(None, self.old_announcements, self.ctx)
+
+        self.permitted_action = ActionPermitted(line.access)
+
+        self.smt_actions = SMTActions(self.smt_match,
+                                  [self.permitted_action] + line.actions,
+                                  self.old_announcements, self.ctx)
+        self._announcements = self.smt_actions.announcements
+
+    @property
+    def announcements(self):
+        return self._announcements
+
+    @property
+    def old_announcements(self):
+        return self._old_announcements
+
+    def execute(self):
+        pass
