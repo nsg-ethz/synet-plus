@@ -397,7 +397,7 @@ class SMTMatchPermitted(SMTMatchAttribute):
             'permitted', value, announcements, ctx)
 
 
-class SMTAction(object):
+class SMTAbstractAction(object):
     """Parent action class"""
 
     @property
@@ -423,7 +423,7 @@ class SMTAction(object):
         raise NotImplementedError()
 
 
-class SMTSetAttribute(SMTAction):
+class SMTSetAttribute(SMTAbstractAction):
     """Action to change one attribute in the announcement"""
 
     def __init__(self, match, attribute, value, announcements, ctx):
@@ -499,7 +499,7 @@ class SMTSetAttribute(SMTAction):
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
-class SMTSetCommunity(SMTAction):
+class SMTSetCommunity(SMTAbstractAction):
     """Action to change one attribute in the announcement"""
 
     def __init__(self, match, community, value, announcements, ctx):
@@ -580,7 +580,7 @@ class SMTSetCommunity(SMTAction):
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
-class SMTSetOne(SMTAction):
+class SMTSetOne(SMTAbstractAction):
     """
     Chose a SINGLE match object to meet the requirements
     """
