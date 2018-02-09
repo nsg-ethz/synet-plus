@@ -2,6 +2,7 @@
 Synthesize policies .. aka route maps for the moment
 """
 
+from collections import Iterable
 import copy
 import functools
 import itertools
@@ -1125,9 +1126,13 @@ class SMTRouteMapLine(SMTAbstractAction):
 
         self.permitted_action = ActionPermitted(line.access)
 
-        self.smt_actions = SMTActions(self.smt_match,
-                                  [self.permitted_action] + line.actions,
-                                  self.old_announcements, self.ctx)
+        if line.actions:
+            assert isinstance(line.actions, Iterable)
+            actions = [self.permitted_action] + line.actions
+        else:
+            actions = [self.permitted_action]
+        self.smt_actions = SMTActions(self.smt_match, actions,
+                                      self.old_announcements, self.ctx)
         self._announcements = self.smt_actions.announcements
 
     @property
