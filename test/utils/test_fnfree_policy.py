@@ -3,10 +3,19 @@ import unittest
 import z3
 from nose.plugins.attrib import attr
 
+from synet.topo.bgp import Access
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
+from synet.topo.bgp import CommunityList
+from synet.topo.bgp import IpPrefixList
+from synet.topo.bgp import MatchCommunitiesList
+from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchLocalPref
+from synet.topo.bgp import MatchPeer
+from synet.topo.bgp import MatchNextHop
 from synet.utils.fnfree_policy import SMTSetAttribute
+from synet.utils.fnfree_policy import SMTMatch
 from synet.utils.fnfree_policy import SMTMatchASPath
 from synet.utils.fnfree_policy import SMTMatchASPathLen
 from synet.utils.fnfree_policy import SMTMatchAll
@@ -39,6 +48,7 @@ from synet.utils.fnfree_smt_context import PEER_SORT
 from synet.utils.fnfree_smt_context import PREFIX_SORT
 from synet.utils.fnfree_smt_context import NEXT_HOP_SORT
 from synet.utils.fnfree_smt_context import SolverContext
+from synet.utils.fnfree_smt_context import VALUENOTSET
 from synet.utils.fnfree_smt_context import get_as_path_key
 from synet.utils.fnfree_smt_context import read_announcements
 
@@ -2231,3 +2241,333 @@ class TestSMTSetCommunity(unittest.TestCase):
         self.assertEquals(action.value.get_value(), True)
         self.assertEquals(new_anns[0].communities[community].get_value(), True)
         self.assertEquals(new_anns[1].communities[community].get_value(), True)
+
+
+@attr(speed='fast')
+class TestSMTMatch(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: True}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_match_concrete_peer(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        r_match = MatchPeer('Peer1')
+        match = SMTMatch(r_match, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        ann0_value = match.is_match(sym_anns[0]).get_value()
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(ann0_value)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+    def test_match_sym_peer(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        r_match = MatchPeer(VALUENOTSET)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.value.get_value(), concrete_anns[0].peer)
+        self.assertNotEquals(match.value.get_value(), concrete_anns[1].peer)
+
+    def test_match_concrete_next_hop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        r_match = MatchNextHop('Hop1')
+        match = SMTMatch(r_match, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        ann0_value = match.is_match(sym_anns[0]).get_value()
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(ann0_value)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+    def test_match_sym_next_hop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        r_match = MatchNextHop(VALUENOTSET)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.value.get_value(), concrete_anns[0].next_hop)
+        self.assertNotEquals(match.value.get_value(), concrete_anns[1].next_hop)
+
+    def test_match_concrete_local_pref(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        r_match = MatchLocalPref(100)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        ann0_value = match.is_match(sym_anns[0]).get_value()
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertTrue(ann1_is_concrete)
+        self.assertTrue(ann0_value)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+    def test_match_sym_next_local_pref(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        r_match = MatchLocalPref(VALUENOTSET)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.value.get_value(), concrete_anns[0].local_pref)
+        self.assertNotEquals(match.value.get_value(), concrete_anns[1].local_pref)
+
+    def test_match_concrete_comm_list(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        clist = CommunityList(
+            list_id='clist1',
+            access=Access.permit,
+            communities=[Community("100:16"), Community("100:18")])
+        # Act
+        r_match = MatchCommunitiesList(clist)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        ann0_value = match.is_match(sym_anns[0]).get_value()
+        ann1_value = match.is_match(sym_anns[1]).get_value()
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertTrue(ann1_is_concrete)
+        self.assertTrue(ann0_value)
+        self.assertFalse(ann1_value)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+    def test_match_sym_comm_list(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        clist = CommunityList(
+            list_id='clist1',
+            access=Access.permit,
+            communities=[VALUENOTSET, VALUENOTSET])
+        # Act
+        r_match = MatchCommunitiesList(clist)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.smt_match.matches[0].get_used_match().community, Community("100:16"))
+        self.assertEquals(match.smt_match.matches[1].get_used_match().community, Community("100:18"))
+
+    def test_match_concrete_ip_list(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        clist = IpPrefixList(
+            name='iplist1',
+            access=Access.permit,
+            networks=['Prefix1'])
+        # Act
+        r_match = MatchIpPrefixListList(clist)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        #ann0_value = match.is_match(sym_anns[0]).get_value()
+        #ann1_value = match.is_match(sym_anns[1]).get_value()
+        # Evaluate constraints
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+    def test_match_sym_ip_list(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        clist = IpPrefixList(
+            name='iplist1',
+            access=Access.permit,
+            networks=[VALUENOTSET, VALUENOTSET])
+        # Act
+        r_match = MatchIpPrefixListList(clist)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = solver.check()
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.smt_match.matches[0].get_used_match().value.get_value(), 'Prefix1')
+        self.assertEquals(match.smt_match.matches[1].get_used_match().value.get_value(), 'Prefix1')

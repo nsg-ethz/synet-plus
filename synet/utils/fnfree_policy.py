@@ -9,9 +9,21 @@ import z3
 
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import Community
+from synet.topo.bgp import Match
+from synet.topo.bgp import MatchPeer
+from synet.topo.bgp import MatchLocalPref
+from synet.topo.bgp import MatchCommunitiesList
+from synet.topo.bgp import MatchNextHop
+from synet.topo.bgp import MatchIpPrefixListList
+from synet.utils.fnfree_smt_context import ASPATH_SORT
+from synet.utils.fnfree_smt_context import BGP_ORIGIN_SORT
+from synet.utils.fnfree_smt_context import PEER_SORT
+from synet.utils.fnfree_smt_context import PREFIX_SORT
+from synet.utils.fnfree_smt_context import NEXT_HOP_SORT
 from synet.utils.fnfree_smt_context import SMTVar
 from synet.utils.fnfree_smt_context import SolverContext
 from synet.utils.fnfree_smt_context import is_symbolic
+from synet.utils.fnfree_smt_context import is_empty
 
 
 __author__ = "Ahmed El-Hassany"
@@ -897,3 +909,88 @@ def attribute_set_factory(attribute, match=None, value=None, announcements=None,
     if match and announcements and ctx:
         return klass(match=match, value=value, announcements=announcements, ctx=ctx)
     return klass
+
+
+class SMTMatch(SMTAbstractMatch):
+    def __init__(self, match, announcements, ctx):
+        assert isinstance(match, Match)
+        self.match = match
+        self.announcements = announcements
+        self.ctx = ctx
+        self.smt_match = None
+        self.value = None
+        self.match_dispatch = {
+            MatchNextHop: self._load_match_next_hop,
+            MatchIpPrefixListList: self._load_match_prefix_list,
+            MatchCommunitiesList: self._load_match_communities_list,
+            MatchLocalPref: self._load_match_local_pref,
+            MatchPeer: self._load_match_peer,
+        }
+        self.match_dispatch[type(match)]()
+
+    def is_match(self, announcement):
+        return self.smt_match.is_match(announcement)
+
+    def _load_match_next_hop(self):
+        value = self.match.match if not is_empty(self.match.match) else None
+        vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
+        if value:
+            value = vsort.get_symbolic_value(value)
+        self.value = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        self.smt_match = SMTMatchNextHop(self.value, self.announcements, self.ctx)
+
+    def _load_match_local_pref(self):
+        value = self.match.match if not is_empty(self.match.match) else None
+        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
+        self.smt_match = SMTMatchLocalPref(self.value, self.announcements, self.ctx)
+
+    def _load_match_peer(self):
+        value = self.match.match if not is_empty(self.match.match) else None
+        vsort = self.ctx.get_enum_type(PEER_SORT)
+        if value:
+            value = vsort.get_symbolic_value(value)
+        self.value = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        self.smt_match = SMTMatchPeer(self.value, self.announcements, self.ctx)
+
+    def _get_ip_match(self, ip):
+        vsort = self.ctx.get_enum_type(PREFIX_SORT)
+        if not is_empty(ip):
+            val = vsort.get_symbolic_value(ip)
+            var = self.ctx.create_fresh_var(vsort, value=val)
+            return SMTMatchPrefix(var, self.announcements, self.ctx)
+        else:
+            matches = []
+            for ip in vsort.symbolic_values:
+                var = self.ctx.create_fresh_var(vsort, value=ip)
+                m = SMTMatchPrefix(var, self.announcements, self.ctx)
+                matches.append(m)
+            return SMTMatchSelectOne(self.announcements, self.ctx, matches)
+
+    def _load_match_prefix_list(self):
+        matches = []
+        for community in self.match.match.networks:
+            match = self._get_ip_match(community)
+            matches.append(match)
+        self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
+
+    def _get_community_match(self, community):
+        if not is_empty(community):
+            var = self.ctx.create_fresh_var(vsort=z3.BoolSort(), value=True)
+            match = SMTMatchCommunity(community=community, value=var,
+                                      announcements=self.announcements,
+                                      ctx=self.ctx)
+        else:
+            comms = []
+            for comm in self.ctx.communities:
+                var = self.ctx.create_fresh_var(z3.BoolSort(), value=True)
+                smt = SMTMatchCommunity(comm, var, self.announcements, self.ctx)
+                comms.append(smt)
+            match = SMTMatchSelectOne(self.announcements, self.ctx, comms)
+        return match
+
+    def _load_match_communities_list(self):
+        matches = []
+        for community in self.match.match.communities:
+            match = self._get_community_match(community)
+            matches.append(match)
+        self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
