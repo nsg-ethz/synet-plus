@@ -18,7 +18,7 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
-class SMTMatch(object):
+class SMTAbstractMatch(object):
     """Generic Match Class"""
 
     def is_match(self, announcement):
@@ -30,7 +30,7 @@ class SMTMatch(object):
         raise NotImplementedError()
 
 
-class SMTMatchAll(SMTMatch):
+class SMTMatchAll(SMTAbstractMatch):
     """Matches all announcements regardless of their contents"""
 
     def __init__(self, ctx):
@@ -42,7 +42,7 @@ class SMTMatchAll(SMTMatch):
         return self.match_var
 
 
-class SMTMatchNone(SMTMatch):
+class SMTMatchNone(SMTAbstractMatch):
     """Does NOT match any announcement regardless of its contents"""
 
     def __init__(self, ctx):
@@ -54,7 +54,7 @@ class SMTMatchNone(SMTMatch):
         return self.match_var
 
 
-class SMTMatchAnd(SMTMatch):
+class SMTMatchAnd(SMTAbstractMatch):
     """Combine Matches in `Or` expression"""
 
     def __init__(self, matches, announcements, ctx):
@@ -82,7 +82,7 @@ class SMTMatchAnd(SMTMatch):
         return self.matched_announcements[announcement]
 
 
-class SMTMatchOr(SMTMatch):
+class SMTMatchOr(SMTAbstractMatch):
     """Combine Matches in Or expression"""
 
     def __init__(self, matches, announcements, ctx):
@@ -115,7 +115,7 @@ class SMTMatchOr(SMTMatch):
         return self.matched_announcements[announcement]
 
 
-class SMTMatchSelectOne(SMTMatch):
+class SMTMatchSelectOne(SMTAbstractMatch):
     """
     Chose a SINGLE match object to meet the requirements
     """
@@ -192,7 +192,7 @@ class SMTMatchSelectOne(SMTMatch):
         return match
 
 
-class SMTMatchAttribute(SMTMatch):
+class SMTMatchAttribute(SMTAbstractMatch):
     """Match on a single attribute of announcement"""
 
     def __init__(self, attribute, value, announcements, ctx):
@@ -242,7 +242,7 @@ class SMTMatchAttribute(SMTMatch):
         return self.matched_announcements[announcement]
 
 
-class SMTMatchCommunity(SMTMatch):
+class SMTMatchCommunity(SMTAbstractMatch):
     """Match if a single community value is set to True"""
 
     def __init__(self, community, value, announcements, ctx):
