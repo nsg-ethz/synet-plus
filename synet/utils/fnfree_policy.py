@@ -7,6 +7,11 @@ import functools
 import itertools
 import z3
 
+from synet.topo.bgp import Access
+from synet.topo.bgp import ActionSetCommunity
+from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import ActionSetNextHop
+from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import Community
 from synet.topo.bgp import Match
@@ -632,6 +637,7 @@ class SMTSetOne(SMTAbstractAction):
                              self.index_var.var < index.next())
         self.ctx.register_constraint(index_range,
                                      name_prefix='setone_index_max_')
+        self.execute()
 
     @property
     def old_announcements(self):
@@ -913,7 +919,7 @@ def attribute_set_factory(attribute, match=None, value=None, announcements=None,
 
 class SMTMatch(SMTAbstractMatch):
     def __init__(self, match, announcements, ctx):
-        assert isinstance(match, Match)
+        assert isinstance(match, Match) or match is None
         self.match = match
         self.announcements = announcements
         self.ctx = ctx
@@ -926,7 +932,10 @@ class SMTMatch(SMTAbstractMatch):
             MatchLocalPref: self._load_match_local_pref,
             MatchPeer: self._load_match_peer,
         }
-        self.match_dispatch[type(match)]()
+        if self.match is None:
+            self.smt_match = SMTMatchAll(self.ctx)
+        else:
+            self.match_dispatch[type(match)]()
 
     def is_match(self, announcement):
         return self.smt_match.is_match(announcement)
