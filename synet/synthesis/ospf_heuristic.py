@@ -455,7 +455,7 @@ class OSPFSyn(SynthesisComponent):
         self.reset_solver()
         return self.removed_reqs[-1]
 
-    def _check_simple_path_req(self, out_graph, req):
+    def _check_simple_path_req(self, out_graph, req, allow_ecmp=False):
         """
         Check if a PathReq is satisfied
         :param out_graph: the current ospf graph
@@ -472,6 +472,8 @@ class OSPFSyn(SynthesisComponent):
             return sat
 
         if len(computed) > 1 or computed[0] != path:
+            if allow_ecmp and path in computed:
+                return sat
             print "#" * 20
             print "Required Simple shortest path", path
             print "Computed Simple shortest path", computed
@@ -603,10 +605,10 @@ class OSPFSyn(SynthesisComponent):
                 break
         return sat
 
-    def check_req_satisfied(self, out_graph, req):
+    def check_req_satisfied(self, out_graph, req, allow_ecmp=False):
         sat = True
         if isinstance(req, PathReq):
-            sat = self._check_simple_path_req(out_graph, req)
+            sat = self._check_simple_path_req(out_graph, req, allow_ecmp=allow_ecmp)
         elif isinstance(req, ECMPPathsReq):
             sat = self._check_ecmp_path_req(out_graph, req)
         elif isinstance(req, PathOrderReq):
@@ -617,7 +619,7 @@ class OSPFSyn(SynthesisComponent):
             raise ValueError("Cannot check req for %s", req)
         return sat
 
-    def synthesize(self, retries_before_rest=5, gen_path_increment=500):
+    def synthesize(self, retries_before_rest=5, gen_path_increment=500, allow_ecmp=False):
         """
         The main synthesis method
         :param retries_before_rest: how many time to try before resetting
@@ -648,7 +650,7 @@ class OSPFSyn(SynthesisComponent):
             # Using dijkstra algorithm
             for req in self.reqs:
                 g_ospf = self.get_output_network_graph()
-                if not self.check_req_satisfied(g_ospf, req):
+                if not self.check_req_satisfied(g_ospf, req, allow_ecmp=allow_ecmp):
                     recompute = True
             if not recompute:
                 break
