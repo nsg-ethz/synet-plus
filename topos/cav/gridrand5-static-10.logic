@@ -1,0 +1,294 @@
++SetNode("R11").
++SetNode("R12").
++SetNode("R13").
++SetNode("R14").
++SetNode("R15").
++SetNode("R21").
++SetNode("R22").
++SetNode("R23").
++SetNode("R24").
++SetNode("R25").
++SetNode("R31").
++SetNode("R32").
++SetNode("R33").
++SetNode("R34").
++SetNode("R35").
++SetNode("R41").
++SetNode("R42").
++SetNode("R43").
++SetNode("R44").
++SetNode("R45").
++SetNode("R51").
++SetNode("R52").
++SetNode("R53").
++SetNode("R54").
++SetNode("R55").
+
++SetInterface("R11", "I11_1").
++SetInterface("R11", "I11_2").
++SetInterface("R11", "I11_3").
++SetInterface("R11", "I11_4").
++SetInterface("R12", "I12_1").
++SetInterface("R12", "I12_2").
++SetInterface("R12", "I12_3").
++SetInterface("R12", "I12_4").
++SetInterface("R13", "I13_1").
++SetInterface("R13", "I13_2").
++SetInterface("R13", "I13_3").
++SetInterface("R13", "I13_4").
++SetInterface("R14", "I14_1").
++SetInterface("R14", "I14_2").
++SetInterface("R14", "I14_3").
++SetInterface("R14", "I14_4").
++SetInterface("R15", "I15_1").
++SetInterface("R15", "I15_2").
++SetInterface("R15", "I15_3").
++SetInterface("R15", "I15_4").
++SetInterface("R21", "I21_1").
++SetInterface("R21", "I21_2").
++SetInterface("R21", "I21_3").
++SetInterface("R21", "I21_4").
++SetInterface("R22", "I22_1").
++SetInterface("R22", "I22_2").
++SetInterface("R22", "I22_3").
++SetInterface("R22", "I22_4").
++SetInterface("R23", "I23_1").
++SetInterface("R23", "I23_2").
++SetInterface("R23", "I23_3").
++SetInterface("R23", "I23_4").
++SetInterface("R24", "I24_1").
++SetInterface("R24", "I24_2").
++SetInterface("R24", "I24_3").
++SetInterface("R24", "I24_4").
++SetInterface("R25", "I25_1").
++SetInterface("R25", "I25_2").
++SetInterface("R25", "I25_3").
++SetInterface("R25", "I25_4").
++SetInterface("R31", "I31_1").
++SetInterface("R31", "I31_2").
++SetInterface("R31", "I31_3").
++SetInterface("R31", "I31_4").
++SetInterface("R32", "I32_1").
++SetInterface("R32", "I32_2").
++SetInterface("R32", "I32_3").
++SetInterface("R32", "I32_4").
++SetInterface("R33", "I33_1").
++SetInterface("R33", "I33_2").
++SetInterface("R33", "I33_3").
++SetInterface("R33", "I33_4").
++SetInterface("R34", "I34_1").
++SetInterface("R34", "I34_2").
++SetInterface("R34", "I34_3").
++SetInterface("R34", "I34_4").
++SetInterface("R35", "I35_1").
++SetInterface("R35", "I35_2").
++SetInterface("R35", "I35_3").
++SetInterface("R35", "I35_4").
++SetInterface("R41", "I41_1").
++SetInterface("R41", "I41_2").
++SetInterface("R41", "I41_3").
++SetInterface("R41", "I41_4").
++SetInterface("R42", "I42_1").
++SetInterface("R42", "I42_2").
++SetInterface("R42", "I42_3").
++SetInterface("R42", "I42_4").
++SetInterface("R43", "I43_1").
++SetInterface("R43", "I43_2").
++SetInterface("R43", "I43_3").
++SetInterface("R43", "I43_4").
++SetInterface("R44", "I44_1").
++SetInterface("R44", "I44_2").
++SetInterface("R44", "I44_3").
++SetInterface("R44", "I44_4").
++SetInterface("R45", "I45_1").
++SetInterface("R45", "I45_2").
++SetInterface("R45", "I45_3").
++SetInterface("R45", "I45_4").
++SetInterface("R51", "I51_1").
++SetInterface("R51", "I51_2").
++SetInterface("R51", "I51_3").
++SetInterface("R51", "I51_4").
++SetInterface("R52", "I52_1").
++SetInterface("R52", "I52_2").
++SetInterface("R52", "I52_3").
++SetInterface("R52", "I52_4").
++SetInterface("R53", "I53_1").
++SetInterface("R53", "I53_2").
++SetInterface("R53", "I53_3").
++SetInterface("R53", "I53_4").
++SetInterface("R54", "I54_1").
++SetInterface("R54", "I54_2").
++SetInterface("R54", "I54_3").
++SetInterface("R54", "I54_4").
++SetInterface("R55", "I55_1").
++SetInterface("R55", "I55_2").
++SetInterface("R55", "I55_3").
++SetInterface("R55", "I55_4").
+
++SetLink(I11_1", "I12_2").
++SetLink(I11_3", "I21_4").
++SetLink(I12_1", "I13_2").
++SetLink(I12_2", "I11_1").
++SetLink(I12_3", "I22_4").
++SetLink(I13_1", "I14_2").
++SetLink(I13_2", "I12_1").
++SetLink(I13_3", "I23_4").
++SetLink(I14_1", "I15_2").
++SetLink(I14_2", "I13_1").
++SetLink(I14_3", "I24_4").
++SetLink(I15_2", "I14_1").
++SetLink(I15_3", "I25_4").
++SetLink(I21_1", "I22_2").
++SetLink(I21_3", "I31_4").
++SetLink(I21_4", "I11_3").
++SetLink(I22_1", "I23_2").
++SetLink(I22_2", "I21_1").
++SetLink(I22_3", "I32_4").
++SetLink(I22_4", "I12_3").
++SetLink(I23_1", "I24_2").
++SetLink(I23_2", "I22_1").
++SetLink(I23_3", "I33_4").
++SetLink(I23_4", "I13_3").
++SetLink(I24_1", "I25_2").
++SetLink(I24_2", "I23_1").
++SetLink(I24_3", "I34_4").
++SetLink(I24_4", "I14_3").
++SetLink(I25_2", "I24_1").
++SetLink(I25_3", "I35_4").
++SetLink(I25_4", "I15_3").
++SetLink(I31_1", "I32_2").
++SetLink(I31_3", "I41_4").
++SetLink(I31_4", "I21_3").
++SetLink(I32_1", "I33_2").
++SetLink(I32_2", "I31_1").
++SetLink(I32_3", "I42_4").
++SetLink(I32_4", "I22_3").
++SetLink(I33_1", "I34_2").
++SetLink(I33_2", "I32_1").
++SetLink(I33_3", "I43_4").
++SetLink(I33_4", "I23_3").
++SetLink(I34_1", "I35_2").
++SetLink(I34_2", "I33_1").
++SetLink(I34_3", "I44_4").
++SetLink(I34_4", "I24_3").
++SetLink(I35_2", "I34_1").
++SetLink(I35_3", "I45_4").
++SetLink(I35_4", "I25_3").
++SetLink(I41_1", "I42_2").
++SetLink(I41_3", "I51_4").
++SetLink(I41_4", "I31_3").
++SetLink(I42_1", "I43_2").
++SetLink(I42_2", "I41_1").
++SetLink(I42_3", "I52_4").
++SetLink(I42_4", "I32_3").
++SetLink(I43_1", "I44_2").
++SetLink(I43_2", "I42_1").
++SetLink(I43_3", "I53_4").
++SetLink(I43_4", "I33_3").
++SetLink(I44_1", "I45_2").
++SetLink(I44_2", "I43_1").
++SetLink(I44_3", "I54_4").
++SetLink(I44_4", "I34_3").
++SetLink(I45_2", "I44_1").
++SetLink(I45_3", "I55_4").
++SetLink(I45_4", "I35_3").
++SetLink(I51_1", "I52_2").
++SetLink(I51_4", "I41_3").
++SetLink(I52_1", "I53_2").
++SetLink(I52_2", "I51_1").
++SetLink(I52_4", "I42_3").
++SetLink(I53_1", "I54_2").
++SetLink(I53_2", "I52_1").
++SetLink(I53_4", "I43_3").
++SetLink(I54_1", "I55_2").
++SetLink(I54_2", "I53_1").
++SetLink(I54_4", "I44_3").
++SetLink(I55_2", "I54_1").
++SetLink(I55_4", "I45_3").
+
++SetAdminDist("R11","static",1).
++SetAdminDist("R11","bgp",2).
++SetAdminDist("R11","static",3).
++SetAdminDist("R12","static",1).
++SetAdminDist("R12","bgp",2).
++SetAdminDist("R12","static",3).
++SetAdminDist("R13","static",1).
++SetAdminDist("R13","bgp",2).
++SetAdminDist("R13","static",3).
++SetAdminDist("R14","static",1).
++SetAdminDist("R14","bgp",2).
++SetAdminDist("R14","static",3).
++SetAdminDist("R15","static",1).
++SetAdminDist("R15","bgp",2).
++SetAdminDist("R15","static",3).
++SetAdminDist("R21","static",1).
++SetAdminDist("R21","bgp",2).
++SetAdminDist("R21","static",3).
++SetAdminDist("R22","static",1).
++SetAdminDist("R22","bgp",2).
++SetAdminDist("R22","static",3).
++SetAdminDist("R23","static",1).
++SetAdminDist("R23","bgp",2).
++SetAdminDist("R23","static",3).
++SetAdminDist("R24","static",1).
++SetAdminDist("R24","bgp",2).
++SetAdminDist("R24","static",3).
++SetAdminDist("R25","static",1).
++SetAdminDist("R25","bgp",2).
++SetAdminDist("R25","static",3).
++SetAdminDist("R31","static",1).
++SetAdminDist("R31","bgp",2).
++SetAdminDist("R31","static",3).
++SetAdminDist("R32","static",1).
++SetAdminDist("R32","bgp",2).
++SetAdminDist("R32","static",3).
++SetAdminDist("R33","static",1).
++SetAdminDist("R33","bgp",2).
++SetAdminDist("R33","static",3).
++SetAdminDist("R34","static",1).
++SetAdminDist("R34","bgp",2).
++SetAdminDist("R34","static",3).
++SetAdminDist("R35","static",1).
++SetAdminDist("R35","bgp",2).
++SetAdminDist("R35","static",3).
++SetAdminDist("R41","static",1).
++SetAdminDist("R41","bgp",2).
++SetAdminDist("R41","static",3).
++SetAdminDist("R42","static",1).
++SetAdminDist("R42","bgp",2).
++SetAdminDist("R42","static",3).
++SetAdminDist("R43","static",1).
++SetAdminDist("R43","bgp",2).
++SetAdminDist("R43","static",3).
++SetAdminDist("R44","static",1).
++SetAdminDist("R44","bgp",2).
++SetAdminDist("R44","static",3).
++SetAdminDist("R45","static",1).
++SetAdminDist("R45","bgp",2).
++SetAdminDist("R45","static",3).
++SetAdminDist("R51","static",1).
++SetAdminDist("R51","bgp",2).
++SetAdminDist("R51","static",3).
++SetAdminDist("R52","static",1).
++SetAdminDist("R52","bgp",2).
++SetAdminDist("R52","static",3).
++SetAdminDist("R53","static",1).
++SetAdminDist("R53","bgp",2).
++SetAdminDist("R53","static",3).
++SetAdminDist("R54","static",1).
++SetAdminDist("R54","bgp",2).
++SetAdminDist("R54","static",3).
++SetAdminDist("R55","static",1).
++SetAdminDist("R55","bgp",2).
++SetAdminDist("R55","static",3).
+
++SetNetwork("R12", "R12_N7").
++SetNetwork("R15", "R15_N4").
++SetNetwork("R23", "R23_N0").
++SetNetwork("R23", "R23_N2").
++SetNetwork("R33", "R33_N1").
++SetNetwork("R35", "R35_N5").
++SetNetwork("R35", "R35_N6").
++SetNetwork("R44", "R44_N8").
++SetNetwork("R45", "R45_N3").
++SetNetwork("R51", "R51_N9").
