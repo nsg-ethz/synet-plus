@@ -136,7 +136,7 @@ def ospf(n, nreqs=10):
     ospf = OSPFCEGIS(topo, gen_paths=path_gen, random_obj=ospfRand)
     for req in ospf_reqs:
         ospf.add_req(req)
-    assert ospf.synthesize()
+    assert ospf.synthesize(allow_ecmp=True)
     assert not ospf.removed_reqs
 
 
