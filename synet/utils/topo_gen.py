@@ -282,3 +282,156 @@ def get_fanout_topology(fan_out):
         network_graph.add_router_edge(sink, node)
         network_graph.add_router_edge(node, sink)
     return network_graph
+
+
+def get_ibgp_linear_topo(N=2):
+    """Return N routers configured in a linear topology"""
+    net = NetworkGraph()
+    for i in range(1, N + 1):
+        name = "R%d" % i
+        net.add_router(name)
+        net.set_bgp_asnum(name, 100)
+    r1 = "R1"
+    for i in range(2, N + 1):
+        r2 = "R%d" % (i)
+        net.add_router_edge(r1, r2)
+        net.add_router_edge(r2, r1)
+        net.add_bgp_neighbor(r1, r2,
+                             router_a_iface=VALUENOTSET,
+                             router_b_iface=VALUENOTSET)
+    return net
+
+
+def get_ebgp_linear_topo(N=2):
+    """Return N routers configured in a linear topology"""
+    net = NetworkGraph()
+    for i in range(1, N + 1):
+        name = "R%d" % i
+        net.add_router(name)
+        net.set_bgp_asnum(name, i * 100)
+    for i in range(1, N):
+        r1 = "R%d" % i
+        r2 = "R%d" % (i + 1)
+        net.add_router_edge(r1, r2)
+        net.add_router_edge(r2, r1)
+        net.add_bgp_neighbor(r1, r2,
+                             router_a_iface=VALUENOTSET,
+                             router_b_iface=VALUENOTSET)
+    return net
+
+
+def get_griffin_graph():
+    """
+    Return the eBGP topology used in Griffin's papaers
+    :return: NetworkGraph
+    """
+    net = NetworkGraph()
+    for i in range(1, 6):
+        name = "R%d" % i
+        net.add_router(name)
+        net.set_bgp_asnum(name, i * 100)
+
+    net.add_router_edge('R1', 'R2')
+    net.add_router_edge('R2', 'R1')
+
+    net.add_router_edge('R1', 'R3')
+    net.add_router_edge('R3', 'R1')
+
+    net.add_router_edge('R1', 'R4')
+    net.add_router_edge('R4', 'R1')
+
+    net.add_router_edge('R2', 'R3')
+    net.add_router_edge('R3', 'R2')
+
+    net.add_router_edge('R2', 'R4')
+    net.add_router_edge('R4', 'R2')
+
+    net.add_router_edge('R3', 'R5')
+    net.add_router_edge('R5', 'R3')
+
+    net.add_router_edge('R4', 'R5')
+    net.add_router_edge('R5', 'R4')
+
+    net.add_bgp_neighbor('R1', 'R2', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R1', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R1', 'R4', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R2', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R2', 'R4', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R5', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R5', 'R4', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.set_iface_names()
+    return net
+
+
+def get_griffin_ibgp_graph():
+    """
+    Returns the eBGP topology Griffin's, however
+    R2 is now a mesh of iBGP routers R2_0, R2_1, R2_2, R2_3
+    and R5 is now a mesh of iBGP routers R5_0, R5_1, R5_2, R5_3
+    :return: NetworkGraph
+    """
+    net = NetworkGraph()
+    for i in range(1, 6):
+        if i in [2, 5]:
+            continue
+        name = "R%d" % i
+        net.add_router(name)
+        net.set_bgp_asnum(name, i * 100)
+
+    for i in range(4):
+        r2 = 'R2_%d' % i
+        r5 = 'R5_%d' % i
+        net.add_router(r2)
+        net.set_bgp_asnum(r2, 200)
+        net.add_router(r5)
+        net.set_bgp_asnum(r5, 500)
+
+    # Connect R2, R5 ibgp routers
+    for i in range(4):
+        for j in range(4):
+            if i == j:
+                continue
+            net.add_router_edge('R2_%d' % i, 'R2_%d' % j)
+            if set([i, j]) not in [set([0, 3]), set([1, 2])]:
+                net.add_router_edge('R5_%d' % i, 'R5_%d' % j)
+            if 'R2_%d' % i in net.get_bgp_neighbors('R2_%d' % j):
+                continue
+            net.add_bgp_neighbor('R2_%d' % i, 'R2_%d' % j, router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+            net.add_bgp_neighbor('R5_%d' % i, 'R5_%d' % j, router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+
+    net.add_router_edge('R1', 'R2_2')
+    net.add_router_edge('R2_2', 'R1')
+    net.add_router_edge('R1', 'R2_3')
+    net.add_router_edge('R2_3', 'R1')
+
+    net.add_router_edge('R1', 'R3')
+    net.add_router_edge('R3', 'R1')
+
+    net.add_router_edge('R1', 'R4')
+    net.add_router_edge('R4', 'R1')
+
+    net.add_router_edge('R2_1', 'R3')
+    net.add_router_edge('R3', 'R2_1')
+    net.add_router_edge('R2_3', 'R3')
+    net.add_router_edge('R3', 'R2_3')
+
+    net.add_router_edge('R2_0', 'R4')
+    net.add_router_edge('R4', 'R2_0')
+
+    net.add_router_edge('R3', 'R5_1')
+    net.add_router_edge('R5_1', 'R3')
+
+    net.add_router_edge('R4', 'R5_0')
+    net.add_router_edge('R5_0', 'R4')
+
+    net.add_bgp_neighbor('R1', 'R2_2', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R1', 'R2_3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R1', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R1', 'R4', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R2_1', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R2_3', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R2_0', 'R4', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R5_1', 'R3', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.add_bgp_neighbor('R5_0', 'R4', router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
+    net.set_iface_names()
+    return net
