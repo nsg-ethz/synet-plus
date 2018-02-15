@@ -98,7 +98,7 @@ class Announcement(object):
             prefix=self.prefix, peer=self.peer, origin=self.origin,
             as_path=self.as_path, next_hop=self.next_hop,
             as_path_len=self.as_path_len, local_pref=self.local_pref,
-            communities=comms, permitted=self.permitted)
+            med=self.med, communities=comms, permitted=self.permitted)
 
 
 class Access(Enum):
