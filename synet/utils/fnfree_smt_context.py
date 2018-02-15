@@ -389,6 +389,23 @@ class SolverContext(object):
         for var in self._vars.values():
             var.eval(model)
 
+    def check(self, solver, track=True):
+        for name, const in self.constraints_itr():
+            #print "Const", name, const
+            if track:
+                if isinstance(const, bool):
+                    var = self.create_fresh_var(z3.BoolSort(), value=None, name_prefix='BoolHack_')
+                    solver.assert_and_track(var.var == const, name)
+                    solver.assert_and_track(var.var == True, "%s_hack" % name)
+                else:
+                    solver.assert_and_track(const, name)
+            else:
+                solver.add(const)
+        ret = solver.check()
+        if ret == z3.sat:
+            self.set_model(solver.model())
+        return ret
+
     @staticmethod
     def create_context(announcements, prefix_list=None, peer_list=None,
                        as_path_list=None, next_hop_list=None):
