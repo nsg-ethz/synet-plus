@@ -3,8 +3,152 @@
 Common utils for BGP synthesis
 """
 
+import networkx as nx
+from synet.utils.fnfree_smt_context import VALUENOTSET
+from synet.utils.fnfree_smt_context import is_empty
+
+
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
+
+
+def synthesize_next_hop(network_graph, node, neighbor):
+    """
+    Synthesizes a next hop interface between two router
+    :return the name of the interface (on the neighbor)
+    """
+    # TODO: Synthesize proper next hop
+    asnum1 = network_graph.get_bgp_asnum(node)
+    asnum2 = network_graph.get_bgp_asnum(neighbor)
+    if asnum1 != asnum2 and network_graph.has_edge(neighbor, node):
+        iface = network_graph.get_edge_iface(neighbor, node)
+    else:
+        loopbacks = network_graph.get_loopback_interfaces(neighbor)
+        if not loopbacks:
+            iface = 'lo0'
+            network_graph.set_loopback_addr(neighbor, iface, VALUENOTSET)
+        else:
+            iface = loopbacks.keys()[0]
+    return iface
+
+
+def compute_next_hop_map(network_graph):
+    """
+    Compute the possible next hop values in the network
+    :return dict [node][neighbor]->next_hop
+    """
+    next_hop_map = {}
+    for node in network_graph.routers_iter():
+        if node not in next_hop_map:
+            next_hop_map[node] = {}
+        if not network_graph.get_bgp_asnum(node):
+            # BGP is not configured on this router
+            continue
+        neighbors = network_graph.get_bgp_neighbors(node)
+        for neighbor in neighbors:
+            iface = network_graph.get_bgp_neighbor_iface(node, neighbor)
+            if is_empty(iface):
+                iface = synthesize_next_hop(network_graph, node, neighbor)
+            network_graph.set_bgp_neighbor_iface(node, neighbor, iface)
+            assert iface, "Synthesize connected first"
+            iface = iface.replace("/", "-")
+            nxt = "%s-%s" % (neighbor, iface)
+            next_hop_map[node][neighbor] = nxt
+    return next_hop_map
+
+
+def extract_all_next_hops(next_hop_map):
+    """
+    Takes next_hop_map and just return a list of the names of the next hops
+    """
+    next_hops = set()
+    for src in next_hop_map:
+        for _, next_hop in next_hop_map[src].iteritems():
+            next_hops.add(next_hop)
+    return list(next_hops)
+
+
+def annotate_graph(graph):
+    """Annotate propagation graph with labels for prettier print out"""
+    for node in graph.nodes():
+        order = graph.node[node].get('order', [])
+        #paths = graph.node[node].get('paths', [])
+        block = graph.node[node].get('block', [])
+        graph.node[node]['label'] = "%s\nAllow: %s\nBlock: %s" % (node, order, block)
+
+
+def compute_propagation(graph, ordered_paths):
+    """
+    Takes an ordered list of BGP paths (just AS nums) and returns
+    a propagation graph, such that each node is annotated with the path
+    order
+    :returns networkx.DiGraph
+    """
+    dag = nx.DiGraph()
+
+    def add_node(node):
+        """Helper to initialize a node"""
+        assert graph.has_node(node), "Unknow node '%s' in the path" % node
+        if dag.has_node(node):
+            return
+        order = [set() for _ in range(len(ordered_paths))]
+        dag.add_node(node, order=order, paths=set(), block=set())
+
+    def allow_path(node, segment, index, origin):
+        # Add it to the white list
+        tmp = (origin, segment)
+        tmp = segment
+        if segment not in dag.node[node]['paths']:
+            dag.node[node]['paths'].add(tmp)
+            dag.node[node]['order'][index].add(tmp)
+        # Unblock it if it was blocked by another path in the requirement
+        if segment in dag.node[node]['block']:
+            dag.node[node]['block'].remove(tmp)
+
+    def block_path(node, segment, origin):
+        # Block it if it wasn't blocked before
+        # And if the path isn't in the required paths already
+        tmp = (origin, segment)
+        tmp = segment
+        if tmp not in dag.node[node]['block'] and \
+                tmp not in dag.node[node]['paths']:
+            dag.node[node]['block'].add(tmp)
+
+    if hasattr(graph, 'get_bgp_neighbors'):
+        iter_neigh = getattr(graph, 'get_bgp_neighbors')
+    else:
+        iter_neigh = getattr(graph, 'neighbors')
+    # Iterate over each required path
+    for index, paths in enumerate(ordered_paths):
+        for origin, path in paths:
+            add_node(path[0])
+            allow_path(path[0], (path[0],), index, origin)
+            dst = None
+            for src, dst in zip(path[0::1], path[1::1]):
+                # Add the node to the graph
+                add_node(src)
+                add_node(dst)
+                dag.add_edge(src, dst)
+                # Compute the path segment observed so far
+                segment = tuple(list(path[:path.index(src) + 1]) + [dst])
+                # Add it to the white list
+                allow_path(dst, segment, index, origin)
+                # Each BGP can advertise to all its neightbors
+                for add in iter_neigh(src):
+                    #print "IN NEIGH", add
+                    if add not in path:
+                        add_node(add)
+                        segment = tuple(list(path[:path.index(src) + 1]) + [add])
+                        block_path(add, segment, origin)
+                        dag.add_edge(src, add)
+                if dst == path[-1]:
+                    for add in iter_neigh(dst):
+                        if add not in path:
+                            add_node(add)
+                            segment = tuple(list(path[:path.index(dst) + 1]) + [add])
+                            block_path(add, segment, origin)
+                            dag.add_edge(dst, add)
+    return dag
 
 
 def write_dag(dag, file):
@@ -75,8 +219,8 @@ class ConflictingPreferences(Exception):
         err = "Conflicting requirements for path preference " \
               "at {}: currently learning {} (preference {}) " \
               "from {} while new reqs learning from {}.".format(
-            node, new_req.dst_net, new_pref, current_order,
-            curr_propagation)
+                  node, new_req.dst_net, new_pref, current_order,
+                  curr_propagation)
         super(ConflictingPreferences, self).__init__(err)
         self.node = node
         self.current_order = current_order
@@ -147,6 +291,13 @@ class PropagatedInfo(object):
             self.as_path,
             self.as_path_len,
             self.path)
+
+    def __hash__(self):
+        string = ""
+        attrs = ['egress', 'ann_name', 'peer', 'as_path', 'as_path_len', 'path']
+        for attr in attrs:
+            string += str(getattr(self, attr))
+        return hash(string)
 
     def __repr__(self):
         return self.__str__()
