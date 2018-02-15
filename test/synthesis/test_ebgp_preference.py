@@ -30,6 +30,11 @@ from synet.synthesis.propagation import ConflictingPreferences
 from synet.utils.bgp_utils import get_propagated_info
 from synet.utils.bgp_utils import PropagatedInfo
 
+# Hack for interface change
+from synet.topo.bgp import Announcement as FullAnnouncement
+from functools import partial
+Announcement = partial(FullAnnouncement, med=100)
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"

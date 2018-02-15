@@ -23,6 +23,11 @@ from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
 from synet.utils.topo_gen import get_fanout_topology
 
+# Hack for interface change
+from synet.topo.bgp import Announcement as FullAnnouncement
+from functools import partial
+Announcement = partial(FullAnnouncement, med=100)
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"

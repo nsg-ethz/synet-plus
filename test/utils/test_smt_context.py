@@ -4,7 +4,7 @@ from nose.plugins.attrib import attr
 
 import z3
 
-from synet.topo.bgp import Announcement
+from synet.topo.bgp import Announcement as Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
 
@@ -22,6 +22,11 @@ from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_empty
 from synet.utils.smt_context import is_symbolic
 from synet.utils.smt_context import VALUENOTSET
+
+# Hack for interface change
+from synet.topo.bgp import Announcement as FullAnnouncement
+from functools import partial
+Announcement = partial(FullAnnouncement, med=100)
 
 
 __author__ = "Ahmed El-Hassany"

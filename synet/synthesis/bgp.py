@@ -13,6 +13,11 @@ from synet.utils.smt_context import get_as_path_key
 from synet.utils.smt_context import is_symbolic
 from synet.utils.bgp_utils import get_propagated_info
 
+# Hack for interface change
+from synet.topo.bgp import Announcement as FullAnnouncement
+from functools import partial
+Announcement = partial(FullAnnouncement, med=100)
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"

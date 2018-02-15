@@ -26,6 +26,11 @@ from synet.utils.bgp_utils import ConflictingPreferences
 from synet.synthesis.connected import ConnectedSyn
 from synet.synthesis.propagation import EBGPPropagation
 
+# Hack for interface change
+from synet.topo.bgp import Announcement as FullAnnouncement
+from functools import partial
+Announcement = partial(FullAnnouncement, med=100)
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
