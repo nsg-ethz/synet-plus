@@ -143,7 +143,7 @@ class EnumType(object):
         return self.concrete_values[indexof]
 
     def __str__(self):
-        return "EnumType(%s, %s)" % (self.name, self.concrete_values)
+        return "EnumType(%s, %s)" % (self.name, len(self.concrete_values))
 
     def __repr__(self):
         return "EnumType(%s)" % self.name
