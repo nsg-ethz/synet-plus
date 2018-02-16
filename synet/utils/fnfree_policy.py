@@ -16,6 +16,8 @@ from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import Community
 from synet.topo.bgp import Match
+from synet.topo.bgp import MatchAsPath
+from synet.topo.bgp import MatchAsPathLen
 from synet.topo.bgp import MatchPeer
 from synet.topo.bgp import MatchLocalPref
 from synet.topo.bgp import MatchCommunitiesList
@@ -932,6 +934,8 @@ class SMTMatch(SMTAbstractMatch):
             MatchCommunitiesList: self._load_match_communities_list,
             MatchLocalPref: self._load_match_local_pref,
             MatchPeer: self._load_match_peer,
+            MatchAsPath: self._load_match_as_path,
+            MatchAsPathLen: self._load_match_as_path_len,
         }
         if self.match is None:
             self.smt_match = SMTMatchAll(self.ctx)
@@ -953,6 +957,19 @@ class SMTMatch(SMTAbstractMatch):
         value = self.match.match if not is_empty(self.match.match) else None
         self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
         self.smt_match = SMTMatchLocalPref(self.value, self.announcements, self.ctx)
+
+    def _load_match_as_path(self):
+        value = self.match.match if not is_empty(self.match.match) else None
+        vsort = self.ctx.get_enum_type(ASPATH_SORT)
+        if value:
+            value = vsort.get_symbolic_value(value)
+        self.value = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        self.smt_match = SMTMatchASPath(self.value, self.announcements, self.ctx)
+
+    def _load_match_as_path_len(self):
+        value = self.match.match if not is_empty(self.match.match) else None
+        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
+        self.smt_match = SMTMatchASPathLen(self.value, self.announcements, self.ctx)
 
     def _load_match_peer(self):
         value = self.match.match if not is_empty(self.match.match) else None
@@ -1120,7 +1137,8 @@ class SMTRouteMapLine(SMTAbstractAction):
 
         if line.matches:
             self.smt_match = SMTMatchAnd(
-                [SMTMatch(match, self.old_announcements, self.ctx) for match in line.matches])
+                [SMTMatch(match, self.old_announcements, self.ctx) for match in line.matches],
+                self.old_announcements, self.ctx)
         else:
             self.smt_match = SMTMatch(None, self.old_announcements, self.ctx)
 
