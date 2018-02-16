@@ -392,6 +392,22 @@ class MatchAsPath(Match):
         self._match = value
 
 
+class MatchAsPathLen(Match):
+    def __init__(self, as_path_len):
+        assert as_path_len == VALUENOTSET or isinstance(as_path_len, int)
+        self._match = as_path_len
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+
 class ActionPermitted(Action):
     def __init__(self, access):
         assert access == VALUENOTSET or isinstance(access, Access)
