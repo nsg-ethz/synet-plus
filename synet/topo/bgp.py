@@ -392,6 +392,22 @@ class MatchAsPath(Match):
         self._match = value
 
 
+class MatchPermitted(Match):
+    def __init__(self, access):
+        assert access == VALUENOTSET or isinstance(access, Access)
+        self._match = access
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+
 class MatchAsPathLen(Match):
     def __init__(self, as_path_len):
         assert as_path_len == VALUENOTSET or isinstance(as_path_len, int)
@@ -405,6 +421,23 @@ class MatchAsPathLen(Match):
     def match(self, value):
         if self._match != VALUENOTSET:
             raise ValueError("Match already set to %s" % self._match)
+        self._match = value
+
+
+class MatchMED(Match):
+    def __init__(self, med):
+        assert med == VALUENOTSET or isinstance(med, int)
+        self._match = med
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        assert isinstance(value, int)
         self._match = value
 
 
@@ -464,6 +497,7 @@ class ActionSetLocalPref(Action):
 
 class ActionSetNextHop(Action):
     def __init__(self, next_hop):
+        assert is_empty(next_hop) or isinstance(next_hop, basestring)
         self._value = next_hop
 
     @property
@@ -483,6 +517,33 @@ class ActionSetNextHop(Action):
 
     def __str__(self):
         return "SetNextHop(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class ActionSetPrefix(Action):
+    def __init__(self, prefix):
+        assert is_empty(prefix) or isinstance(prefix, basestring)
+        self._value = prefix
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetPrefix(%s)" % self.value
 
     def __repr__(self):
         return self.__str__()
@@ -512,6 +573,116 @@ class ActionASPathPrepend(Action):
 
     def __str__(self):
         return "ASPathPrepend(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class ActionSetASPath(Action):
+    """Prepend list of AS Paths"""
+
+    def __init__(self, as_path):
+        assert isinstance(as_path, Iterable)
+        self._value = as_path
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetASPath(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class ActionSetASPathLen(Action):
+    def __init__(self, as_path_len):
+        assert is_empty(as_path_len) or isinstance(as_path_len, int)
+        self._value = as_path_len
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetASPathLen(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class ActionSetPeer(Action):
+    def __init__(self, peer):
+        assert is_empty(peer) or isinstance(peer, basestring)
+        self._value = peer
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetPeer(%s)" % self.value
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class ActionSetMED(Action):
+    def __init__(self, med):
+        assert is_empty(med) or isinstance(med, int)
+        self._value = med
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if self._value != VALUENOTSET:
+            raise ValueError("Value alread set to %s" % self._value)
+        self._value = value
+
+    def __eq__(self, other):
+        if self.value == VALUENOTSET:
+            return False
+        return self.value == getattr(other, 'value', None)
+
+    def __str__(self):
+        return "SetMED(%s)" % self.value
 
     def __repr__(self):
         return self.__str__()
