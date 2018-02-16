@@ -9,12 +9,18 @@ import itertools
 import z3
 
 from synet.topo.bgp import Access
+from synet.topo.bgp import ActionSetASPath
+from synet.topo.bgp import ActionSetASPathLen
+from synet.topo.bgp import ActionSetMED
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionSetNextHop
+from synet.topo.bgp import ActionSetPeer
+from synet.topo.bgp import ActionSetPrefix
 from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import Community
+from synet.topo.bgp import CommunityList
 from synet.topo.bgp import Match
 from synet.topo.bgp import MatchAsPath
 from synet.topo.bgp import MatchAsPathLen
@@ -23,6 +29,9 @@ from synet.topo.bgp import MatchLocalPref
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchPermitted
+from synet.topo.bgp import RouteMap
+from synet.topo.bgp import RouteMapLine
 from synet.utils.fnfree_smt_context import ASPATH_SORT
 from synet.utils.fnfree_smt_context import BGP_ORIGIN_SORT
 from synet.utils.fnfree_smt_context import PEER_SORT
@@ -32,6 +41,7 @@ from synet.utils.fnfree_smt_context import SMTVar
 from synet.utils.fnfree_smt_context import SolverContext
 from synet.utils.fnfree_smt_context import is_symbolic
 from synet.utils.fnfree_smt_context import is_empty
+from synet.utils.fnfree_smt_context import decode_as_path
 
 
 __author__ = "Ahmed El-Hassany"
@@ -60,6 +70,9 @@ class SMTMatchAll(SMTAbstractMatch):
 
     def is_match(self, announcement):
         return self.match_var
+
+    def get_config(self):
+        return None
 
 
 class SMTMatchNone(SMTAbstractMatch):
@@ -211,6 +224,9 @@ class SMTMatchSelectOne(SMTAbstractMatch):
         match = self.matches[self.index_var.get_value()]
         return match
 
+    def get_config(self):
+        return self.get_used_match().get_config()
+
 
 class SMTMatchAttribute(SMTAbstractMatch):
     """Match on a single attribute of announcement"""
@@ -301,6 +317,9 @@ class SMTMatchCommunity(SMTAbstractMatch):
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
+    def get_config(self):
+        return self.community
+
 
 class SMTMatchPrefix(SMTMatchAttribute):
     """Matches Announcement.prefix"""
@@ -325,6 +344,9 @@ class SMTMatchPeer(SMTMatchAttribute):
         """
         super(SMTMatchPeer, self).__init__('peer', value, announcements, ctx)
 
+    def get_config(self):
+        return MatchPeer(self.value.get_value())
+
 
 class SMTMatchOrigin(SMTMatchAttribute):
     """Short cut to match on Announcement.origin"""
@@ -348,6 +370,9 @@ class SMTMatchNextHop(SMTMatchAttribute):
         super(SMTMatchNextHop, self).__init__(
             'next_hop', value, announcements, ctx)
 
+    def get_config(self):
+        return MatchNextHop(self.value.get_value())
+
 
 class SMTMatchASPath(SMTMatchAttribute):
     """Short cut to match on Announcement.as_path"""
@@ -358,6 +383,9 @@ class SMTMatchASPath(SMTMatchAttribute):
         :param announcements: List of announcements
         :param ctx: to register new constraints and create fresh vars"""
         super(SMTMatchASPath, self).__init__('as_path', value, announcements, ctx)
+
+    def get_config(self):
+        return MatchAsPath(decode_as_path(self.value.get_value()))
 
 
 class SMTMatchASPathLen(SMTMatchAttribute):
@@ -370,6 +398,9 @@ class SMTMatchASPathLen(SMTMatchAttribute):
         :param ctx: to register new constraints and create fresh vars"""
         super(SMTMatchASPathLen, self).__init__('as_path_len', value, announcements, ctx)
 
+    def get_config(self):
+        return MatchAsPathLen(self.value.get_value())
+
 
 class SMTMatchLocalPref(SMTMatchAttribute):
     """Short cut to match on Announcement.local_pref"""
@@ -380,6 +411,9 @@ class SMTMatchLocalPref(SMTMatchAttribute):
         :param announcements: List of announcements
         :param ctx: to register new constraints and create fresh vars"""
         super(SMTMatchLocalPref, self).__init__('local_pref', value, announcements, ctx)
+
+    def get_config(self):
+        return MatchLocalPref(self.value.get_value())
 
 
 class SMTMatchMED(SMTMatchAttribute):
@@ -392,6 +426,9 @@ class SMTMatchMED(SMTMatchAttribute):
         :param ctx: to register new constraints and create fresh vars"""
         super(SMTMatchMED, self).__init__('med', value, announcements, ctx)
 
+    def get_config(self):
+        raise NotImplementedError("Not Implemented")
+
 
 class SMTMatchPermitted(SMTMatchAttribute):
     """Short cut to match on Announcement.permitted"""
@@ -403,6 +440,9 @@ class SMTMatchPermitted(SMTMatchAttribute):
         :param ctx: to register new constraints and create fresh vars"""
         super(SMTMatchPermitted, self).__init__(
             'permitted', value, announcements, ctx)
+
+    def get_config(self):
+        return MatchLocalPref(self.value.get_value())
 
 
 class SMTAbstractAction(object):
@@ -587,6 +627,9 @@ class SMTSetCommunity(SMTAbstractAction):
             self.smt_ctx.register_constraint(z3.And(*constraints))
         self._announcements = self._old_announcements.create_new(announcements, self)
 
+    def get_config(self):
+        return self.community if self.value.get_value() else None
+
 
 class SMTSetOne(SMTAbstractAction):
     """
@@ -737,6 +780,9 @@ class SMTSetOne(SMTAbstractAction):
         match = self.actions[self.index_var.get_value()]
         return match
 
+    def get_config(self):
+        return self.get_used_action().get_config()
+
 
 class SMTSetLocalPref(SMTSetAttribute):
     """Short cut to set the value of Announcement.local_pref"""
@@ -750,6 +796,11 @@ class SMTSetLocalPref(SMTSetAttribute):
         """
         super(SMTSetLocalPref, self).__init__(
             match, 'local_pref', value, announcements, ctx)
+        if not self.value.is_concrete:
+            self.smt_ctx.register_constraint(self.value.var > 0, name_prefix="LocalPref_Bound")
+
+    def get_config(self):
+        return ActionSetLocalPref(self.value.get_value())
 
 
 class SMTSetPrefix(SMTSetAttribute):
@@ -765,6 +816,9 @@ class SMTSetPrefix(SMTSetAttribute):
         super(SMTSetPrefix, self).__init__(
             match, 'prefix', value, announcements, ctx)
 
+    def get_config(self):
+        return ActionSetPrefix(self.value.get_value())
+
 
 class SMTSetPeer(SMTSetAttribute):
     """Short cut to set the value of Announcement.peer"""
@@ -778,6 +832,9 @@ class SMTSetPeer(SMTSetAttribute):
         """
         super(SMTSetPeer, self).__init__(
             match, 'peer', value, announcements, ctx)
+
+    def get_config(self):
+        return ActionSetPeer(self.value.get_value())
 
 
 class SMTSetOrigin(SMTSetAttribute):
@@ -807,6 +864,9 @@ class SMTSetPermitted(SMTSetAttribute):
         super(SMTSetPermitted, self).__init__(
             match, 'permitted', value, announcements, ctx)
 
+    def get_config(self):
+        return Access.permit if self.value.get_value() else Access.deny
+
 
 class SMTSetASPath(SMTSetAttribute):
     """Short cut to set the value of Announcement.as_path"""
@@ -820,6 +880,9 @@ class SMTSetASPath(SMTSetAttribute):
         """
         super(SMTSetASPath, self).__init__(
             match, 'as_path', value, announcements, ctx)
+
+    def get_config(self):
+        return ActionSetASPath(self.value.get_value())
 
 
 class SMTSetASPathLen(SMTSetAttribute):
@@ -835,6 +898,9 @@ class SMTSetASPathLen(SMTSetAttribute):
         super(SMTSetASPathLen, self).__init__(
             match, 'as_path_len', value, announcements, ctx)
 
+    def get_config(self):
+        return ActionSetASPathLen(self.value.get_value())
+
 
 class SMTSetNextHop(SMTSetAttribute):
     """Short cut to set the value of Announcement.next_hop"""
@@ -849,6 +915,9 @@ class SMTSetNextHop(SMTSetAttribute):
         super(SMTSetNextHop, self).__init__(
             match, 'next_hop', value, announcements, ctx)
 
+    def get_config(self):
+        return ActionSetNextHop(self.value.get_value())
+
 
 class SMTSetMED(SMTSetAttribute):
     """Short cut to set the value of Announcement.med"""
@@ -862,6 +931,11 @@ class SMTSetMED(SMTSetAttribute):
         """
         super(SMTSetMED, self).__init__(
             match, 'med', value, announcements, ctx)
+        if not self.value.is_concrete:
+            self.smt_ctx.register_constraint(self.value.var > 0, name_prefix="MED_Bound")
+
+    def get_config(self):
+        return ActionSetMED(self.value.get_value())
 
 
 def attribute_match_factory(attribute, value=None, announcements=None, ctx=None):
@@ -1022,6 +1096,9 @@ class SMTMatch(SMTAbstractMatch):
             matches.append(match)
         self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
 
+    def get_config(self):
+        return self.smt_match.get_config()
+
 
 class SMTActions(SMTAbstractAction):
     """Synthesize list of actions"""
@@ -1041,6 +1118,7 @@ class SMTActions(SMTAbstractAction):
             ActionSetLocalPref: self._set_local_pref,
             ActionSetCommunity: self._set_communities,
             ActionSetNextHop: self._set_next_hop,
+            ActionSetPrefix: self._set_prefix,
             ActionPermitted: self._set_access,
         }
         self.execute()
@@ -1103,7 +1181,6 @@ class SMTActions(SMTAbstractAction):
         for comm in action.communities:
             a = self._set_community(comm, prev_anns)
             prev_anns = a.announcements
-            print "AAA", a, prev_anns
             tmp.append(a)
         return tmp
 
@@ -1120,6 +1197,41 @@ class SMTActions(SMTAbstractAction):
             value = vsort.get_symbolic_value(value)
         var = self.ctx.create_fresh_var(vsort=vsort, value=value)
         return SMTSetNextHop(self.smt_match, var, anns, self.ctx)
+
+    def _set_prefix(self, action, anns):
+        value = action.value if not is_empty(action.value) else None
+        vsort = self.ctx.get_enum_type(PREFIX_SORT)
+        if value:
+            value = vsort.get_symbolic_value(value)
+        var = self.ctx.create_fresh_var(vsort=vsort, value=value)
+        return SMTSetPrefix(self.smt_match, var, anns, self.ctx)
+
+    def get_config(self):
+        communities = []
+        configs = []
+
+        def _gather_communities(comms, index):
+            prev_action = self.actions[index]
+            assert isinstance(prev_action, ActionSetCommunity)
+            action = ActionSetCommunity(communities=comms,
+                                        additive=prev_action.additive)
+            return action
+
+        for index, smt_box in enumerate(self.smt_actions):
+            config = smt_box.get_config()
+            if isinstance(config, Community):
+                communities.append(config)
+            else:
+                if communities:
+                    config = _gather_communities(communities, index)
+                    configs.append(config)
+                    communities = []
+                else:
+                    configs.append(smt_box.get_config())
+        if communities:
+            config = _gather_communities(communities, index)
+            configs.append(config)
+        return configs
 
 
 class SMTRouteMapLine(SMTAbstractAction):
@@ -1164,6 +1276,25 @@ class SMTRouteMapLine(SMTAbstractAction):
     def execute(self):
         pass
 
+    def get_config(self):
+        matches = []
+        match_config = self.smt_match.get_config()
+        if isinstance(self.smt_match, SMTMatchAnd):
+            matches.extend(match_config)
+        elif match_config:
+            matches.append(match_config)
+        if not matches:
+            matches = None
+        actions = self.smt_actions.get_config()
+        permittted = actions[0]
+        actions = actions[1:]
+
+        if not actions:
+            actions = None
+        return RouteMapLine(matches=matches, actions=actions,
+                            access=permittted,
+                            lineno=self.line.lineno)
+
 
 class SMTRouteMap(SMTAbstractAction):
     """Synthesize RouteMap"""
@@ -1189,3 +1320,9 @@ class SMTRouteMap(SMTAbstractAction):
 
     def execute(self):
         pass
+
+    def get_config(self):
+        lines = []
+        for line in self.smt_lines:
+            lines.append(line.get_config())
+        return RouteMap(name=self.route_map.name, lines=lines)

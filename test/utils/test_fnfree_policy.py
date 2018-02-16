@@ -6,6 +6,8 @@ from nose.plugins.attrib import attr
 from synet.topo.bgp import ActionSetNextHop
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionSetCommunity
+from synet.topo.bgp import ActionSetPeer
+from synet.topo.bgp import ActionSetPrefix
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
@@ -13,6 +15,8 @@ from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import IpPrefixList
+from synet.topo.bgp import MatchAsPath
+from synet.topo.bgp import MatchAsPathLen
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchLocalPref
@@ -774,6 +778,7 @@ class TestSMTMatchNextHop(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertTrue(match.is_match(sym_anns[0]).get_value())
         self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        self.assertEquals(match.get_config(), MatchNextHop(concrete_anns[0].next_hop))
 
     def test_match_sym(self):
         # Arrange
@@ -803,6 +808,7 @@ class TestSMTMatchNextHop(unittest.TestCase):
         self.assertFalse(match1.get_value())
         self.assertEquals(match.value.get_value(), concrete_anns[0].next_hop)
         self.assertNotEquals(match.value.get_value(), concrete_anns[1].next_hop)
+        self.assertEquals(match.get_config(), MatchNextHop(concrete_anns[0].next_hop))
 
 
 @attr(speed='fast')
@@ -861,6 +867,7 @@ class TestSMTMatchAsPath(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertTrue(match.is_match(sym_anns[0]).get_value())
         self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        self.assertEquals(match.get_config(), MatchAsPath(concrete_anns[0].as_path))
 
     def test_match_sym(self):
         # Arrange
@@ -892,6 +899,7 @@ class TestSMTMatchAsPath(unittest.TestCase):
         self.assertTrue(match0.get_value())
         self.assertFalse(match1.get_value())
         self.assertEquals(sym.get_value(), as_path)
+        self.assertEquals(match.get_config(), MatchAsPath(concrete_anns[0].as_path))
 
 
 @attr(speed='fast')
@@ -949,6 +957,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertTrue(match.is_match(sym_anns[0]).get_value())
         self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        self.assertEquals(match.get_config(), MatchAsPathLen(len(concrete_anns[0].as_path)))
 
     def test_match_sym(self):
         # Arrange
@@ -979,6 +988,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         self.assertTrue(match0.get_value())
         self.assertFalse(match1.get_value())
         self.assertEquals(sym.get_value(), concrete_anns[0].as_path_len)
+        self.assertEquals(match.get_config(), MatchAsPathLen(len(concrete_anns[0].as_path)))
 
 
 @attr(speed='fast')
@@ -1207,6 +1217,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         self.assertTrue(match.is_match(sym_anns[0]).get_value())
         self.assertFalse(match.is_match(sym_anns[1]).get_value())
         self.assertIsNotNone(match.get_used_match())
+        self.assertIsNotNone(match.get_used_match().get_config())
 
     def test_unsat(self):
         # Arrange
@@ -1259,6 +1270,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
         self.assertEqual(match.get_used_match(), c1_match)
+        self.assertEqual(match.get_used_match().get_config(), self.communities[1])
 
 
 @attr(speed='fast')
@@ -1412,7 +1424,8 @@ class TestSMTSetLocalPref(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        pref = ctx.create_fresh_var(z3.IntSort(), value=200)
+        local_pref = 200
+        pref = ctx.create_fresh_var(z3.IntSort(), value=local_pref)
         # Act
         action = SMTSetLocalPref(match, pref, sym_anns, ctx)
         new_anns = action.announcements
@@ -1423,8 +1436,9 @@ class TestSMTSetLocalPref(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
-        self.assertEquals(new_anns[1].local_pref.get_value(), 200)
+        self.assertEquals(new_anns[0].local_pref.get_value(), local_pref)
+        self.assertEquals(new_anns[1].local_pref.get_value(), local_pref)
+        self.assertEquals(action.get_config(), ActionSetLocalPref(local_pref))
 
     def test_int_sym(self):
         # Arrange
@@ -1432,21 +1446,23 @@ class TestSMTSetLocalPref(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
+        local_pref = 200
         # Act
         action = SMTSetLocalPref(match, None, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        solver.add(new_anns[0].local_pref.var == 200)
-        #solver.add(new_anns[0].local_pref.var == 200)
+        solver.add(new_anns[0].local_pref.var == local_pref)
+        #solver.add(new_anns[0].local_pref.var == local_pref)
         is_sat = solver.check()
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(action.value.get_value(), 200)
-        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
-        self.assertEquals(new_anns[1].local_pref.get_value(), 200)
+        self.assertEquals(action.value.get_value(), local_pref)
+        self.assertEquals(new_anns[0].local_pref.get_value(), local_pref)
+        self.assertEquals(new_anns[1].local_pref.get_value(), local_pref)
+        self.assertEquals(action.get_config(), ActionSetLocalPref(local_pref))
 
 
 @attr(speed='fast')
@@ -1485,6 +1501,7 @@ class TestSMTSetPrefix(unittest.TestCase):
         match = SMTMatchAll(ctx)
         vsort = ctx.get_enum_type(PREFIX_SORT)
         value = ctx.create_fresh_var(vsort, value=concrete_anns[0].prefix)
+        prefix = 'Prefix1'
         # Act
         action = SMTSetPrefix(match, value, sym_anns, ctx)
         new_anns = action.announcements
@@ -1495,8 +1512,9 @@ class TestSMTSetPrefix(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(new_anns[0].prefix.get_value(), 'Prefix1')
-        self.assertEquals(new_anns[1].prefix.get_value(), 'Prefix1')
+        self.assertEquals(new_anns[0].prefix.get_value(), prefix)
+        self.assertEquals(new_anns[1].prefix.get_value(), prefix)
+        self.assertEquals(action.get_config(), ActionSetPrefix(prefix))
 
     def test_int_sym(self):
         # Arrange
@@ -1504,6 +1522,7 @@ class TestSMTSetPrefix(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
+        prefix = 'Prefix1'
         # Act
         action = SMTSetPrefix(match, None, sym_anns, ctx)
         new_anns = action.announcements
@@ -1516,9 +1535,10 @@ class TestSMTSetPrefix(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(action.value.get_value(), 'Prefix1')
-        self.assertEquals(new_anns[0].prefix.get_value(), 'Prefix1')
-        self.assertEquals(new_anns[1].prefix.get_value(), 'Prefix1')
+        self.assertEquals(action.value.get_value(), prefix)
+        self.assertEquals(new_anns[0].prefix.get_value(), prefix)
+        self.assertEquals(new_anns[1].prefix.get_value(), prefix)
+        self.assertEquals(action.get_config(), ActionSetPrefix(prefix))
 
 
 @attr(speed='fast')
@@ -1557,6 +1577,7 @@ class TestSMTSetPeer(unittest.TestCase):
         match = SMTMatchAll(ctx)
         vsort = ctx.get_enum_type(PEER_SORT)
         value = ctx.create_fresh_var(vsort, value=concrete_anns[0].peer)
+        peer = 'Peer1'
         # Act
         action = SMTSetPeer(match, value, sym_anns, ctx)
         new_anns = action.announcements
@@ -1567,8 +1588,9 @@ class TestSMTSetPeer(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(new_anns[0].peer.get_value(), 'Peer1')
-        self.assertEquals(new_anns[1].peer.get_value(), 'Peer1')
+        self.assertEquals(new_anns[0].peer.get_value(), peer)
+        self.assertEquals(new_anns[1].peer.get_value(), peer)
+        self.assertEquals(action.get_config(), ActionSetPeer(peer))
 
     def test_int_sym(self):
         # Arrange
@@ -1576,6 +1598,7 @@ class TestSMTSetPeer(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
+        peer = 'Peer1'
         # Act
         action = SMTSetPeer(match, None, sym_anns, ctx)
         new_anns = action.announcements
@@ -1588,9 +1611,10 @@ class TestSMTSetPeer(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(action.value.get_value(), 'Peer1')
-        self.assertEquals(new_anns[0].peer.get_value(), 'Peer1')
-        self.assertEquals(new_anns[1].peer.get_value(), 'Peer1')
+        self.assertEquals(action.value.get_value(), peer)
+        self.assertEquals(new_anns[0].peer.get_value(), peer)
+        self.assertEquals(new_anns[1].peer.get_value(), peer)
+        self.assertEquals(action.get_config(), ActionSetPeer(peer))
 
 
 @attr(speed='fast')
@@ -1918,7 +1942,8 @@ class TestSMTSetNextHop(unittest.TestCase):
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
         vsort = ctx.get_enum_type(NEXT_HOP_SORT)
-        value = ctx.create_fresh_var(vsort, value=concrete_anns[0].next_hop)
+        next_hop = concrete_anns[0].next_hop
+        value = ctx.create_fresh_var(vsort, value=next_hop)
         # Act
         action = SMTSetNextHop(match, value, sym_anns, ctx)
         new_anns = action.announcements
@@ -1929,8 +1954,9 @@ class TestSMTSetNextHop(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(new_anns[0].next_hop.get_value(), concrete_anns[0].next_hop)
-        self.assertEquals(new_anns[1].next_hop.get_value(), concrete_anns[0].next_hop)
+        self.assertEquals(new_anns[0].next_hop.get_value(), next_hop)
+        self.assertEquals(new_anns[1].next_hop.get_value(), next_hop)
+        self.assertEquals(action.get_config(), ActionSetNextHop(next_hop))
 
     def test_int_sym(self):
         # Arrange
@@ -1938,6 +1964,7 @@ class TestSMTSetNextHop(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
+        next_hop = concrete_anns[0].next_hop
         # Act
         action = SMTSetNextHop(match, None, sym_anns, ctx)
         new_anns = action.announcements
@@ -1950,9 +1977,10 @@ class TestSMTSetNextHop(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(action.value.get_value(), concrete_anns[0].next_hop)
-        self.assertEquals(new_anns[0].next_hop.get_value(), concrete_anns[0].next_hop)
-        self.assertEquals(new_anns[1].next_hop.get_value(), concrete_anns[0].next_hop)
+        self.assertEquals(action.value.get_value(), next_hop)
+        self.assertEquals(new_anns[0].next_hop.get_value(), next_hop)
+        self.assertEquals(new_anns[1].next_hop.get_value(), next_hop)
+        self.assertEquals(action.get_config(), ActionSetNextHop(next_hop))
 
 
 @attr(speed='fast')
@@ -2226,6 +2254,7 @@ class TestSMTSetCommunity(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertEquals(new_anns[0].communities[community].get_value(), True)
         self.assertEquals(new_anns[1].communities[community].get_value(), True)
+        self.assertEquals(action.get_config(), community)
 
     def test_sym(self):
         # Arrange
@@ -2250,6 +2279,7 @@ class TestSMTSetCommunity(unittest.TestCase):
         self.assertEquals(action.value.get_value(), True)
         self.assertEquals(new_anns[0].communities[community].get_value(), True)
         self.assertEquals(new_anns[1].communities[community].get_value(), True)
+        self.assertEquals(action.get_config(), community)
 
 
 @attr(speed='fast')
@@ -2759,6 +2789,7 @@ class TestSMTActions(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertEquals(new_anns[0].communities[c].get_value(), True)
         self.assertEquals(new_anns[1].communities[c].get_value(), True)
+        self.assertEquals(action.get_config(), [raction])
 
     def test_sym_community(self):
         # Arrange
@@ -2785,6 +2816,7 @@ class TestSMTActions(unittest.TestCase):
         self.assertEquals(action.smt_actions[0].get_used_action().value.get_value(), True)
         self.assertEquals(new_anns[0].communities[c].get_value(), True)
         self.assertEquals(new_anns[1].communities[c].get_value(), True)
+        self.assertEquals(action.get_config(), [ActionSetCommunity([c], additive=True)])
 
 
 @attr(speed='fast')
@@ -2835,6 +2867,7 @@ class TestSMTRouteMapLine(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
         self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+        self.assertEquals(action.get_config(), rline)
 
     def test_sym_next_hop(self):
         # Arrange
@@ -2842,6 +2875,7 @@ class TestSMTRouteMapLine(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = None
+        hop = 'Hop1'
         # Act
         raction = ActionSetNextHop(VALUENOTSET)
         rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
@@ -2856,9 +2890,10 @@ class TestSMTRouteMapLine(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
-        self.assertEquals(action.smt_actions.smt_actions[1].value.get_value(), 'Hop1')
-        self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
-        self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+        self.assertEquals(action.smt_actions.smt_actions[1].value.get_value(), hop)
+        self.assertEquals(new_anns[0].next_hop.get_value(), hop)
+        self.assertEquals(new_anns[1].next_hop.get_value(), hop)
+        self.assertEquals(action.get_config(), RouteMapLine(matches=None, actions=[ActionSetNextHop(hop)], access=Access.permit, lineno=10))
 
 
 @attr(speed='fast')
@@ -2910,6 +2945,7 @@ class TestSMTRouteMap(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
         self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+        self.assertEquals(action.get_config(), rmap)
 
     def test_sym_next_hop(self):
         # Arrange
