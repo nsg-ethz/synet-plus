@@ -291,12 +291,13 @@ def get_ibgp_linear_topo(N=2):
         name = "R%d" % i
         net.add_router(name)
         net.set_bgp_asnum(name, 100)
-    r1 = "R1"
-    for i in range(2, N + 1):
-        r2 = "R%d" % (i)
+
+    for i in range(1, N):
+        r1 = "R%d" % i
+        r2 = "R%d" % (i + 1)
         net.add_router_edge(r1, r2)
         net.add_router_edge(r2, r1)
-        net.add_bgp_neighbor(r1, r2,
+        net.add_bgp_neighbor('R1', r2,
                              router_a_iface=VALUENOTSET,
                              router_b_iface=VALUENOTSET)
     return net
