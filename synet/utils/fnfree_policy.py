@@ -1117,21 +1117,6 @@ class SMTMatch(SMTAbstractMatch):
             matches.append(match)
         self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
 
-    def _get_community_match(self, community):
-        if not is_empty(community):
-            var = self.ctx.create_fresh_var(vsort=z3.BoolSort(), value=True)
-            match = SMTMatchCommunity(community=community, value=var,
-                                      announcements=self.announcements,
-                                      ctx=self.ctx)
-        else:
-            comms = []
-            for comm in self.ctx.communities:
-                var = self.ctx.create_fresh_var(z3.BoolSort(), value=True)
-                smt = SMTMatchCommunity(comm, var, self.announcements, self.ctx)
-                comms.append(smt)
-            match = SMTMatchSelectOne(self.announcements, self.ctx, comms)
-        return match
-
     def _load_match_communities_list(self):
         self.smt_match = SMTMatchCommunityList(
             self.match.match, self.announcements, self.ctx)
