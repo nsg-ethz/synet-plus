@@ -32,7 +32,7 @@ class EBGPVerify(object):
         """
         graph = nx.Graph()
         ases = {}
-        for node in self.network_graph:
+        for node in self.network_graph.routers_iter():
             if self.network_graph.is_bgp_enabled(node):
                 asnum = self.network_graph.get_bgp_asnum(node)
                 if asnum not in ases:
