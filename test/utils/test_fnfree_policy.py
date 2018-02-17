@@ -2609,8 +2609,12 @@ class TestSMTMatch(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertTrue(match0.get_value())
         self.assertFalse(match1.get_value())
-        self.assertEquals(match.smt_match.matches[0].get_used_match().value.get_value(), 'Prefix1')
-        self.assertEquals(match.smt_match.matches[1].get_used_match().value.get_value(), 'Prefix1')
+        self.assertEquals(match.smt_match.get_config(),
+                          MatchIpPrefixListList(
+                              IpPrefixList(
+                                  name='iplist1',
+                                  access=Access.permit,
+                                  networks=['Prefix1'])))
 
 
 @attr(speed='fast')

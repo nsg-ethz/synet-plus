@@ -30,6 +30,7 @@ from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchPermitted
+from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.utils.fnfree_smt_context import ASPATH_SORT
@@ -150,6 +151,9 @@ class SMTMatchOr(SMTAbstractMatch):
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
+    def get_config(self):
+        return [match.get_config() for match in self.matches]
+
 
 class SMTMatchSelectOne(SMTAbstractMatch):
     """
@@ -228,6 +232,8 @@ class SMTMatchSelectOne(SMTAbstractMatch):
         return match
 
     def get_config(self):
+        if self.index_var.get_value() < 0:
+            return None
         return self.get_used_match().get_config()
 
 
@@ -1037,6 +1043,43 @@ class SMTMatchCommunityList(SMTAbstractMatch):
         return MatchCommunitiesList(comm_list)
 
 
+class SMTMatchIpPrefixList(SMTAbstractMatch):
+    def __init__(self, ip_list, announcements, ctx):
+        assert isinstance(ip_list, IpPrefixList)
+        self.ip_list = ip_list
+        self.announcements = announcements
+        self.ctx = ctx
+        self.matches = []
+        for community in self.ip_list.networks:
+            match = self._get_ip_match(community)
+            self.matches.append(match)
+        self.smt_match = SMTMatchOr(self.matches, self.announcements, self.ctx)
+
+    def _get_ip_match(self, ip):
+        vsort = self.ctx.get_enum_type(PREFIX_SORT)
+        if not is_empty(ip):
+            val = vsort.get_symbolic_value(ip)
+            var = self.ctx.create_fresh_var(vsort, value=val)
+            return SMTMatchPrefix(var, self.announcements, self.ctx)
+
+        matches = []
+        for ip in vsort.symbolic_values:
+            var = self.ctx.create_fresh_var(vsort, value=ip)
+            m = SMTMatchPrefix(var, self.announcements, self.ctx)
+            matches.append(m)
+        return SMTMatchSelectOne(self.announcements, self.ctx, matches)
+
+    def is_match(self, announcement):
+        return self.smt_match.is_match(announcement)
+
+    def get_config(self):
+        networks = [n for n in self.smt_match.get_config() if n]
+        ip_list = IpPrefixList(name=self.ip_list.name,
+                               access=self.ip_list.access,
+                               networks=networks)
+        return MatchIpPrefixListList(ip_list)
+
+
 class SMTMatch(SMTAbstractMatch):
     def __init__(self, match, announcements, ctx):
         assert isinstance(match, Match) or match is None
@@ -1096,31 +1139,13 @@ class SMTMatch(SMTAbstractMatch):
         self.value = self.ctx.create_fresh_var(vsort=vsort, value=value)
         self.smt_match = SMTMatchPeer(self.value, self.announcements, self.ctx)
 
-    def _get_ip_match(self, ip):
-        vsort = self.ctx.get_enum_type(PREFIX_SORT)
-        if not is_empty(ip):
-            val = vsort.get_symbolic_value(ip)
-            var = self.ctx.create_fresh_var(vsort, value=val)
-            return SMTMatchPrefix(var, self.announcements, self.ctx)
-        else:
-            matches = []
-            for ip in vsort.symbolic_values:
-                var = self.ctx.create_fresh_var(vsort, value=ip)
-                m = SMTMatchPrefix(var, self.announcements, self.ctx)
-                matches.append(m)
-            return SMTMatchSelectOne(self.announcements, self.ctx, matches)
-
     def _load_match_prefix_list(self):
-        matches = []
-        for community in self.match.match.networks:
-            match = self._get_ip_match(community)
-            matches.append(match)
-        self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
+        self.smt_match = SMTMatchIpPrefixList(self.match.match,
+                                              self.announcements, self.ctx)
 
     def _load_match_communities_list(self):
         self.smt_match = SMTMatchCommunityList(
             self.match.match, self.announcements, self.ctx)
-        return
 
     def get_config(self):
         return self.smt_match.get_config()
