@@ -1,7 +1,17 @@
+import os
+import shutil
 import itertools
-
+from ipaddress import ip_address
+from ipaddress import ip_interface
+from ipaddress import ip_network
 from synet.topo.cisco import CiscoConfigGen
 from synet.topo.graph import NetworkGraph
+from synet.utils.fnfree_smt_context import is_empty
+
+
+__author__ = "Ahmed El-Hassany"
+__email__ = "a.hassany@gmail.com"
+
 
 class GNS3Topo(object):
     def __init__(self, graph, prefix_map=None):
@@ -64,3 +74,42 @@ class GNS3Topo(object):
 
     def gen_router_config(self, node):
         return self.config_gen.gen_router_config(node)
+
+    def write_configs(self, out_folder):
+        """Generate the routers configs"""
+        # Generate addresses for loopback interfaces
+        prefix_len = 32
+        next_net = int(ip_network(u'192.0.0.0/%d' % prefix_len).network_address)
+        for node in sorted(self.g.routers_iter()):
+            loopbacks = self.g.get_loopback_interfaces(node)
+            for loopback in loopbacks:
+                if not is_empty(self.g.get_loopback_addr(node, loopback)):
+                    continue
+                curr_ip = ip_address(next_net)
+                #net = ip_network(u"%s/%d" % (curr_ip, prefix_len))
+                #addr = ip_interface("%s/%d" % (net.hosts().next(), prefix_len))
+                addr = ip_interface(curr_ip)
+                self.g.set_loopback_addr(node, loopback, addr)
+                next_net += ((32 - prefix_len) ** 2) + 1
+
+        # Generating interface addresses
+        self.g.set_iface_names()
+
+        #gns3 = GNS3Topo(self.g, prefix_map=prefix_map)
+
+        # Clean up
+        shutil.rmtree(out_folder, True)
+        os.mkdir(out_folder)
+
+        topo_file = os.path.join(out_folder, 'topo.ini')
+        topo_file_str = self.get_gns3_topo()
+        with open(topo_file, 'w') as f:
+            f.write(topo_file_str)
+
+        configs_folder = os.path.join(out_folder, 'configs')
+        os.mkdir(configs_folder)
+        for node in sorted(list(self.g.routers_iter())):
+            cfg = self.gen_router_config(node)
+            cfg_file = os.path.join(configs_folder, "%s.cfg" % node)
+            with open(cfg_file, 'w') as f:
+                f.write(cfg)
