@@ -124,6 +124,12 @@ class Community(object):
     @property
     def value(self):
         """Community value string, ex. "10:30" """
+        if self.is_new_format:
+            return self.get_new_format()
+        return self._value
+
+    def get_value(self):
+        """Get the actual integer value"""
         return self._value
 
     @property
@@ -139,7 +145,7 @@ class Community(object):
         return int(bin_high + bin_low, 2)
 
     def get_new_format(self):
-        bin = '{0:032b}'.format(self.value)
+        bin = '{0:032b}'.format(self._value)
         high = int(bin[:16], 2)
         low = int(bin[16:], 2)
         return "%d:%d" % (high, low)
@@ -738,7 +744,7 @@ class RouteMapLine(object):
         assert isinstance(matches, Iterable)
         assert isinstance(actions, Iterable)
         for match in matches:
-            assert isinstance(match, Match)
+            assert isinstance(match, Match), "Expected a match but found %s" % match
         for action in actions:
             assert isinstance(action, Action)
         assert access == VALUENOTSET or isinstance(access, Access)
