@@ -78,8 +78,13 @@ class CiscoConfigGen(object):
         networks = prefix_list.networks
         name = prefix_list.name
         for i, network in enumerate(networks):
-            config += "ip prefix-list %s seq %d %s %s/%d\n" % (
-            name, (i + 1) * 10, access, str(network.network_address), network.prefixlen)
+            network = self.prefix_map.get(network, network)
+            lineno = (i + 1) * 10
+            addr = str(network.network_address)
+            prefixlen = network.prefixlen
+            config += "ip prefix-list %s seq %d %s %s/%d\n" % (name, lineno,
+                                                               access, addr,
+                                                               prefixlen)
         return config
 
     def gen_iface_config(self, iface_name, addr, description=None, isloop=False, ospf_cost=None):
@@ -224,12 +229,12 @@ class CiscoConfigGen(object):
         config += "router bgp %d\n" % asn
         config += ' no synchronization\n'
         config += ' bgp log-neighbor-changes\n'
-        config += ' bgp additional-paths send receive\n'
+        #config += ' bgp additional-paths send receive\n'
         announcements = self.g.get_bgp_announces(node)
         for ann in announcements:
             net, mask, route_map = None, None, None
-            if hasattr(ann, 'network'):
-                net = ann.network.ip
+            if isinstance(ann, (IPv4Network, IPv6Network)):
+                net = ann.network_address
                 mask = ann.netmask
             elif ann in self.g.get_loopback_interfaces(node):
                 addr = self.g.get_loopback_addr(node, ann)
@@ -241,6 +246,8 @@ class CiscoConfigGen(object):
                 net = addr.network.network_address
                 mask = addr.netmask
             route_map = announcements[ann].get('route_map', None)
+            assert net, "No network address in announcement: %s" % ann
+            assert mask, "No network mask in announcement: %s" % ann
             if route_map:
                 config += ' network %s mask %s route-map %s\n' % (net, mask, route_map)
             else:
@@ -248,14 +255,19 @@ class CiscoConfigGen(object):
         for neighbor in sorted(self.g.get_bgp_neighbors(node)):
             if not self.g.is_router(neighbor): continue
             neighbhor_asn = self.g.get_bgp_asnum(neighbor)
-            iface = self.g.get_bgp_neighbor_iface(neighbor, node)
-            if iface in self.g.get_loopback_interfaces(node):
-                neighboraddr = self.g.get_loopback_addr(node, iface)
+            iface = self.g.get_bgp_neighbor_iface(node, neighbor)
+            if iface in self.g.get_loopback_interfaces(neighbor):
+                neighboraddr = self.g.get_loopback_addr(neighbor, iface)
             else:
-                neighboraddr = self.g.get_iface_addr(node, iface)
+                neighboraddr = self.g.get_iface_addr(neighbor, iface)
             assert neighbhor_asn is not None, 'AS Num is not set for %s' % neighbor
             assert neighboraddr is not None
+            # Check if the neighbor is peering with the loopback of this node
+            source_iface = self.g.get_bgp_neighbor_iface(node, neighbor)
+            update_source = source_iface in self.g.get_loopback_interfaces(node)
             config += " neighbor %s remote-as %s\n" % (neighboraddr.ip, neighbhor_asn)
+            if update_source:
+                config += " neighbor %s update-source %s\n" % (neighboraddr.ip, source_iface)
             description = self.g.get_bgp_neighbor_description(node, neighbor)
             if description:
                 config += " neighbor %s description \"%s\"\n" % (neighboraddr.ip, description)
@@ -349,7 +361,11 @@ class CiscoConfigGen(object):
         process_id = self.g.get_ospf_process_id(node)
         config += "router ospf %d\n" % process_id
         for network, area in self.g.get_ospf_networks(node).iteritems():
-            config += "network %s %s area %s\n" % (network.network_address, network.hostmask, area)
+            if network in self.g.get_loopback_interfaces(node):
+                network = self.g.get_loopback_addr(node, network).network
+            elif network in self.g.get_ifaces(node):
+                network = self.g.get_iface_addr(node, network).network
+            config += " network %s %s area %s\n" % (network.network_address, network.hostmask, area)
         config += "!\n"
         return config
 
@@ -376,6 +392,7 @@ class CiscoConfigGen(object):
         :param node: router
         :return: configs string
         """
+        assert self.g.is_router(node)
         if self.g.is_peer(node):
             self.gen_external_announcemetns(node)
 
