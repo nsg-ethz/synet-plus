@@ -11,8 +11,8 @@ import networkx as nx
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import IpPrefixList
-from synet.utils.smt_context import is_empty
-from synet.utils.smt_context import VALUENOTSET
+from synet.utils.fnfree_smt_context import is_empty
+from synet.utils.fnfree_smt_context import VALUENOTSET
 
 
 __author__ = "Ahmed El-Hassany"
@@ -255,6 +255,7 @@ class NetworkGraph(nx.DiGraph):
         loopbacks = self.get_loopback_interfaces(node)
         if loopback not in loopbacks:
             loopbacks[loopback] = {}
+        assert is_empty(loopbacks[loopback].get('addr', None)), loopbacks[loopback].get('addr', None)
         loopbacks[loopback]['addr'] = addr
 
     def get_loopback_addr(self, node, loopback):
@@ -303,7 +304,7 @@ class NetworkGraph(nx.DiGraph):
         assert self.is_router(node)
         assert is_bool_or_notset(is_shutdown)
         ifaces = self.get_ifaces(node)
-        assert iface_name not in ifaces
+        assert iface_name not in ifaces, "%s in %s" % (iface_name, ifaces.keys())
         ifaces[iface_name] = {'shutdown': is_shutdown,
                               'addr': None,
                               'description': None}
@@ -722,6 +723,8 @@ class NetworkGraph(nx.DiGraph):
         for node in sorted(list(self.nodes())):
             iface_count = 0
             for src, dst in sorted(list(self.out_edges(node))):
+                if self.get_edge_iface(src, dst):
+                    continue
                 if self.is_router(src) and self.is_router(dst):
                     if self.get_edge_iface(src, dst):
                         continue
