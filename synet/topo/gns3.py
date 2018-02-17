@@ -4,8 +4,9 @@ from synet.topo.cisco import CiscoConfigGen
 from synet.topo.graph import NetworkGraph
 
 class GNS3Topo(object):
-    def __init__(self, graph):
+    def __init__(self, graph, prefix_map=None):
         assert isinstance(graph, NetworkGraph)
+        self.prefix_map = prefix_map if prefix_map else {}
         self.g = graph
         self.local_dynampis = '127.0.0.1:7200',
         self.workingdir = '/home/ahassany/tmp',
@@ -23,7 +24,7 @@ class GNS3Topo(object):
         }
         console_start_port = 2501
         self.next_console = itertools.count(console_start_port)
-        self.config_gen = CiscoConfigGen(self.g)
+        self.config_gen = CiscoConfigGen(self.g, prefix_map=self.prefix_map)
 
     def _annotate_node(self, n):
         """
