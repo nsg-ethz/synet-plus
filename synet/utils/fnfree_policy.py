@@ -114,6 +114,9 @@ class SMTMatchAnd(SMTAbstractMatch):
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
+    def get_config(self):
+        return [match.get_config() for match in self.matches]
+
 
 class SMTMatchOr(SMTAbstractMatch):
     """Combine Matches in Or expression"""
@@ -331,6 +334,9 @@ class SMTMatchPrefix(SMTMatchAttribute):
         :param ctx: to register new constraints and create fresh vars
         """
         super(SMTMatchPrefix, self).__init__('prefix', value, announcements, ctx)
+
+    def get_config(self):
+        return self.value.get_value()
 
 
 class SMTMatchPeer(SMTMatchAttribute):
@@ -994,6 +1000,43 @@ def attribute_set_factory(attribute, match=None, value=None, announcements=None,
     return klass
 
 
+class SMTMatchCommunityList(SMTAbstractMatch):
+    def __init__(self, community_list, announcements, ctx):
+        assert isinstance(community_list, CommunityList)
+        self.community_list = community_list
+        self.announcements = announcements
+        self.ctx = ctx
+        self.matches = []
+        for community in self.community_list.communities:
+            match = self._get_community_match(community)
+            self.matches.append(match)
+        self.smt_match = SMTMatchAnd(self.matches, self.announcements, self.ctx)
+
+    def is_match(self, announcement):
+        return self.smt_match.is_match(announcement)
+
+    def _get_community_match(self, community):
+        if not is_empty(community):
+            var = self.ctx.create_fresh_var(vsort=z3.BoolSort(), value=True)
+            match = SMTMatchCommunity(community=community, value=var,
+                                      announcements=self.announcements,
+                                      ctx=self.ctx)
+        else:
+            comms = []
+            for comm in self.ctx.communities:
+                var = self.ctx.create_fresh_var(z3.BoolSort(), value=True)
+                smt = SMTMatchCommunity(comm, var, self.announcements, self.ctx)
+                comms.append(smt)
+            match = SMTMatchSelectOne(self.announcements, self.ctx, comms)
+        return match
+
+    def get_config(self):
+        comm_list = CommunityList(list_id=self.community_list.list_id,
+                                  access=self.community_list.access,
+                                  communities=self.smt_match.get_config())
+        return MatchCommunitiesList(comm_list)
+
+
 class SMTMatch(SMTAbstractMatch):
     def __init__(self, match, announcements, ctx):
         assert isinstance(match, Match) or match is None
@@ -1090,11 +1133,9 @@ class SMTMatch(SMTAbstractMatch):
         return match
 
     def _load_match_communities_list(self):
-        matches = []
-        for community in self.match.match.communities:
-            match = self._get_community_match(community)
-            matches.append(match)
-        self.smt_match = SMTMatchAnd(matches, self.announcements, self.ctx)
+        self.smt_match = SMTMatchCommunityList(
+            self.match.match, self.announcements, self.ctx)
+        return
 
     def get_config(self):
         return self.smt_match.get_config()

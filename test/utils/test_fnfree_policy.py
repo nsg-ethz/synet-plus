@@ -461,6 +461,7 @@ class TestSMTMatchOr(unittest.TestCase):
         v2 = [concrete_anns[1].prefix, concrete_anns[0].local_pref]
         self.assertTrue(values == v1 or values == v2)
 
+
 @attr(speed='fast')
 class TestSMTMatchPrefix(unittest.TestCase):
     def get_anns(self):
@@ -2515,7 +2516,7 @@ class TestSMTMatch(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         clist = CommunityList(
-            list_id='clist1',
+            list_id=1,
             access=Access.permit,
             communities=[VALUENOTSET, VALUENOTSET])
         # Act
