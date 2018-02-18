@@ -43,6 +43,12 @@ def get_as_path_key(as_path):
     return 'as_path_' + '_'.join([str(n) for n in as_path])
 
 
+def decode_as_path(as_path_key):
+    """Inverse of get_as_path_key"""
+    assert as_path_key.startswith('as_path_')
+    return [int(asnum) for asnum in as_path_key.split('_')[2:]]
+
+
 def read_announcements(announcements, smt_ctx):
     """
     Read announcements provided by the user and generate a list of
@@ -246,11 +252,13 @@ class SMTVar(object):
                 try:
                     self._value = z3.is_true(value)
                 except AttributeError:
+                    #raise RuntimeError("Value not assigned for %s", str(self))
                     pass
             elif value.is_int:
                 try:
                     self._value = value.as_long()
                 except AttributeError:
+                    # raise RuntimeError("Value not assigned for %s", str(self))
                     pass
             else:
                 err = "Currently only support enums and ints"
@@ -391,7 +399,6 @@ class SolverContext(object):
 
     def check(self, solver, track=True):
         for name, const in self.constraints_itr():
-            #print "Const", name, const
             if track:
                 if isinstance(const, bool):
                     var = self.create_fresh_var(z3.BoolSort(), value=None, name_prefix='BoolHack_')
@@ -408,7 +415,8 @@ class SolverContext(object):
 
     @staticmethod
     def create_context(announcements, prefix_list=None, peer_list=None,
-                       as_path_list=None, next_hop_list=None):
+                       as_path_list=None, next_hop_list=None,
+                       create_as_paths=True):
         """
         Creates the SMT context that contains all the known announcements
         :return: SMTContext
@@ -438,10 +446,11 @@ class SolverContext(object):
         ctx.create_enum_type(BGP_ORIGIN_SORT, origin_list)
 
         # AS path list
-        read_list = [get_as_path_key(x.as_path) for x in announcements
-                     if not is_empty(x.as_path)]
-        as_path_list = list(set(read_list + as_path_list))
-        ctx.create_enum_type(ASPATH_SORT, as_path_list)
+        if create_as_paths:
+            read_list = [get_as_path_key(x.as_path) for x in announcements
+                         if not is_empty(x.as_path)]
+            as_path_list = list(set(read_list + as_path_list))
+            ctx.create_enum_type(ASPATH_SORT, as_path_list)
 
         # Next Hop
         read_list = [x.next_hop for x in announcements
