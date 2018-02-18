@@ -228,6 +228,55 @@ class CommunityList(object):
         return self.__str__()
 
 
+class ASPathList(object):
+    """Represents a list of as paths in a match"""
+    def __init__(self, list_id, access, as_paths):
+        #assert isinstance(list_id, int)
+        assert isinstance(as_paths, Iterable)
+        assert isinstance(access, Access)
+        if as_paths != [VALUENOTSET]:
+            for as_path in as_paths:
+                assert is_empty(as_path) or isinstance(as_path, int)
+        self._list_id = list_id
+        self._access = access
+        self._as_paths = as_paths
+
+    @property
+    def list_id(self):
+        return self._list_id
+
+    @property
+    def access(self):
+        return self._access
+
+    @property
+    def as_paths(self):
+        return self._as_paths
+
+    @as_paths.setter
+    def as_paths(self, value):
+        if not is_empty(self._as_paths):
+            raise ValueError("AS Paths already set to %s" % self._as_paths)
+        for as_path in value:
+            assert isinstance(as_path, int)
+        self._as_paths = value
+
+    def __eq__(self, other):
+        if not isinstance(other, ASPathList):
+            return False
+        path_eq = set(self.as_paths) == set(other.as_paths)
+        access_eq = self.access == other.access
+        id_eq = self.list_id == other.list_id
+        return id_eq and access_eq and path_eq
+
+    def __str__(self):
+        return "ASPathList(id=%s, access=%s, as_path=%s)" % \
+               (self.list_id, self.access, self.as_paths)
+
+    def __repr__(self):
+        return self.__str__()
+
+
 class IpPrefixList(object):
     def __init__(self, name, access, networks):
         self.nettype = (IPv4Network, IPv6Network)

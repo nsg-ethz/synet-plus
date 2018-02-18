@@ -8,6 +8,7 @@ import ipaddress
 import enum
 import networkx as nx
 
+from synet.topo.bgp import ASPathList
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import IpPrefixList
@@ -630,6 +631,31 @@ class NetworkGraph(nx.DiGraph):
         assert community_list.list_id not in lists
         lists[community_list.list_id] = community_list
         return community_list
+
+    def get_as_path_list(self, node):
+        """
+        Return as paths list registered on the router
+        :param node: the router on which the list resides
+        :return: {} or a dict of communities list
+        """
+        as_paths_list = self.get_bgp_attrs(node).get('as-path-list', None)
+        if as_paths_list is None:
+            self.node[node]['bgp']['as-path-list'] = {}
+            as_paths_list = self.node[node]['bgp']['as-path-list']
+        return as_paths_list
+
+    def add_as_path_list(self, node, as_path_list):
+        """
+        Add a As path_list list
+        :param node: the router on which the list resides
+        :param as_path_list: instance of CommunityList
+        :return: CommunityList
+        """
+        assert isinstance(as_path_list, ASPathList)
+        lists = self.get_as_path_list(node)
+        assert as_path_list.list_id not in lists
+        lists[as_path_list.list_id] = as_path_list
+        return as_path_list
 
     def add_bgp_import_route_map(self, node, neighbor, route_map_name):
         """

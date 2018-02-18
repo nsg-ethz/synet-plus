@@ -3,6 +3,7 @@
 Cisco specific configurations generator
 Tested with IOS 15.2
 """
+import itertools
 
 from ipaddress import IPv4Interface
 from ipaddress import IPv6Interface
@@ -18,11 +19,13 @@ from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionString
 from synet.topo.bgp import ActionASPathPrepend
+from synet.topo.bgp import ASPathList
 from synet.topo.bgp import CommunityList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchAsPath
 from synet.topo.bgp import IpPrefixList
 
 from synet.utils.smt_context import is_empty
@@ -40,6 +43,9 @@ class CiscoConfigGen(object):
         self.prefix_map = prefix_map or {}
         self.nettype = (IPv4Network, IPv6Network)
         self._next_announced_prefix = int(ip_address(u'128.0.0.0'))
+        self._next_as_paths = {}
+        for node in self.g.routers_iter():
+            self._next_as_paths[node] = itertools.count(1)
 
     def prefix_lookup(self, prefix):
         if isinstance(prefix, self.nettype):
@@ -78,6 +84,8 @@ class CiscoConfigGen(object):
         networks = prefix_list.networks
         name = prefix_list.name
         for i, network in enumerate(networks):
+            if is_empty(network):
+                continue
             network = self.prefix_map.get(network, network)
             lineno = (i + 1) * 10
             addr = str(network.network_address)
@@ -85,6 +93,19 @@ class CiscoConfigGen(object):
             config += "ip prefix-list %s seq %d %s %s/%d\n" % (name, lineno,
                                                                access, addr,
                                                                prefixlen)
+        return config
+
+    def gen_as_path_list(self, node, as_path_list):
+        """
+        Generate config lines for AS PATH list
+        :param prefix_list:
+        :return: configs string
+        """
+        config = ''
+        access = as_path_list.access.value
+        as_path = as_path_list.as_paths
+        name = as_path_list.list_id
+        config += "ip as-path access %s %s ^%s$\n" % (name, access, '_'.join([str(t) for t in as_path[1:]]))
         return config
 
     def gen_iface_config(self, iface_name, addr, description=None, isloop=False, ospf_cost=None):
@@ -150,6 +171,20 @@ class CiscoConfigGen(object):
         config += "!\n"
         return config
 
+    def gen_all_as_path_lists(self, node):
+        """
+        Get all as path list defined for the router
+        :param node: router
+        :return: config string
+        """
+        config = ""
+        as_path_lists = self.g.get_as_path_list(node)
+        for as_path in as_path_lists.values():
+            config += self.gen_as_path_list(node, as_path)
+            config += "!\n"
+        config += "!\n"
+        return config
+
     def gen_all_ip_prefixes(self, node):
         """
         Generate all the ip prefixes lists
@@ -170,7 +205,18 @@ class CiscoConfigGen(object):
             config += 'match community %d' % match.match.list_id
         elif isinstance(match, MatchIpPrefixListList):
             assert match.match.name in self.g.get_ip_preflix_lists(node)
-            config += 'match ip address prefix-list %s' % match.match.name
+            if not all([is_empty(p) for p in self.g.get_ip_preflix_lists(node)[match.match.name].networks]):
+                config += 'match ip address prefix-list %s' % match.match.name
+        elif isinstance(match, MatchAsPath):
+            list_no = None
+            for tmp in self.g.get_as_path_list(node).values():
+                if tmp.as_paths == match.match:
+                    list_no = tmp.list_id
+            if not list_no:
+                list_no = self._next_as_paths[node].next()
+                as_path = ASPathList(list_id=list_no, access=Access.permit, as_paths=match.match)
+                self.g.add_as_path_list(node, as_path)
+            config += 'match as-path %s' % list_no
         else:
             raise ValueError('Unknow match type %s' % match)
         return config
@@ -200,7 +246,7 @@ class CiscoConfigGen(object):
             if is_empty(line.lineno) or is_empty(line.access):
                 continue
             no = line.lineno
-            access = line.access.value
+            access = line.access.value if hasattr(line.access, 'value') else Access.permit
             config += "route-map %s %s %s\n" % (name, access, no)
             for match in line.matches:
                 config += " %s\n" % self.gen_route_map_match(node, match)
@@ -427,6 +473,10 @@ class CiscoConfigGen(object):
         config += self.gen_all_route_maps(node)
         config += "!\n"
         config += self.gen_bgp_config(node)
+        config += '!\n'
+        config += '!\n'
+        config += self.gen_all_as_path_lists(node)
+        config += '!\n'
         config += "!\n"
         config += self.gen_all_ospf(node)
         config += "!\n"
