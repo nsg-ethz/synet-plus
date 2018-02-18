@@ -2997,7 +2997,7 @@ class TestSMTRouteMap(unittest.TestCase):
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
             next_hop='Hop1', local_pref=100, med=10,
-            communities={c1: True, c2: False, c3: False}, permitted=True)
+            communities={c1: True, c2: False, c3: True}, permitted=True)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,

@@ -565,7 +565,7 @@ class SMTSetAttribute(SMTAbstractAction):
             new_ann = Announcement(**new_vals)
             announcements.append(new_ann)
         if constraints:
-            self.smt_ctx.register_constraint(z3.And(*constraints))
+            self.smt_ctx.register_constraint(z3.And(*constraints), name_prefix='Set_%s_' % attr)
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
@@ -646,7 +646,7 @@ class SMTSetCommunity(SMTAbstractAction):
             new_ann = Announcement(**new_vals)
             announcements.append(new_ann)
         if constraints:
-            self.smt_ctx.register_constraint(z3.And(*constraints))
+            self.smt_ctx.register_constraint(z3.And(*constraints), name_prefix='Set_comm_')
         self._announcements = self._old_announcements.create_new(announcements, self)
 
     def get_config(self):
@@ -1335,14 +1335,14 @@ class SMTSelectorMatch(SMTAbstractMatch):
         self.matched_announcements = {}  # Cache evaluated announcements
 
     def is_match(self, announcement):
-        if not self.selectors_vars:
-            return self.match.is_match(announcement)
+        #if not self.selectors_vars:
+        #    return self.match.is_match(announcement)
         if announcement not in self.matched_announcements:
             is_match = self.match.is_match(announcement)
             sel = self.selectors_vars[announcement]
             match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_')
             const = z3.And(is_match.var, sel.var == self.selector_value) == match_var.var
-            self.ctx.register_constraint(const, name_prefix='Selector_')
+            self.ctx.register_constraint(z3.And(is_match.var, sel.var == self.selector_value) == match_var.var, name_prefix='Selector_')
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
@@ -1439,7 +1439,7 @@ class SMTRouteMap(SMTAbstractAction):
 
         prev_anns = self._old_announcements
         for i, line in enumerate(self.route_map.lines):
-            box = SMTRouteMapLine({}, line, prev_anns, self.ctx)
+            box = SMTRouteMapLine(selectors, line, prev_anns, self.ctx)
             self.smt_lines.append(box)
             prev_anns = self.smt_lines[-1].announcements
 
