@@ -16,6 +16,7 @@ from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionSetNextHop
 from synet.topo.bgp import ActionSetPeer
+from synet.topo.bgp import ActionSetOne
 from synet.topo.bgp import ActionSetPrefix
 from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
@@ -1180,6 +1181,7 @@ class SMTActions(SMTAbstractAction):
     def __init__(self, match, actions, announcements, ctx, selector=None):
         self.actions = actions
         self.smt_actions = []
+        self.match = match
         self.ctx = ctx
         self._old_announcements = announcements
         self._announcements = None
@@ -1194,6 +1196,7 @@ class SMTActions(SMTAbstractAction):
             ActionSetNextHop: self._set_next_hop,
             ActionSetPrefix: self._set_prefix,
             ActionPermitted: self._set_access,
+            ActionSetOne: self._set_one,
         }
         self._selector = selector
         self.execute()
@@ -1278,6 +1281,13 @@ class SMTActions(SMTAbstractAction):
             value = vsort.get_symbolic_value(value)
         var = self.ctx.create_fresh_var(vsort=vsort, value=value)
         return SMTSetNextHop(self.smt_match, var, anns, self.ctx)
+
+    def _set_one(self, action, anns):
+        smt_actions = []
+        for action in action.value:
+            smt_action = self.action_dispatch[type(action)](action, anns)
+            smt_actions.append(smt_action)
+        return SMTSetOne(self.smt_match, anns, self.ctx, smt_actions)
 
     def _set_prefix(self, action, anns):
         value = action.value if not is_empty(action.value) else None

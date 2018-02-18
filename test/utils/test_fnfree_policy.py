@@ -8,6 +8,7 @@ from synet.topo.bgp import ActionSetLocalPref
 from synet.topo.bgp import ActionSetCommunity
 from synet.topo.bgp import ActionSetPeer
 from synet.topo.bgp import ActionSetPrefix
+from synet.topo.bgp import ActionSetOne
 from synet.topo.bgp import Access
 from synet.topo.bgp import ActionPermitted
 from synet.topo.bgp import Announcement
@@ -2867,6 +2868,31 @@ class TestSMTActions(unittest.TestCase):
         self.assertEquals(new_anns[0].communities[c].get_value(), True)
         self.assertEquals(new_anns[1].communities[c].get_value(), True)
         self.assertEquals(action.get_config(), [ActionSetCommunity([c], additive=True)])
+
+    def test_sym_select_one(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        set_local_pref = ActionSetLocalPref(VALUENOTSET)
+        set_next_hop = ActionSetNextHop(VALUENOTSET)
+        raction = ActionSetOne([set_local_pref, set_next_hop])
+        action = SMTActions(match, [raction], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].local_pref.var == 200)
+        #solver.add(new_anns[0].local_pref.var == 200)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(action.get_config(), [ActionSetLocalPref(200)])
+        self.assertEquals(new_anns[0].med.get_value(), 10)
+        self.assertEquals(new_anns[1].med.get_value(), 10)
 
 
 @attr(speed='fast')
