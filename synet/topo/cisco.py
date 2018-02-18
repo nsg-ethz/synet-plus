@@ -197,6 +197,8 @@ class CiscoConfigGen(object):
         config = ''
         name = routemap.name
         for line in routemap.lines:
+            if is_empty(line.lineno) or is_empty(line.access):
+                continue
             no = line.lineno
             access = line.access.value
             config += "route-map %s %s %s\n" % (name, access, no)
