@@ -540,16 +540,23 @@ class SMTSetAttribute(SMTAbstractAction):
                         if is_match.get_value():
                             new_var = self.value
                         else:
-                            new_var = getattr(announcement, attr)
+                            new_var = attr_var
                     else:
+
                         new_var = self.smt_ctx.create_fresh_var(
-                            attr_var.vsort, value=self.value,
-                            name_prefix='Action%sVal' % attr)
+                            attr_var.vsort, name_prefix='Action%sVal' % attr)
+                        vv = self.value.var if self.value.is_concrete else self.value.get_var()
+                        attv = attr_var.var if attr_var.is_concrete else attr_var.get_var()
                         constraint = z3.If(is_match.var,
-                                           new_var.var == self.value,
-                                           new_var.var == attr_var.var)
+                                           new_var.var == vv,
+                                           new_var.var == attv)
                         constraints.append(constraint)
                     new_vals[attr] = new_var
+                    if attr == 'permitted':
+                        # Permitted is a special case
+                        # it cannot move from False to True
+                        constraint = z3.Implies(attr_var.var == False, new_vals[attr].var == False)
+                        constraints.append(constraint)
                 else:
                     new_vals[attr] = attr_var
             new_ann = Announcement(**new_vals)
@@ -1154,7 +1161,7 @@ class SMTMatch(SMTAbstractMatch):
 class SMTActions(SMTAbstractAction):
     """Synthesize list of actions"""
 
-    def __init__(self, match, actions, announcements, ctx):
+    def __init__(self, match, actions, announcements, ctx, selector=None):
         self.actions = actions
         self.smt_actions = []
         self.ctx = ctx
@@ -1172,6 +1179,7 @@ class SMTActions(SMTAbstractAction):
             ActionSetPrefix: self._set_prefix,
             ActionPermitted: self._set_access,
         }
+        self._selector = selector
         self.execute()
 
     def execute(self):
@@ -1183,10 +1191,16 @@ class SMTActions(SMTAbstractAction):
             if isinstance(smt_action, list):
                 self.smt_actions.extend(smt_action)
                 prev_ann_ctx = smt_action[-1].announcements
-
             else:
                 self.smt_actions.append(smt_action)
                 prev_ann_ctx = smt_action.announcements
+            if self._selector:
+                tt = []
+                for t in self.old_announcements:
+                    tt.append(t)
+                for index, ann in enumerate(self.smt_actions[-1].announcements):
+                    self._selector[ann] = self._selector[tt[index]]
+
         self._announcements = self.smt_actions[-1].announcements
         assert self._announcements != self.old_announcements
 
@@ -1285,10 +1299,38 @@ class SMTActions(SMTAbstractAction):
         return configs
 
 
+class SMTSelectorMatch(SMTAbstractMatch):
+    def __init__(self, selectors_vars, selector_value, match, announcements, ctx):
+        self.selectors_vars = selectors_vars
+        self.selector_value = selector_value
+        self.match = match
+        self.announcements = announcements
+        self.ctx = ctx
+        self.matched_announcements = {}  # Cache evaluated announcements
+
+    def is_match(self, announcement):
+        if not self.selectors_vars:
+            return self.match.is_match(announcement)
+        if announcement not in self.matched_announcements:
+            is_match = self.match.is_match(announcement)
+            sel = self.selectors_vars[announcement]
+            match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_')
+            const = z3.And(is_match.var, sel.var == self.selector_value) == match_var.var
+            self.ctx.register_constraint(const, name_prefix='Selector_')
+            self.matched_announcements[announcement] = match_var
+        return self.matched_announcements[announcement]
+
+    def get_config(self):
+        if not self.selectors_vars:
+            return self.match.get_config()
+        if self.selector_value.get_value() == self.selector_value:
+            return self.match.get_config()
+
+
 class SMTRouteMapLine(SMTAbstractAction):
     """Synthesize one RouteMapLine"""
 
-    def __init__(self, line, announcements, ctx):
+    def __init__(self, line_no_match, line, announcements, ctx):
         """
         :param name: name for z3 vars
         :param line: RouteMapLine
@@ -1297,24 +1339,26 @@ class SMTRouteMapLine(SMTAbstractAction):
         self.ctx = ctx
         self.line = line
         self._old_announcements = announcements
-
+        self.line_no_match = line_no_match
         if line.matches:
             self.smt_match = SMTMatchAnd(
                 [SMTMatch(match, self.old_announcements, self.ctx) for match in line.matches],
                 self.old_announcements, self.ctx)
         else:
             self.smt_match = SMTMatch(None, self.old_announcements, self.ctx)
-
+        self.selector_match = SMTSelectorMatch(line_no_match, self.line.lineno,
+                                               self.smt_match, self.old_announcements, self.ctx)
         self.permitted_action = ActionPermitted(line.access)
 
+        actions = [self.permitted_action]
         if line.actions:
             assert isinstance(line.actions, Iterable)
-            actions = [self.permitted_action] + line.actions
-        else:
-            actions = [self.permitted_action]
-        self.smt_actions = SMTActions(self.smt_match, actions,
-                                      self.old_announcements, self.ctx)
+            actions += line.actions
+        self.smt_actions = SMTActions(self.selector_match, actions,
+                                      self.old_announcements, self.ctx,
+                                      selector=self.line_no_match)
         self._announcements = self.smt_actions.announcements
+
 
     @property
     def announcements(self):
@@ -1355,11 +1399,26 @@ class SMTRouteMap(SMTAbstractAction):
         self.ctx = ctx
         self._old_announcements = announcements
         self.smt_lines = []
+
+        name_prefix = 'SelectOneRmapLineIndex_'
+
+        line_numbers = [line.lineno for line in route_map.lines]
+        selectors = {}
+        for announcement in self.old_announcements:
+            index_var = self.ctx.create_fresh_var(z3.IntSort(), name_prefix=name_prefix)
+            selectors[announcement] = index_var
+            possible_vals = [index_var.var == lineno for lineno in line_numbers]
+            self.ctx.register_constraint(z3.Or(*possible_vals),
+                                         name_prefix='RmapIndexBound_')
+
+        prev_anns = self._old_announcements
         for i, line in enumerate(self.route_map.lines):
-            box = SMTRouteMapLine(line, self._old_announcements, self.ctx)
+            box = SMTRouteMapLine({}, line, prev_anns, self.ctx)
             self.smt_lines.append(box)
+            prev_anns = self.smt_lines[-1].announcements
+
         self._announcements = self.smt_lines[-1].announcements
-        assert len(self.smt_lines) == 1, 'Only one line is supported'
+        #assert len(self.smt_lines) == 1, 'Only one line is supported'
 
     @property
     def announcements(self):

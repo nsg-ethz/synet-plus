@@ -42,6 +42,7 @@ from synet.utils.fnfree_policy import SMTMatchPrefix
 from synet.utils.fnfree_policy import SMTMatchSelectOne
 from synet.utils.fnfree_policy import SMTMatchMED
 from synet.utils.fnfree_policy import SMTMatchNextHop
+from synet.utils.fnfree_policy import SMTSelectorMatch
 from synet.utils.fnfree_policy import SMTSetASPath
 from synet.utils.fnfree_policy import SMTSetASPathLen
 from synet.utils.fnfree_policy import SMTSetCommunity
@@ -115,7 +116,7 @@ class TestSMTMatchAttribute(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -142,7 +143,8 @@ class TestSMTMatchAttribute(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -167,9 +169,10 @@ class TestSMTMatchAttribute(unittest.TestCase):
         ann0_value = match.is_match(sym_anns[0]).get_value()
         ann1_value = match.is_match(sym_anns[1]).get_value()
         solver = z3.Solver()
+        z3.reset_params()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertTrue(ann0_is_concrete)
         self.assertTrue(ann1_is_concrete)
@@ -196,7 +199,7 @@ class TestSMTMatchAttribute(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -254,7 +257,7 @@ class TestSMTMatchCommunity(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -316,7 +319,7 @@ class TestSMTMatchAnd(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -351,7 +354,7 @@ class TestSMTMatchAnd(unittest.TestCase):
             solver.add(const)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         print solver.to_smt2()
         # Assert
         # Check the partial evaluation
@@ -413,7 +416,7 @@ class TestSMTMatchOr(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -448,7 +451,7 @@ class TestSMTMatchOr(unittest.TestCase):
             solver.add(const)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == True)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         print solver.to_smt2()
         # Assert
         # Check the partial evaluation
@@ -507,7 +510,7 @@ class TestSMTMatchPrefix(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -537,7 +540,7 @@ class TestSMTMatchPrefix(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -595,7 +598,7 @@ class TestSMTMatchPeer(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -625,7 +628,7 @@ class TestSMTMatchPeer(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -683,7 +686,7 @@ class TestSMTMatchMED(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -711,7 +714,7 @@ class TestSMTMatchMED(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -769,7 +772,7 @@ class TestSMTMatchNextHop(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -798,7 +801,7 @@ class TestSMTMatchNextHop(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -858,7 +861,7 @@ class TestSMTMatchAsPath(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -890,7 +893,7 @@ class TestSMTMatchAsPath(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -948,7 +951,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -979,7 +982,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -1037,7 +1040,7 @@ class TestSMTMatchPermitted(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -1067,7 +1070,7 @@ class TestSMTMatchPermitted(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -1123,7 +1126,7 @@ class TestSMTMatchOrigin(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -1153,7 +1156,7 @@ class TestSMTMatchOrigin(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -1208,7 +1211,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         solver.add(match.is_match(sym_anns[1]).var == False)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -1238,7 +1241,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         solver.add(match.is_match(sym_anns[1]).var == False)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -1263,7 +1266,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         solver.add(match.is_match(sym_anns[1]).var == False)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -1315,7 +1318,7 @@ class TestAction(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1337,7 +1340,7 @@ class TestAction(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1360,7 +1363,7 @@ class TestAction(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1383,7 +1386,7 @@ class TestAction(unittest.TestCase):
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].prefix.var == sym_val)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1433,7 +1436,7 @@ class TestSMTSetLocalPref(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1456,7 +1459,7 @@ class TestSMTSetLocalPref(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].local_pref.var == local_pref)
         #solver.add(new_anns[0].local_pref.var == local_pref)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1509,7 +1512,7 @@ class TestSMTSetPrefix(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1532,7 +1535,7 @@ class TestSMTSetPrefix(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].prefix.var == sym_anns[0].prefix.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1585,7 +1588,7 @@ class TestSMTSetPeer(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1608,7 +1611,7 @@ class TestSMTSetPeer(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].peer.var == sym_anns[0].peer.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1660,7 +1663,7 @@ class TestSMTSetOrigin(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1681,7 +1684,7 @@ class TestSMTSetOrigin(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].origin.var == sym_anns[0].origin.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1732,7 +1735,7 @@ class TestSMTSetPermitted(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1753,7 +1756,7 @@ class TestSMTSetPermitted(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].permitted.var == False)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1805,7 +1808,7 @@ class TestSMTSetASPath(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1827,7 +1830,7 @@ class TestSMTSetASPath(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].as_path.var == sym_anns[0].as_path.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1878,7 +1881,7 @@ class TestSMTSetASPathLen(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1899,7 +1902,7 @@ class TestSMTSetASPathLen(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].as_path_len.var == 10)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1951,7 +1954,7 @@ class TestSMTSetNextHop(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -1974,7 +1977,7 @@ class TestSMTSetNextHop(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2026,7 +2029,7 @@ class TestSMTSetMED(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2047,7 +2050,7 @@ class TestSMTSetMED(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].med.var == 100)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2101,10 +2104,10 @@ class TestSMTSetOne(unittest.TestCase):
         action.execute()
         new_anns = action.announcements
         solver = z3.Solver()
-        solver.assert_and_track(new_anns[0].med.var == med.get_value(), 'Req')
+        solver.add(new_anns[0].med.var == med.get_value())
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         ctx.set_model(solver.model())
@@ -2132,11 +2135,11 @@ class TestSMTSetOne(unittest.TestCase):
         action.execute()
         new_anns = action.announcements
         solver = z3.Solver()
-        solver.assert_and_track(new_anns[0].communities[comm].var == True, 'Req1')
-        solver.assert_and_track(new_anns[1].communities[comm].var == True, 'Req2')
+        solver.add(new_anns[0].communities[comm].var == True)
+        solver.add(new_anns[1].communities[comm].var == True)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         ctx.set_model(solver.model())
@@ -2160,10 +2163,10 @@ class TestSMTSetOne(unittest.TestCase):
         action.execute()
         new_anns = action.announcements
         solver = z3.Solver()
-        solver.assert_and_track(new_anns[0].med.var == med, 'Req')
+        solver.add(new_anns[0].med.var == med)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         ctx.set_model(solver.model())
@@ -2189,11 +2192,11 @@ class TestSMTSetOne(unittest.TestCase):
         #action.execute()
         new_anns = action.announcements
         solver = z3.Solver()
-        solver.assert_and_track(new_anns[0].communities[comm].var == True, 'Req1')
-        solver.assert_and_track(new_anns[1].communities[comm].var == True, 'Req2')
+        solver.add(new_anns[0].communities[comm].var == True)
+        solver.add(new_anns[1].communities[comm].var == True)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         ctx.set_model(solver.model())
@@ -2249,7 +2252,7 @@ class TestSMTSetCommunity(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2273,7 +2276,7 @@ class TestSMTSetCommunity(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].communities[community].var == True)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2325,7 +2328,7 @@ class TestSMTMatch(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -2354,7 +2357,7 @@ class TestSMTMatch(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -2381,7 +2384,7 @@ class TestSMTMatch(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -2410,7 +2413,7 @@ class TestSMTMatch(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -2437,7 +2440,7 @@ class TestSMTMatch(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -2466,7 +2469,7 @@ class TestSMTMatch(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -2498,7 +2501,7 @@ class TestSMTMatch(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -2532,7 +2535,7 @@ class TestSMTMatch(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -2541,8 +2544,8 @@ class TestSMTMatch(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertTrue(match0.get_value())
         self.assertFalse(match1.get_value())
-        self.assertEquals(match.smt_match.matches[0].get_used_match().community, Community("100:16"))
-        self.assertEquals(match.smt_match.matches[1].get_used_match().community, Community("100:18"))
+        comms = set([match.smt_match.matches[0].get_used_match().community, match.smt_match.matches[1].get_used_match().community])
+        self.assertEquals(comms, set([Community("100:16"), Community("100:18")]))
 
     def test_match_concrete_ip_list(self):
         # Arrange
@@ -2568,7 +2571,7 @@ class TestSMTMatch(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
@@ -2600,7 +2603,7 @@ class TestSMTMatch(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
         self.assertFalse(ann0_is_concrete)
@@ -2658,7 +2661,7 @@ class TestSMTActions(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2680,7 +2683,7 @@ class TestSMTActions(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2701,7 +2704,7 @@ class TestSMTActions(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2723,7 +2726,7 @@ class TestSMTActions(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2744,7 +2747,7 @@ class TestSMTActions(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2766,7 +2769,7 @@ class TestSMTActions(unittest.TestCase):
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].permitted.var == False)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2788,7 +2791,7 @@ class TestSMTActions(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2814,7 +2817,7 @@ class TestSMTActions(unittest.TestCase):
         # FIXME: Check if one is enough!!!!
         solver.add(new_anns[1].communities[c].var == True)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2857,16 +2860,24 @@ class TestSMTRouteMapLine(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        match = None
+
+        selectors = {}
+        for announcement in sym_anns:
+            index_var = ctx.create_fresh_var(z3.IntSort(), name_prefix='SS')
+            selectors[announcement] = index_var
+            ctx.register_constraint(index_var.var == 10, name_prefix='RmaplineIndex')
+
         # Act
         raction = ActionSetNextHop('Hop1')
         rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
-        action = SMTRouteMapLine(rline, sym_anns, ctx)
+        action = SMTRouteMapLine(selectors, rline, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
+        #solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
+        #solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.var)
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2879,19 +2890,25 @@ class TestSMTRouteMapLine(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        match = None
+
         hop = 'Hop1'
+        selectors = {}
+        for announcement in sym_anns:
+            index_var = ctx.create_fresh_var(z3.IntSort(), name_prefix='SS')
+            selectors[announcement] = index_var
+            ctx.register_constraint(index_var.var == 10, name_prefix='RmaplineIndex')
         # Act
         raction = ActionSetNextHop(VALUENOTSET)
         rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
-        action = SMTRouteMapLine(rline, sym_anns, ctx)
+        action = SMTRouteMapLine(selectors, rline, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
+        solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2923,7 +2940,7 @@ class TestSMTRouteMap(unittest.TestCase):
         return ann1, ann2
 
     def get_ctx(self, concrete_anns):
-        ctx = SolverContext.create_context(concrete_anns)
+        ctx = SolverContext.create_context(concrete_anns, next_hop_list=['Hop3', 'Hop4'])
         return ctx
 
     def get_sym(self, concrete_anns, ctx):
@@ -2944,7 +2961,7 @@ class TestSMTRouteMap(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -2967,12 +2984,208 @@ class TestSMTRouteMap(unittest.TestCase):
         solver = z3.Solver()
         for name, const in ctx.constraints_itr():
             solver.assert_and_track(const, name)
-        solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
+        solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.vsort.get_symbolic_value('Hop1'))
+        #solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.vsort.get_symbolic_value('Hop1'))
         #solver.add(new_anns[0].local_pref.var == 200)
-        is_sat = solver.check()
+        is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
         self.assertEquals(action.smt_lines[0].smt_actions.smt_actions[1].value.get_value(), 'Hop1')
         self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop1')
         self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop1')
+
+    def test_simple(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        raction1 = ActionSetLocalPref(200)
+        raction2 = ActionSetLocalPref(300)
+        match1 = MatchNextHop('Hop1')
+        match2 = MatchNextHop('Hop2')
+        rline1 = RouteMapLine(matches=[match1], actions=[raction1], access=Access.permit, lineno=10)
+        rline2 = RouteMapLine(matches=[match2], actions=[raction2], access=Access.permit, lineno=20)
+        rmap = RouteMap(name='r1', lines=[rline1, rline2])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(new_anns[0].local_pref.var == 200)
+        #solver.add(new_anns[1].local_pref.var == 300)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+
+        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
+        self.assertEquals(new_anns[1].local_pref.get_value(), 300)
+        self.assertEquals(action.get_config(), rmap)
+
+    def test_two_lines(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        raction1_1 = ActionSetLocalPref(200)
+        raction1_2 = ActionSetNextHop('Hop3')
+        raction2_1 = ActionSetLocalPref(300)
+        raction2_2 = ActionSetNextHop('Hop4')
+        c1 = Community("100:16")
+        c3 = Community("100:18")
+        match_c1 = MatchCommunitiesList(CommunityList(list_id=1, access=Access.permit, communities=[c1]))
+        match_c3 = MatchCommunitiesList(CommunityList(list_id=1, access=Access.permit, communities=[c3]))
+        rline1 = RouteMapLine(matches=[match_c1], actions=[raction1_1, raction1_2], access=Access.permit, lineno=10)
+        rline2 = RouteMapLine(matches=[match_c3], actions=[raction2_1, raction2_2], access=Access.permit, lineno=20)
+        rmap = RouteMap(name='r1', lines=[rline1, rline2])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+
+        #solver.add(new_anns[0].local_pref.var == 200)
+        #solver.add(new_anns[1].local_pref.var == 300)
+
+        is_sat = ctx.check(solver)
+        print solver.to_smt2()
+        # Assert
+        if is_sat != z3.sat:
+            print "Unsat core", solver.unsat_core()
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        print solver.model()
+        ctx.set_model(solver.model())
+
+        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
+        self.assertEquals(new_anns[0].next_hop.get_value(), 'Hop3')
+
+        self.assertEquals(new_anns[1].local_pref.get_value(), 300)
+        self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop4')
+        self.assertEquals(action.get_config(), rmap)
+
+
+@attr(speed='fast')
+class TestSMTSelectorMatch(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: True}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=True)
+
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns, next_hop_list=['Hop3', 'Hop4'])
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_select(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match_all = SMTMatchAll(ctx)
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(), name='Selector2')
+        selectors = {}
+        selectors[sym_anns[0]] = selector_var1
+        selectors[sym_anns[1]] = selector_var2
+        # Act
+        select1 = SMTSelectorMatch(selectors, 10, match_all, sym_anns, ctx)
+        select2 = SMTSelectorMatch(selectors, 20, match_all, sym_anns, ctx)
+        solver = z3.Solver()
+        solver.add(select1.is_match(sym_anns[0]).var == True)
+        solver.add(select2.is_match(sym_anns[0]).var == False)
+        solver.add(select1.is_match(sym_anns[1]).var == False)
+        solver.add(select2.is_match(sym_anns[1]).var == True)
+        is_sat = ctx.check(solver)
+        assert is_sat == z3.sat, solver.unsat_core()
+
+    def test_select_sym(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match1 = SMTMatch(MatchNextHop(VALUENOTSET), sym_anns, ctx)
+        match2 = SMTMatch(MatchNextHop(VALUENOTSET), sym_anns, ctx)
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(), name='Selector2')
+        selectors = {}
+        selectors[sym_anns[0]] = selector_var1
+        selectors[sym_anns[1]] = selector_var2
+        # Act
+        select1 = SMTSelectorMatch(selectors, 10, match1, sym_anns, ctx)
+        select2 = SMTSelectorMatch(selectors, 20, match2, sym_anns, ctx)
+        solver = z3.Solver()
+        solver.add(select1.is_match(sym_anns[0]).var == True)
+        solver.add(select2.is_match(sym_anns[0]).var == False)
+        solver.add(select1.is_match(sym_anns[1]).var == False)
+        solver.add(select2.is_match(sym_anns[1]).var == True)
+        is_sat = ctx.check(solver)
+        print solver.to_smt2()
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        print "MATCH 1 val", match1.value
+        print "MATCH 2 val", match2.value
+        print "NEXT HOP1", sym_anns[0].next_hop
+        print "NEXT HOP2", sym_anns[1].next_hop
+        print "MATCH1 ann1 var", match1.is_match(sym_anns[0])
+        print "MATCH1 ann2 var", match1.is_match(sym_anns[1])
+        print "MATCH2 ann1 var", match2.is_match(sym_anns[0])
+        print "MATCH2 ann2 var", match2.is_match(sym_anns[1])
+        print solver.model()
+
+        self.assertNotEquals(match1.get_config(), match2.get_config())
+
+    def test_select_first(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match1 = SMTMatch(MatchLocalPref(100), sym_anns, ctx)
+        match2 = SMTMatch(MatchLocalPref(100), sym_anns, ctx)
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(), name='Selector2')
+        selectors = {}
+        selectors[sym_anns[0]] = selector_var1
+        selectors[sym_anns[1]] = selector_var2
+        # Act
+        select1 = SMTSelectorMatch(selectors, 10, match1, sym_anns, ctx)
+        select2 = SMTSelectorMatch(selectors, 20, match2, sym_anns, ctx)
+        solver = z3.Solver()
+        solver.add(select1.is_match(sym_anns[0]).var == True)
+        solver.add(select1.is_match(sym_anns[1]).var == True)
+        solver.add(select2.is_match(sym_anns[0]).var == False)
+        solver.add(select2.is_match(sym_anns[1]).var == False)
+
+        is_sat = ctx.check(solver)
+        print solver.to_smt2()
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        print "MATCH 1 val", match1.value
+        print "MATCH 2 val", match2.value
+        print "NEXT HOP1", sym_anns[0].next_hop
+        print "NEXT HOP2", sym_anns[1].next_hop
+        print "MATCH1 ann1 var", match1.is_match(sym_anns[0])
+        print "MATCH1 ann2 var", match1.is_match(sym_anns[1])
+        print "MATCH2 ann1 var", match2.is_match(sym_anns[0])
+        print "MATCH2 ann2 var", match2.is_match(sym_anns[1])
+        print solver.model()
+
+        self.assertIn(selector_var1.get_value(), [10, 20])
+        self.assertIn(selector_var2.get_value(), [10, 20])
+        self.assertEquals(match1.get_config(), match2.get_config())
