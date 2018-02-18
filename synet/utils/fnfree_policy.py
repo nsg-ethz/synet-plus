@@ -540,12 +540,8 @@ class SMTSetAttribute(SMTAbstractAction):
                 if attr == self.attribute:
                     is_match = self.match.is_match(announcement)
                     if is_match.is_concrete:
-                        if is_match.get_value():
-                            new_var = self.value
-                        else:
-                            new_var = attr_var
+                        new_var = self.value if is_match.get_value() else attr_var
                     else:
-
                         new_var = self.smt_ctx.create_fresh_var(
                             attr_var.vsort, name_prefix='Action%sVal' % attr)
                         vv = self.value.var if self.value.is_concrete else self.value.get_var()
@@ -635,11 +631,11 @@ class SMTSetCommunity(SMTAbstractAction):
                             else:
                                 # No partial eval
                                 new_var = self.smt_ctx.create_fresh_var(
-                                    z3.BoolSort(), value=self.value,
-                                    name_prefix='set_community_%s_val' % attr)
+                                    z3.BoolSort(),
+                                    name_prefix='set_community_%s_val' % community.name)
                                 constraint = z3.If(is_match.var,
-                                                   new_var.var == self.value,
-                                                   new_var.var == attr_var.var)
+                                                   new_var.var == self.value.var,
+                                                   new_var.var == old_var.var)
                                 constraints.append(constraint)
                             new_comms[community] = new_var
                     new_vals[attr] = new_comms
@@ -1240,6 +1236,7 @@ class SMTActions(SMTAbstractAction):
         return SMTSetPermitted(self.smt_match, var, anns, self.ctx)
 
     def _set_community(self, community, anns):
+        assert is_empty(community) or isinstance(community, Community)
         community = community if not is_empty(community) else None
         vsort = z3.BoolSort()
         if community:
