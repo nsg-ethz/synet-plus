@@ -447,6 +447,27 @@ class MatchMED(Match):
         self._match = value
 
 
+class MatchSelectOne(Match):
+    """Allow multiple matches"""
+    def __init__(self, matches):
+        assert isinstance(matches, Iterable)
+        assert matches
+        for match in matches:
+            assert isinstance(match, Match)
+        self._match = matches
+
+    @property
+    def match(self):
+        return self._match
+
+    @match.setter
+    def match(self, value):
+        if self._match != VALUENOTSET:
+            raise ValueError("Match already set to %s" % self._match)
+        assert isinstance(value, int)
+        self._match = value
+
+
 class ActionPermitted(Action):
     def __init__(self, access):
         assert access == VALUENOTSET or isinstance(access, Access)

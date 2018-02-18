@@ -24,6 +24,8 @@ from synet.topo.bgp import MatchPeer
 from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
+from synet.topo.bgp import MatchMED
+from synet.topo.bgp import MatchSelectOne
 from synet.utils.fnfree_policy import SMTActions
 from synet.utils.fnfree_policy import SMTSetAttribute
 from synet.utils.fnfree_policy import SMTMatch
@@ -2592,6 +2594,46 @@ class TestSMTMatch(unittest.TestCase):
             networks=[VALUENOTSET, VALUENOTSET])
         # Act
         r_match = MatchIpPrefixListList(clist)
+        match = SMTMatch(r_match, sym_anns, ctx)
+        match0 = match.is_match(sym_anns[0])
+        match1 = match.is_match(sym_anns[1])
+        ann0_is_concrete = match0.is_concrete
+        ann1_is_concrete = match0.is_concrete
+        # Evaluate constraints
+        solver = z3.Solver()
+        for name, const in ctx.constraints_itr():
+            solver.assert_and_track(const, name)
+        solver.add(match0.var == True)
+        solver.add(match1.var == False)
+        is_sat = ctx.check(solver)
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match0.get_value())
+        self.assertFalse(match1.get_value())
+        self.assertEquals(match.smt_match.get_config(),
+                          MatchIpPrefixListList(
+                              IpPrefixList(
+                                  name='iplist1',
+                                  access=Access.permit,
+                                  networks=['Prefix1'])))
+
+    def test_match_sym_select_one(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        clist = IpPrefixList(
+            name='iplist1',
+            access=Access.permit,
+            networks=[VALUENOTSET, VALUENOTSET])
+        # Act
+        ip_match = MatchIpPrefixListList(clist)
+        med_match = MatchMED(VALUENOTSET)
+        r_match = MatchSelectOne([ip_match, med_match])
         match = SMTMatch(r_match, sym_anns, ctx)
         match0 = match.is_match(sym_anns[0])
         match1 = match.is_match(sym_anns[1])

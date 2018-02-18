@@ -30,6 +30,8 @@ from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchPermitted
+from synet.topo.bgp import MatchMED
+from synet.topo.bgp import MatchSelectOne
 from synet.topo.bgp import IpPrefixList
 from synet.topo.bgp import RouteMap
 from synet.topo.bgp import RouteMapLine
@@ -439,7 +441,7 @@ class SMTMatchMED(SMTMatchAttribute):
         super(SMTMatchMED, self).__init__('med', value, announcements, ctx)
 
     def get_config(self):
-        raise NotImplementedError("Not Implemented")
+        return MatchMED(self.value.get_value())
 
 
 class SMTMatchPermitted(SMTMatchAttribute):
@@ -1102,7 +1104,9 @@ class SMTMatch(SMTAbstractMatch):
             MatchLocalPref: self._load_match_local_pref,
             MatchPeer: self._load_match_peer,
             MatchAsPath: self._load_match_as_path,
+            MatchMED: self._load_match_med,
             MatchAsPathLen: self._load_match_as_path_len,
+            MatchSelectOne: self._load_match_select_one,
         }
         if self.match is None:
             self.smt_match = SMTMatchAll(self.ctx)
@@ -1124,6 +1128,11 @@ class SMTMatch(SMTAbstractMatch):
         value = self.match.match if not is_empty(self.match.match) else None
         self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
         self.smt_match = SMTMatchLocalPref(self.value, self.announcements, self.ctx)
+
+    def _load_match_med(self):
+        value = self.match.match if not is_empty(self.match.match) else None
+        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
+        self.smt_match = SMTMatchMED(self.value, self.announcements, self.ctx)
 
     def _load_match_as_path(self):
         value = self.match.match if not is_empty(self.match.match) else None
@@ -1153,6 +1162,13 @@ class SMTMatch(SMTAbstractMatch):
     def _load_match_communities_list(self):
         self.smt_match = SMTMatchCommunityList(
             self.match.match, self.announcements, self.ctx)
+
+    def _load_match_select_one(self):
+        matches = []
+        for match in self.match.match:
+            smt_match = SMTMatch(match, self.announcements, self.ctx)
+            matches.append(smt_match)
+        self.smt_match = SMTMatchSelectOne(self.announcements, self.ctx, matches)
 
     def get_config(self):
         return self.smt_match.get_config()
