@@ -27,6 +27,7 @@ __email__ = "a.hassany@gmail.com"
 
 
 DEFAULT_LOCAL_PREF = 100
+DEFAULT_MED = 100
 
 
 def get_propagated_info(propagation_graph, node,
@@ -55,14 +56,14 @@ def get_propagated_info(propagation_graph, node,
                 continue
             if propgated.path[-2] != from_node:
                 continue
-        #if from_peer:
-        #    if path.peer != from_peer:
-        #        continue
+        if from_peer:
+            if propgated.peer != from_peer:
+                continue
         ret.add(propgated)
     return ret
 
 
-def create_sym_ann(ctx, fixed_values=None):
+def create_sym_ann(ctx, fixed_values=None, name_prefix=None):
     """Return the new symbolic announcement announcement"""
     if not fixed_values:
         fixed_values = {}
@@ -88,13 +89,19 @@ def create_sym_ann(ctx, fixed_values=None):
                 value = vsort.get_symbolic_value(fixed_values[attr])
             else:
                 value = fixed_values[attr]
-        vals[attr] = ctx.create_fresh_var(vsort=vsort, value=value)
+        nprefix = "%s_" % attr
+        nprefix = "%s_%s" % (name_prefix, nprefix) if name_prefix else nprefix
+        vals[attr] = ctx.create_fresh_var(vsort=vsort, value=value, name_prefix=nprefix)
+        #print "CREATED", vals[attr]
     comms = 'communities'
     vals[comms] = {}
     for community in ctx.communities:
         value = fixed_values.get(comms, {}).get(community, None)
-        comm_var = ctx.create_fresh_var(vsort=z3.BoolSort(), value=value)
+        nprefix = "Comm_%s_" % str(community).replace(":", "_")
+        nprefix = "%s_%s" % (name_prefix, nprefix) if name_prefix else nprefix
+        comm_var = ctx.create_fresh_var(vsort=z3.BoolSort(), value=value, name_prefix=nprefix)
         vals['communities'][community] = comm_var
+        #print "CREATED", comm_var
     new_ann = Announcement(**vals)
     return new_ann
 
@@ -141,8 +148,11 @@ class BGP(object):
             if propagated.egress:
                 # If the route is externally learned,
                 # then it's the next hop of the egress
-                fixed['next_hop'] = self.next_hop_map[self.node][propagated.egress]
-            elif len(propagated.path) == 1:
+                egress_index = propagated.path.index(propagated.egress)
+                egress_peer = propagated.path[egress_index + 1]
+                egress_peer = egress_peer if egress_peer != self.node else propagated.egress
+                fixed['next_hop'] = self.next_hop_map[self.node][egress_peer]
+            elif len(propagated.as_path) == 1:
                 # If the route is announced by this router
                 # then pick one of the next hops
                 # TODO: Make this method more accurate
@@ -151,16 +161,22 @@ class BGP(object):
                         if r == self.node:
                             fixed['next_hop'] = nxt
                             break
+            assert 'next_hop' in fixed
             # Partial eval peer
             fixed['peer'] = self.node if len(propagated.path) == 1 else propagated.peer
             # TODO: support more origins
             fixed['origin'] = 'EBGP'
             # TODO: parial eval AS path
             # TODO support as path rewrites
-            print "SYMBOLIC CREATE as_path_len", self.node, len(propagated.as_path) - 1
             fixed['as_path'] = get_as_path_key(propagated.as_path)
             fixed['as_path_len'] = len(propagated.as_path) - 1
-            new_ann = create_sym_ann(self.ctx, fixed)
+            if len(propagated.path) == 1:
+                fixed['local_pref'] = DEFAULT_LOCAL_PREF
+                fixed['med'] = DEFAULT_MED
+                fixed['communities'] = {}
+                for community in self.ctx.communities:
+                    fixed['communities'][community] = False
+            new_ann = create_sym_ann(self.ctx, fixed, name_prefix="Sham_%s_" % self.node)
             anns_map[propagated] = new_ann
         return anns_map
 
@@ -172,15 +188,18 @@ class BGP(object):
         exported_info = {}
 
         # First compute what is exported to each neighbor
-        for neighbor in self.ibgp_propagation.neighbors(self.node):
+        for neighbor in self.network_graph.get_bgp_neighbors(self.node):
             # Announcement that the neighbor will learn from this router
             all_anns = get_propagated_info(self.ibgp_propagation, neighbor,
-                                           from_node=self.node, unselected=True,
+                                           from_peer=self.node, unselected=True,
                                            igp_pass=False)
             for prop in all_anns:
                 if neighbor not in exported_info:
                     exported_info[neighbor] = set()
                 exported_info[neighbor].add(prop)
+
+        for peer, props in exported_info.iteritems():
+            print "Node %s Exported to %s: %s" % (self.node, peer, props)
 
         # Second,  map the propagated to the local announcements
         export_anns = {}
@@ -226,14 +245,20 @@ class BGP(object):
         :return: dict (propagatedinfo->announcement)
         """
         selected = get_propagated_info(self.ibgp_propagation, self.node, unselected=False)
+        print "SELECTED AT", self.node
+        for s in selected:
+            print "\t", s
         anns = [self.anns_map[propagated] for propagated in selected]
         return self.anns_ctx.create_new(anns, mutator=self._get_selected_sham)
 
     def compute_imported_routes(self):
         #attrs = ['prefix', 'peer', 'origin', 'as_path', 'as_path_len',
         #         'next_hop', 'local_pref', 'med', 'permitted']
-        attrs = ['prefix', 'origin', 'next_hop', 'local_pref', 'med', 'permitted']
-        for neighbor in self.ibgp_propagation.neighbors(self.node):
+        # The attributes that are read from the neighbor
+        attrs = ['prefix', 'origin', 'local_pref', 'med', 'permitted']
+        for neighbor in self.network_graph.get_bgp_neighbors(self.node):
+            if not self.ibgp_propagation.has_node(neighbor):
+                continue
             asnum = self.network_graph.get_bgp_asnum(self.node)
             neighbor_asnum = self.network_graph.get_bgp_asnum(neighbor)
             is_ebgp_neighbor = asnum != neighbor_asnum
@@ -241,8 +266,8 @@ class BGP(object):
             neighbor_exported = n_attrs['box'].exported_routes
             if self.node not in neighbor_exported:
                 # The neighbor doesn't export anything to this router
+                print "NODE %s doesn't import anything from %s: %s" % (self.node, neighbor, neighbor_exported.keys())
                 continue
-            print "\tImporting", neighbor, neighbor_exported[self.node]
             imported = {}
             for prop, ann in neighbor_exported[self.node].iteritems():
                 assert prop in self.anns_map
@@ -268,6 +293,7 @@ class BGP(object):
                 smt_map = SMTRouteMap(rmap, tmp, self.ctx)
                 self.rmaps[rmap_name] = smt_map
                 smt_map.execute()
+                cc = self.ctx._tracked.keys()[:]
                 for index, prop in enumerate(props):
                     imported[prop] = smt_map.announcements[index]
             # Assign the values
@@ -278,12 +304,18 @@ class BGP(object):
                     prefix = 'Imp_%s_from_%s_%s_' % (self.node, neighbor, attr)
                     self.ctx.register_constraint(curr.var == imp.var,
                                                  name_prefix=prefix)
+                for community in self.ctx.communities:
 
-    def selector_func(self, prefix, best_propagated, best_ann_var,
+                    curr = self.anns_map[prop].communities[community]
+                    imp = ann.communities[community]
+                    prefix = 'Imp_%s_from_%s_Comm_%s_' % (self.node, neighbor, community.name)
+                    self.ctx.register_constraint(curr.var == imp.var, name_prefix=prefix)
+
+    def selector_func(self, best_propagated, best_ann_var,
                       other_propagated, other_ann_var):
         """Synthesize Selection function for a given prefix"""
         self.log.debug(
-            "prefix_select %s at %s, best=%s", prefix, self.node, best_propagated)
+            "prefix_select %s at %s, best=%s", best_propagated.ann_name, self.node, best_propagated)
         best_peer = best_propagated.peer
         if best_propagated.path:
             best_neighbor = best_propagated.path[-2]
@@ -293,7 +325,7 @@ class BGP(object):
         if best_propagated.peer == other_propagated.peer:
             return
 
-        as_len_enabled = self.get_as_len_enabled()
+        as_len_enabled = True # self.get_as_len_enabled()
         #name = "A"
         const_set = []
         const_selection = []
@@ -312,7 +344,7 @@ class BGP(object):
         o_origin = other_ann_var.origin.var
 
         origin_sort = self.ctx.get_enum_type(BGP_ORIGIN_SORT)
-        igp_origin = origin_sort.get_symbolic_value('IBGP')
+        igp_origin = origin_sort.get_symbolic_value('IGP')
         ebgp_origin = origin_sort.get_symbolic_value('EBGP')
         incomplete_origin = origin_sort.get_symbolic_value('INCOMPLETE')
 
@@ -408,17 +440,47 @@ class BGP(object):
 
         #self.constraints["%s_set" % name] = z3.And(*const_set)
         #self.constraints[name] = z3.And(*const_selection)
+        self.ctx.register_constraint(z3.And(*const_selection) == True, name_prefix="SELECT_%s_" % self.node)
 
     def mark_selected(self):
-        for _, ann in self.anns_map.iteritems():
+        for propagated, ann in self.anns_map.iteritems():
+            n = '_%s_from_%s_' % (self.node, propagated.peer)
             if ann not in self.selected_sham:
-                self.ctx.register_constraint(ann.permitted.var == False,
-                                             name_prefix='Block%s_' % self.node)
+                self.ctx.register_constraint(ann.permitted.var == False, name_prefix='Block' + n)
             else:
-                self.ctx.register_constraint(ann.permitted.var == True,
-                                             name_prefix='SELAllow%s_' % self.node)
+                self.ctx.register_constraint(ann.permitted.var == True, name_prefix='Allow' + n)
 
     def synthesize(self):
         print "Synthesizing", self.node
         self.mark_selected()
         self.compute_imported_routes()
+
+        selected = get_propagated_info(self.ibgp_propagation, self.node, unselected=False)
+
+        anns_order = {}
+        for propagated in selected:
+            if propagated.ann_name not in anns_order:
+                anns_order[propagated.ann_name] = []
+            anns_order[propagated.ann_name].append(propagated)
+        for ann_name, values in anns_order.iteritems():
+            if len(values) == 1:
+                # This router only learns one route
+                # No need to use the perference function
+                continue
+            for best_prop, other_prop in zip(values[0::1], values[1::1]):
+                best_ann = self.anns_map[best_prop]
+                other_ann = self.anns_map[other_prop]
+                self.selector_func(best_prop, best_ann, other_prop, other_ann)
+
+    def get_config(self):
+        """Get concrete route configs"""
+        configs = []
+        for smt_rmap in self.rmaps.values():
+            configs.append(smt_rmap.get_config())
+        return configs
+
+    def update_network_graph(self):
+        """Update the network graph with the concrete values"""
+        for smt_rmap in self.rmaps.values():
+            rmap = smt_rmap.get_config()
+            self.network_graph.add_route_map(self.node, rmap)
