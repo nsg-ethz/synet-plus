@@ -143,12 +143,18 @@ class EBGPPropagation(object):
             is_last = index == len(tt) - 1
             for path in new_paths[:]:
                 if not is_last:
+                    # None terminating path, remove it
                     new_paths.remove(path)
                 last_node = path[-1]
                 bgp_neighbors = list(self.network_graph.get_bgp_neighbors(last_node).keys())
                 curras = self.network_graph.get_bgp_asnum(last_node)
                 for neighbor in bgp_neighbors:
                     neighbor_as = self.network_graph.get_bgp_asnum(neighbor)
+                    #if is_last and curras == neighbor_as:
+                    #    if (len(path) < 3 or self.network_graph.get_bgp_asnum(path[-2]) != curras):
+                    #        # Single hop iBGP append
+                    #        new_paths.append(path + [neighbor])
+                    #        print "SINGLE HOP", new_paths[-1]
                     if not is_last and curras != neighbor_as:
                         if neighbor not in path and neighbor in tt[index + 1]:
                             new_path = path + [neighbor]
@@ -175,10 +181,8 @@ class EBGPPropagation(object):
         for path in all_paths:
             expanded_paths[path] = self.expand_as_path(path, origins[path[0]])
         for _, paths in expanded_paths.iteritems():
-            print "PATHS are", paths
             for path in paths:
                 node = path[-1]
-                print "\tPATH IS", path
                 if path in expanded.node[node]['paths']:
                     continue
                 else:
@@ -230,24 +234,19 @@ class EBGPPropagation(object):
             # Compute iBGP Propagation
             ibgp_propagation = compute_propagation(self.network_graph, ibgp_paths)
             for node in ibgp_propagation.nodes():
-                ibgp_propagation.node[node]['order'] = \
-                    [x for x in ibgp_propagation.node[node]['order'] if x]
+                clear = [x for x in ibgp_propagation.node[node]['order'] if x]
+                ibgp_propagation.node[node]['order'] = clear
             unmatching_order = self.verify.check_order(ebgp_propagation)
             # Extend the iBGP propagation to contain the eBGP paths
             self.expand_ebgp_graph(ebgp_propagation, ibgp_propagation, ebgp_paths, ibgp_paths)
             self.ebgp_graphs[net] = ebgp_propagation
             self.ibgp_graphs[net] = ibgp_propagation
-            annotate_graph(ebgp_propagation)
-            annotate_graph(ibgp_propagation)
-            nx.nx_pydot.write_dot(ebgp_propagation, '/tmp/as_propagation.xdot')
-            nx.nx_pydot.write_dot(ibgp_propagation, '/tmp/i_propagation.xdot')
+
         self.merge_dags()
+
         # Override enum
         as_paths = self.partial_eval_propagated_info()
-        vsort = self.ctx.get_enum_type(ASPATH_SORT)
-        del self.ctx._enum_types[ASPATH_SORT]
         self.ctx.create_enum_type(ASPATH_SORT, [get_as_path_key(p) for p in as_paths])
-
         return unmatching_order
 
     def partial_eval_propagated_info(self):
@@ -255,15 +254,20 @@ class EBGPPropagation(object):
             as_path = []
             egress = None
             peer = None
+            egress_peer = path[0]
             for index, node in enumerate(path):
                 if not self.network_graph.is_bgp_enabled(node):
                     continue
                 if index > 0:
                     prev = path[index - 1]
                     if self.network_graph.is_bgp_enabled(prev):
-                        peer = prev
-                    if self.network_graph.is_peer(prev) and not self.network_graph.is_peer(node):
-                        egress = node
+                        if egress_peer and self.network_graph.get_bgp_asnum(node) == self.network_graph.get_bgp_asnum(egress_peer):
+                            peer = egress_peer
+                        else:
+                            peer = prev
+                    if self.network_graph.get_bgp_asnum(prev) != self.network_graph.get_bgp_asnum(node):
+                        egress = prev
+                        egress_peer = node
                 asnum = self.network_graph.get_bgp_asnum(node)
                 if not as_path or (as_path and as_path[-1] != asnum):
                     as_path.append(asnum)
@@ -307,16 +311,16 @@ class EBGPPropagation(object):
             as_num = self.network_graph.get_bgp_asnum(node)
             if len(propagated.path) < 2:
                 return None
-            neighbor = propagated.path[-2]
+            neighbor = propagated.peer
             neighbor_as_num = self.network_graph.get_bgp_asnum(neighbor)
             n_paths = self.ibgp_propagation.node[neighbor]['nets'][net]['paths_info']
             for neighbor_info in n_paths:
                 assert isinstance(neighbor_info, PropagatedInfo)
-                if propagated.path[:-1] != neighbor_info.path:
-                    continue
-                elif as_num == neighbor_as_num and propagated.as_path != neighbor_info.as_path:
-                    continue
-                elif as_num != neighbor_as_num and propagated.as_path[1:] != neighbor_info.as_path:
+                #if propagated.path[:-1] != neighbor_info.path:
+                #    continue
+                #elif as_num == neighbor_as_num and propagated.as_path != neighbor_info.as_path:
+                #    continue
+                if propagated.peer != neighbor_info.peer and as_num != neighbor_as_num and propagated.as_path[1:] != neighbor_info.as_path:
                     continue
                 else:
                     return neighbor_info
@@ -332,7 +336,6 @@ class EBGPPropagation(object):
                     if 'origins' not in attrs:
                         attrs['origins'] = {}
                     attrs['origins'][propagated] = origin
-
         return set([prop.as_path for prop in cache.values()])
 
     def synthesize(self):
@@ -341,3 +344,8 @@ class EBGPPropagation(object):
             self.ibgp_propagation.node[node]['box'] = BGP(node, self)
         for node in self.ibgp_propagation.nodes():
             self.ibgp_propagation.node[node]['box'].synthesize()
+
+    def update_network_graph(self):
+        """Update the network graph with the concrete values"""
+        for node in self.ibgp_propagation.nodes():
+            self.ibgp_propagation.node[node]['box'].update_network_graph()
