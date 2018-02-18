@@ -24,11 +24,9 @@ def synthesize_next_hop(network_graph, node, neighbor):
         iface = network_graph.get_edge_iface(neighbor, node)
     else:
         loopbacks = network_graph.get_loopback_interfaces(neighbor)
-        if not loopbacks:
-            iface = 'lo0'
+        iface = 'lo100'
+        if iface not in loopbacks:
             network_graph.set_loopback_addr(neighbor, iface, VALUENOTSET)
-        else:
-            iface = loopbacks.keys()[0]
     return iface
 
 
