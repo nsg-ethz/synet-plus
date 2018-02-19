@@ -51,6 +51,8 @@ from synet.utils.fnfree_smt_context import decode_as_path
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
+SELECTOR = {}
+
 
 class SMTAbstractMatch(object):
     """Generic Match Class"""
@@ -119,7 +121,8 @@ class SMTMatchAnd(SMTAbstractMatch):
         return self.matched_announcements[announcement]
 
     def get_config(self):
-        return [match.get_config() for match in self.matches]
+        configs = [match.get_config() for match in self.matches]
+        return [c for c in configs if c]
 
 
 class SMTMatchOr(SMTAbstractMatch):
@@ -559,6 +562,9 @@ class SMTSetAttribute(SMTAbstractAction):
                 else:
                     new_vals[attr] = attr_var
             new_ann = Announcement(**new_vals)
+            global SELECTOR
+            if announcement in SELECTOR:
+                SELECTOR[new_ann] = SELECTOR[announcement]
             announcements.append(new_ann)
         if constraints:
             self.smt_ctx.register_constraint(z3.And(*constraints), name_prefix='Set_%s_' % attr)
@@ -640,6 +646,9 @@ class SMTSetCommunity(SMTAbstractAction):
                             new_comms[community] = new_var
                     new_vals[attr] = new_comms
             new_ann = Announcement(**new_vals)
+            global SELECTOR
+            if announcement in SELECTOR:
+                SELECTOR[new_ann] = SELECTOR[announcement]
             announcements.append(new_ann)
         if constraints:
             self.smt_ctx.register_constraint(z3.And(*constraints), name_prefix='Set_comm_')
@@ -791,6 +800,9 @@ class SMTSetOne(SMTAbstractAction):
                             new_var.var == value, name_prefix=prefix)
                         new_values[attr] = new_var
             new_anns.append(Announcement(**new_values))
+            global SELECTOR
+            if old_ann in SELECTOR:
+                SELECTOR[new_anns[-1]] = SELECTOR[old_ann]
         self._announcements = self.old_announcements.create_new(new_anns, self)
 
     def get_used_action(self):
@@ -1167,6 +1179,9 @@ class SMTMatch(SMTAbstractMatch):
             matches.append(smt_match)
         self.smt_match = SMTMatchSelectOne(self.announcements, self.ctx, matches)
 
+    def __str__(self):
+        return "SMTMatch(%s)" % self.smt_match
+
     def get_config(self):
         return self.smt_match.get_config()
 
@@ -1299,6 +1314,7 @@ class SMTActions(SMTAbstractAction):
         configs = []
 
         def _gather_communities(comms, index):
+            print "GATHERING", index, comms, self.actions
             prev_action = self.actions[index]
             assert isinstance(prev_action, ActionSetCommunity)
             action = ActionSetCommunity(communities=comms,
@@ -1336,7 +1352,8 @@ class SMTSelectorMatch(SMTAbstractMatch):
         #    return self.match.is_match(announcement)
         if announcement not in self.matched_announcements:
             is_match = self.match.is_match(announcement)
-            sel = self.selectors_vars[announcement]
+            global SELECTOR
+            sel = SELECTOR[announcement] # self.selectors_vars[announcement]
             match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_')
             const = z3.And(is_match.var, sel.var == self.selector_value) == match_var.var
             self.ctx.register_constraint(z3.And(is_match.var, sel.var == self.selector_value) == match_var.var, name_prefix='Selector_')
@@ -1409,6 +1426,7 @@ class SMTRouteMapLine(SMTAbstractAction):
 
         if not actions:
             actions = None
+
         return RouteMapLine(matches=matches, actions=actions,
                             access=permittted,
                             lineno=self.line.lineno)
@@ -1422,6 +1440,7 @@ class SMTRouteMap(SMTAbstractAction):
         self.ctx = ctx
         self._old_announcements = announcements
         self.smt_lines = []
+        global SELECTOR
 
         name_prefix = 'SelectOneRmapLineIndex_'
 
@@ -1430,6 +1449,7 @@ class SMTRouteMap(SMTAbstractAction):
         for announcement in self.old_announcements:
             index_var = self.ctx.create_fresh_var(z3.IntSort(), name_prefix=name_prefix)
             selectors[announcement] = index_var
+            SELECTOR[announcement] = index_var
             possible_vals = [index_var.var == lineno for lineno in line_numbers]
             self.ctx.register_constraint(z3.Or(*possible_vals),
                                          name_prefix='RmapIndexBound_')
