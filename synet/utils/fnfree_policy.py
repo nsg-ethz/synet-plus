@@ -1314,7 +1314,6 @@ class SMTActions(SMTAbstractAction):
         configs = []
 
         def _gather_communities(comms, index):
-            print "GATHERING", index, comms, self.actions
             prev_action = self.actions[index]
             assert isinstance(prev_action, ActionSetCommunity)
             action = ActionSetCommunity(communities=comms,
