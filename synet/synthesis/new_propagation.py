@@ -344,6 +344,10 @@ class EBGPPropagation(object):
             self.ibgp_propagation.node[node]['box'] = BGP(node, self)
         for node in self.ibgp_propagation.nodes():
             self.ibgp_propagation.node[node]['box'].synthesize()
+        print "Y" * 50
+        print "PROPAGATION GRAPH SIZE:", self.ibgp_propagation.number_of_nodes()
+        print "NETWORK GRAPH SIZE:", self.network_graph.number_of_nodes()
+        print "Y" * 50
 
     def update_network_graph(self):
         """Update the network graph with the concrete values"""
