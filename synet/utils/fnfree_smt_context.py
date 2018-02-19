@@ -404,6 +404,10 @@ class SolverContext(object):
 
     def check(self, solver, track=True):
         t1 = timer()
+        print "X" * 50
+        print "Total Number of variables:", len(self._vars)
+        print "Total Number of Constraints:", len(self._tracked)
+        print "X" * 50
         print "Adding constraints", t1
         for name, const in self.constraints_itr():
             if track:
