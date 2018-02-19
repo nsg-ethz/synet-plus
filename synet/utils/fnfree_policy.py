@@ -1353,7 +1353,7 @@ class SMTSelectorMatch(SMTAbstractMatch):
         if announcement not in self.matched_announcements:
             is_match = self.match.is_match(announcement)
             global SELECTOR
-            sel = SELECTOR[announcement] # self.selectors_vars[announcement]
+            sel = SELECTOR.get(announcement, None) or self.selectors_vars.get(announcement, None)
             match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_')
             const = z3.And(is_match.var, sel.var == self.selector_value) == match_var.var
             self.ctx.register_constraint(z3.And(is_match.var, sel.var == self.selector_value) == match_var.var, name_prefix='Selector_')
