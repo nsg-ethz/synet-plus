@@ -68,7 +68,7 @@ class CiscoConfigGen(object):
         config = ''
         list_id = community_list.list_id
         access = community_list.access.value
-        communities = ' '.join([c.value for c in community_list.communities])
+        communities = ' '.join([c.value for c in community_list.communities if not is_empty(c)])
         config += "ip community-list %d %s %s\n" % (list_id, access, communities)
         return config
 
@@ -204,8 +204,11 @@ class CiscoConfigGen(object):
         if isinstance(match, MatchCommunitiesList):
             config += 'match community %d' % match.match.list_id
         elif isinstance(match, MatchIpPrefixListList):
-            assert match.match.name in self.g.get_ip_preflix_lists(node)
-            if not all([is_empty(p) for p in self.g.get_ip_preflix_lists(node)[match.match.name].networks]):
+            name = match.match.name
+            ips = self.g.get_ip_preflix_lists(node)
+            err = "IP list '%s' is not registered at Node '%s': %s" % (name, node, ips)
+            assert name in ips, err
+            if not all([is_empty(p) for p in ips[match.match.name].networks]):
                 config += 'match ip address prefix-list %s' % match.match.name
         elif isinstance(match, MatchAsPath):
             list_no = None
