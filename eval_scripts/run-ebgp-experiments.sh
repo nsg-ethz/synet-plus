@@ -17,7 +17,7 @@ topo="${file}.graphml"
 values="${file}_ospf_reqs.py "
     for reqs in 1 2 4 8 16;
     do
-        for req_type in simple order;
+        for req_type in simple;
         do
             for fixed in "1" "0.75" "0.5" "0.25" "0";
             do

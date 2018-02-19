@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 PATH_TO_LOGS="ebgplogs"
-SYNET_SCRIPT="python ./eval_scripts/ebgp_eval.py"
+SYNET_SCRIPT="python ./eval_scripts/new_ebgp_eval.py"
 
 TOPO=$1
 VALUES=$2
