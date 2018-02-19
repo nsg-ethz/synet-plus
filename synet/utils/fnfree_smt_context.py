@@ -5,6 +5,7 @@ Helper class to keep track of SMT vars and constraints
 """
 
 import itertools
+from timeit import default_timer as timer
 
 import z3
 
@@ -394,10 +395,16 @@ class SolverContext(object):
 
     def set_model(self, model):
         """Set the Z3 model, after solving it"""
+        t1 = timer()
+        print "Setting the Var values start at", t1
         for var in self._vars.values():
             var.eval(model)
+        t2 = timer()
+        print "Reading model time: %f" % (t2 - t1)
 
     def check(self, solver, track=True):
+        t1 = timer()
+        print "Adding constraints", t1
         for name, const in self.constraints_itr():
             if track:
                 if isinstance(const, bool):
@@ -408,7 +415,12 @@ class SolverContext(object):
                     solver.assert_and_track(const, name)
             else:
                 solver.add(const)
+        t2 = timer()
+        print "Constraints adding time: %f" % (t2 - t1)
+        print "Start Z3 check", t2
         ret = solver.check()
+        t3 = timer()
+        print "Z3 check time: %f" % (t3 - t2)
         if ret == z3.sat:
             self.set_model(solver.model())
         return ret
