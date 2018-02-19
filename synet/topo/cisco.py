@@ -26,6 +26,7 @@ from synet.topo.bgp import RouteMapLine
 from synet.topo.bgp import MatchCommunitiesList
 from synet.topo.bgp import MatchIpPrefixListList
 from synet.topo.bgp import MatchAsPath
+from synet.topo.bgp import MatchNextHop
 from synet.topo.bgp import IpPrefixList
 
 from synet.utils.smt_context import is_empty
@@ -220,6 +221,16 @@ class CiscoConfigGen(object):
                 as_path = ASPathList(list_id=list_no, access=Access.permit, as_paths=match.match)
                 self.g.add_as_path_list(node, as_path)
             config += 'match as-path %s' % list_no
+        elif isinstance(match, MatchNextHop):
+            next_hop = match.match
+            parsed = next_hop.split('-') if isinstance(next_hop,basestring) else None
+            if parsed and self.g.has_node(parsed[0]):
+                router = parsed[0]
+                iface = '/'.join(parsed[1:])
+                next_hop = self.g.get_iface_addr(router, iface)
+            if hasattr(next_hop, 'ip'):
+                next_hop = next_hop.ip
+            config += 'match ip next-hop %s' % next_hop
         else:
             raise ValueError('Unknow match type %s' % match)
         return config
