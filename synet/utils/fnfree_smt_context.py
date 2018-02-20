@@ -402,12 +402,10 @@ class SolverContext(object):
         t2 = timer()
         print "Reading model time: %f" % (t2 - t1)
 
-    def check(self, solver, track=True):
+    def check(self, solver, track=True, set_model=True):
         t1 = timer()
-        print "X" * 50
-        print "Total Number of variables:", len(self._vars)
-        print "Total Number of Constraints:", len(self._tracked)
-        print "X" * 50
+        partially_eval_vars = len([var for var in self._vars.values() if var.is_concrete])
+        partially_eval_const = 0
         print "Adding constraints", t1
         for name, const in self.constraints_itr():
             if track:
@@ -415,17 +413,28 @@ class SolverContext(object):
                     var = self.create_fresh_var(z3.BoolSort(), value=None, name_prefix='BoolHack_')
                     solver.assert_and_track(var.var == const, name)
                     solver.assert_and_track(var.var == True, "%s_hack" % name)
+                    partially_eval_const += 1
                 else:
                     solver.assert_and_track(const, name)
             else:
                 solver.add(const)
         t2 = timer()
+        print "X" * 50
+        print "Total Number of variables:", len(self._vars)
+        print "Total Number of Constraints:", len(self._tracked)
+        print "Total Number of Partially evaluated variables:", partially_eval_vars
+        print "Percentage Partially evaluated variables:", partially_eval_vars / (len(self._vars) * 1.0)
+        print "Total Number of Partially evaluated constraints:", partially_eval_const
+        print "Percentage Partially evaluated constraints:", partially_eval_const / (len(self._tracked) * 1.0)
+        print "Total Percentage Partially evaluated:", (partially_eval_vars + partially_eval_const) / ((len(self._tracked) +len(self._vars)) * 1.0)
+        print "X" * 50
+
         print "Constraints adding time: %f" % (t2 - t1)
         print "Start Z3 check", t2
         ret = solver.check()
         t3 = timer()
         print "Z3 check time: %f" % (t3 - t2)
-        if ret == z3.sat:
+        if set_model and ret == z3.sat:
             self.set_model(solver.model())
         return ret
 
