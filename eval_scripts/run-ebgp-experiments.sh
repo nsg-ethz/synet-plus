@@ -2,7 +2,7 @@
 
 # Generate evaluation values for all given reqs
 NUM_PROCESSES=20
-NUM_REPEATS=1
+NUM_REPEATS=10
 
 
 PATH_TO_TOPOS="topos/*/"
@@ -19,7 +19,7 @@ values="${file}_ospf_reqs.py "
     do
         for req_type in "order" "simple";
         do
-            for fixed in "0";
+            for fixed in "0" "0.5" "1.0";
             do
                 for RUN_ID in $(seq 1 $NUM_REPEATS);
                 do
