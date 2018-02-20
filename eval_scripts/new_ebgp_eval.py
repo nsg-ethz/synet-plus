@@ -623,7 +623,6 @@ def gen_simple_abs(topo, ospf_reqs, all_communities):
     assign_ebgp(topo)
     peer_asnum = 10000
     all_reqs = []
-    syn_vals = []
     comm_lists = {}
     for router in topo.routers_iter():
         comm_lists[router] = itertools.count(1)
@@ -642,7 +641,6 @@ def gen_simple_abs(topo, ospf_reqs, all_communities):
         peer_comm = all_communities[index]
         set_comm = ActionSetCommunity([peer_comm])
         line = RouteMapLine(matches=None, actions=[set_comm], access=VALUENOTSET, lineno=10)
-        syn_vals.append(partial(set_access, line=line, access=Access.permit))
         rname = "RMap_%s_from_%s" % (egress, peer)
         rmap = RouteMap(rname, lines=[line])
         topo.add_route_map(egress, rmap)
@@ -672,17 +670,15 @@ def gen_simple_abs(topo, ospf_reqs, all_communities):
                 match_ip = MatchIpPrefixListList(ip_list)
                 match_next_hop = MatchNextHop(VALUENOTSET)
                 match = MatchSelectOne([match_comms, match_ip, match_next_hop])
-                #syn_vals.append(partial(set_comms, match=match, comms=[peer_comm]))
-                line1 = RouteMapLine(matches=[match], actions=[ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET])], access=VALUENOTSET, lineno=10)
 
+                line1 = RouteMapLine(matches=[match], actions=[ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET])], access=VALUENOTSET, lineno=10)
                 line_deny = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
-                #syn_vals.append(partial(set_access, line=line, access=Access.deny))
                 rname = "RMap_%s_from_%s" % (neighbor, node)
                 rmap = RouteMap(rname, lines=[line1, line_deny])
                 topo.add_route_map(neighbor, rmap)
                 topo.add_bgp_import_route_map(neighbor, node, rname)
                 print "ADD Router MAP", neighbor
-    return all_reqs, syn_vals
+    return all_reqs
 
 
 def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated):
