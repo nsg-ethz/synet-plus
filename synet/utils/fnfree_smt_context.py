@@ -409,6 +409,9 @@ class SolverContext(object):
         print "Adding constraints", t1
         for name, const in self.constraints_itr():
             if track:
+                #print 'X' * 20, name, 'X' * 20
+                #print const
+                #print 'X' * 50
                 if isinstance(const, bool):
                     var = self.create_fresh_var(z3.BoolSort(), value=None, name_prefix='BoolHack_')
                     solver.assert_and_track(var.var == const, name)
@@ -418,6 +421,7 @@ class SolverContext(object):
                     solver.assert_and_track(const, name)
             else:
                 solver.add(const)
+            #assert not name.startswith('SelectOne_match')
         t2 = timer()
         print "X" * 50
         print "Total Number of variables:", len(self._vars)
@@ -425,8 +429,12 @@ class SolverContext(object):
         print "Total Number of Partially evaluated variables:", partially_eval_vars
         print "Percentage Partially evaluated variables:", partially_eval_vars / (len(self._vars) * 1.0)
         print "Total Number of Partially evaluated constraints:", partially_eval_const
-        print "Percentage Partially evaluated constraints:", partially_eval_const / (len(self._tracked) * 1.0)
-        print "Total Percentage Partially evaluated:", (partially_eval_vars + partially_eval_const) / ((len(self._tracked) +len(self._vars)) * 1.0)
+        if len(self._tracked) > 0:
+            print "Percentage Partially evaluated constraints:", partially_eval_const / (len(self._tracked) * 1.0)
+        else:
+            print "No constraints"
+        if (len(self._tracked) +len(self._vars)) > 0:
+            print "Total Percentage Partially evaluated:", (partially_eval_vars + partially_eval_const) / ((len(self._tracked) +len(self._vars)) * 1.0)
         print "X" * 50
 
         print "Constraints adding time: %f" % (t2 - t1)
