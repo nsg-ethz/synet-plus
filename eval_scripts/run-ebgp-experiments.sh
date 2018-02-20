@@ -2,7 +2,7 @@
 
 # Generate evaluation values for all given reqs
 NUM_PROCESSES=20
-NUM_REPEATS=5
+NUM_REPEATS=1
 
 
 PATH_TO_TOPOS="topos/*/"
@@ -17,9 +17,9 @@ topo="${file}.graphml"
 values="${file}_ospf_reqs.py "
     for reqs in 1 2 4 8 16;
     do
-        for req_type in simple;
+        for req_type in "order" "simple";
         do
-            for fixed in "1" "0.75" "0.5" "0.25" "0";
+            for fixed in "0";
             do
                 for RUN_ID in $(seq 1 $NUM_REPEATS);
                 do
