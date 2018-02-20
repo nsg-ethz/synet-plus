@@ -108,13 +108,16 @@ class SMTMatchAnd(SMTAbstractMatch):
         if announcement not in self.matched_announcements:
             results = [match.is_match(announcement) for match in self.matches]
             is_concrete = all([result.is_concrete for result in results])
+            shortcut = [result.get_value() for result in results if result.is_concrete]
             value = None
             if is_concrete:
                 value = all([result.get_value() for result in results])
-            match_var = self.ctx.create_fresh_var(
-                z3.BoolSort(), name_prefix='match_and_', value=value)
+            elif shortcut and not all(shortcut):
+                value = False
+                is_concrete = True
+            match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_and_', value=value)
             if not is_concrete:
-                constraint = z3.And([result.var == True for result in results])
+                constraint = z3.And([result.var == True for result in results if not result.is_concrete])
                 self.ctx.register_constraint(
                     match_var.var == constraint, name_prefix='const_and_')
             self.matched_announcements[announcement] = match_var
@@ -145,9 +148,13 @@ class SMTMatchOr(SMTAbstractMatch):
         if announcement not in self.matched_announcements:
             results = [match.is_match(announcement) for match in self.matches]
             is_concrete = all([result.is_concrete for result in results])
+            shortcut = [result.get_value() for result in results if result.is_concrete]
             value = None
             if is_concrete:
                 value = any([result.get_value() for result in results])
+            elif shortcut and any(shortcut):
+                value = True
+                is_concrete = True
             match_var = self.ctx.create_fresh_var(
                 z3.BoolSort(), name_prefix='match_or_', value=value)
             if not is_concrete:
@@ -218,8 +225,13 @@ class SMTMatchSelectOne(SMTAbstractMatch):
         """Recursively construct a match"""
         if current_index not in self.matches:
             # Base case
+            return False
             return z3.And(self.index_var.var == current_index, False)
-        match_var = self.matches[current_index].is_match(announcement).var
+        is_match  = self.matches[current_index].is_match(announcement)
+        if is_match.is_concrete:
+            match_var = is_match.get_value()
+        else:
+            match_var = self.matches[current_index].is_match(announcement).var
         index_check = self.index_var.var == current_index
         next_attr = self._get_match(announcement, current_index + 1)
         return z3.If(index_check, match_var, next_attr)
@@ -1353,9 +1365,14 @@ class SMTSelectorMatch(SMTAbstractMatch):
             is_match = self.match.is_match(announcement)
             global SELECTOR
             sel = SELECTOR.get(announcement, None) or self.selectors_vars.get(announcement, None)
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_')
-            const = z3.And(is_match.var, sel.var == self.selector_value) == match_var.var
-            self.ctx.register_constraint(z3.And(is_match.var, sel.var == self.selector_value) == match_var.var, name_prefix='Selector_')
+            value = None
+            if is_match.is_concrete and is_match.get_value() == False:
+                value = False
+            if sel.is_concrete and sel.get_value() != self.selector_value:
+                value = False
+            match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_', value=value)
+            if not value:
+                self.ctx.register_constraint(z3.And(is_match.var, sel.var == self.selector_value) == match_var.var, name_prefix='Selector_')
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 

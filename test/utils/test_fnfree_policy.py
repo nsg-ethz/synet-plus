@@ -326,7 +326,7 @@ class TestSMTMatchAnd(unittest.TestCase):
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
-        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(ann1_is_concrete)
         self.assertTrue(ann0_value)
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
@@ -423,7 +423,7 @@ class TestSMTMatchOr(unittest.TestCase):
         # Assert
         # Check the partial evaluation
         self.assertTrue(ann0_is_concrete)
-        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(ann1_is_concrete)
         self.assertTrue(ann0_value)
         self.assertEquals(is_sat, z3.sat)
         ctx.set_model(solver.model())
