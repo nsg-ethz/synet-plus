@@ -618,7 +618,7 @@ def gen_ecmp(topo, ospf_reqs, all_communities):
 
 
 
-def gen_simple_abs(topo, ospf_reqs, all_communities):
+def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated):
     assert isinstance(topo, NetworkGraph)
     assign_ebgp(topo)
     peer_asnum = 10000
@@ -662,6 +662,12 @@ def gen_simple_abs(topo, ospf_reqs, all_communities):
             for _, neighbor in topo.out_edges(node):
                 if neighbor in req.path:
                     continue
+                rname = "RMap_%s_from_%s" % (neighbor, node)
+                if rname in partially_evaluated:
+                    rmap = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname])
+                    topo.add_route_map(neighbor, rmap)
+                    topo.add_bgp_import_route_map(neighbor, node, rname)
+                    continue
                 clist = CommunityList(comm_lists[node].next(), Access.permit, [VALUENOTSET, VALUENOTSET, VALUENOTSET])
                 topo.add_bgp_community_list(node, clist)
                 match_comms = MatchCommunitiesList(clist)
@@ -673,7 +679,7 @@ def gen_simple_abs(topo, ospf_reqs, all_communities):
 
                 line1 = RouteMapLine(matches=[match], actions=[ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET])], access=VALUENOTSET, lineno=10)
                 line_deny = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
-                rname = "RMap_%s_from_%s" % (neighbor, node)
+
                 rmap = RouteMap(rname, lines=[line1, line_deny])
                 topo.add_route_map(neighbor, rmap)
                 topo.add_bgp_import_route_map(neighbor, node, rname)
@@ -731,6 +737,13 @@ def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated):
                     if neighbor in subreq.path:
                         continue
                     rname = "RMap_%s_from_%s" % (neighbor, node)
+
+                    if rname in partially_evaluated:
+                        rmap = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname])
+                        topo.add_route_map(neighbor, rmap)
+                        topo.add_bgp_import_route_map(neighbor, node, rname)
+                        continue
+
                     clist = CommunityList(comm_lists[node].next(), Access.permit, [VALUENOTSET, VALUENOTSET, VALUENOTSET])
                     topo.add_bgp_community_list(node, clist)
                     match_comms = MatchCommunitiesList(clist)
@@ -908,7 +921,6 @@ def main():
     basename = os.path.basename(topo_file).strip('.graphml')
     out_name = "%s_%s_%s_%s" % (basename, sketch_type, req_type, reqsize)
 
-    read_route_maps = {}
 
 
     with open(reqs_file, 'r') as fd:
@@ -917,12 +929,20 @@ def main():
     topo = read_topology_zoo_netgraph(topo_file)
     reqsize = reqsize
 
+    partially_eval_rmaps = {}
+    if fixed > 0:
+        with open('serialized/%s.json' % out_name, 'r') as ff:
+            read_maps = json.load(ff)
+        sampled_maps = rand.sample(read_maps.keys(), int(round(len(read_maps) * fixed)))
+        for name in sampled_maps:
+            partially_eval_rmaps[name] = read_maps[name]
+
     k = 2
     if req_type == 'simple':
         ospf_reqs = eval('reqs_simple_%d' % reqsize)
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
         #all_reqs, syn_vals = gen_simple(topo, ospf_reqs, all_communities)
-        all_reqs = gen_simple_abs(topo, ospf_reqs, all_communities)
+        all_reqs = gen_simple_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps)
     elif req_type == 'ecmp':
         ospf_reqs = eval('reqs_ecmp_%d_%d' % (reqsize, k))
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
@@ -933,7 +953,7 @@ def main():
     elif req_type == 'order':
         ospf_reqs = eval('reqs_order_%d_%d' % (reqsize, k))
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
-        all_reqs = gen_order_abs(topo, ospf_reqs, all_communities, read_route_maps)
+        all_reqs = gen_order_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps)
     else:
         raise ValueError("Unknow req type %s", req_type)
 
@@ -969,12 +989,6 @@ def main():
     print "BGP partial eval Time:", bgp_syn
     print "Z3 Synthesis Time:", z3_syn
     print "TOTAL SYN TIME:", end - begin
-    p.update_network_graph()
-    from synet.topo.gns3 import GNS3Topo
-    gns3 = GNS3Topo(topo)
-    out_dir = 'out-configs/%s_%d' % (out_name, rand.randint(0, 1000))
-    print "Writing configs to:", out_dir
-    gns3.write_configs(out_dir)
 
     serialized_route_maps = {}
     for router in p.ibgp_propagation.nodes():
@@ -985,6 +999,16 @@ def main():
 
     with open('serialized/%s.json' % out_name, 'w') as ff:
         json.dump(serialized_route_maps, ff, indent=2)
+
+
+
+    p.update_network_graph()
+    from synet.topo.gns3 import GNS3Topo
+    gns3 = GNS3Topo(topo)
+    out_dir = 'out-configs/%s_%d' % (out_name, rand.randint(0, 1000))
+    print "Writing configs to:", out_dir
+    gns3.write_configs(out_dir)
+
 
 
 if __name__ == '__main__':
