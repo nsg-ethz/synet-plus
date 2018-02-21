@@ -618,7 +618,7 @@ def gen_ecmp(topo, ospf_reqs, all_communities):
 
 
 
-def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated):
+def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_prefix_map):
     assert isinstance(topo, NetworkGraph)
     assign_ebgp(topo)
     peer_asnum = 10000
@@ -664,14 +664,15 @@ def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated):
                     continue
                 rname = "RMap_%s_from_%s" % (neighbor, node)
                 if rname in partially_evaluated:
-                    rmap = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname])
-                    topo.add_route_map(neighbor, rmap)
+                    rmap_des = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname], inv_prefix_map)
+                    topo.add_route_map(neighbor, rmap_des)
                     topo.add_bgp_import_route_map(neighbor, node, rname)
+                    comm_lists[node].next()
                     continue
                 clist = CommunityList(comm_lists[node].next(), Access.permit, [VALUENOTSET, VALUENOTSET, VALUENOTSET])
                 topo.add_bgp_community_list(node, clist)
                 match_comms = MatchCommunitiesList(clist)
-                ip_list = IpPrefixList(name='IpL1', access=Access.permit, networks=[VALUENOTSET])
+                ip_list = IpPrefixList(name='IpL_%s_%s' % (neighbor, node), access=Access.permit, networks=[VALUENOTSET])
                 topo.add_ip_prefix_list(neighbor, ip_list)
                 match_ip = MatchIpPrefixListList(ip_list)
                 match_next_hop = MatchNextHop(VALUENOTSET)
@@ -683,11 +684,10 @@ def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated):
                 rmap = RouteMap(rname, lines=[line1, line_deny])
                 topo.add_route_map(neighbor, rmap)
                 topo.add_bgp_import_route_map(neighbor, node, rname)
-                print "ADD Router MAP", neighbor
     return all_reqs
 
 
-def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated):
+def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_prefix_map):
     assert isinstance(topo, NetworkGraph)
     assign_ebgp(topo)
     peer_asnum = 10000
@@ -737,41 +737,38 @@ def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated):
                     if neighbor in subreq.path:
                         continue
                     rname = "RMap_%s_from_%s" % (neighbor, node)
-
                     if rname in partially_evaluated:
-                        rmap = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname])
-                        topo.add_route_map(neighbor, rmap)
+                        rmap_des = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname], inv_prefix_map)
+                        topo.add_route_map(neighbor, rmap_des)
                         topo.add_bgp_import_route_map(neighbor, node, rname)
+                        comm_lists[node].next()
                         continue
-
                     clist = CommunityList(comm_lists[node].next(), Access.permit, [VALUENOTSET, VALUENOTSET, VALUENOTSET])
                     topo.add_bgp_community_list(node, clist)
                     match_comms = MatchCommunitiesList(clist)
-                    ip_list = IpPrefixList(name='IpL1', access=Access.permit, networks=[VALUENOTSET])
+                    ip_list = IpPrefixList(name='IpL_%s_%s' % (neighbor, node), access=Access.permit, networks=[VALUENOTSET])
                     topo.add_ip_prefix_list(neighbor, ip_list)
                     match_ip = MatchIpPrefixListList(ip_list)
                     match_next_hop = MatchNextHop(VALUENOTSET)
                     match = MatchSelectOne([match_comms, match_ip, match_next_hop])
                     line1 = RouteMapLine(matches=[match], actions=[ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET])], access=VALUENOTSET, lineno=10)
                     line_deny = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
-
                     rmap = RouteMap(rname, lines=[line1, line_deny])
                     topo.add_route_map(neighbor, rmap)
                     topo.add_bgp_import_route_map(neighbor, node, rname)
-                    print "ADD Router MAP", neighbor
     return all_reqs
 
 
 
-def deserialize_route_map(topo, node, name, rmap):
+def deserialize_route_map(topo, node, name, rmap, inv_prefix_map):
     lines = []
     for line in rmap:
-        lines.append(deserialize_route_map_line(topo, node, line))
+        lines.append(deserialize_route_map_line(topo, node, line, inv_prefix_map))
     return RouteMap(name=name, lines=lines)
 
 
-def deserialize_route_map_line(topo, node, line):
-    matches = deseralize_matches(topo, node, line['matches'])
+def deserialize_route_map_line(topo, node, line, inv_prefix_map):
+    matches = deserialize_matches(topo, node, line['matches'], inv_prefix_map)
     access = deserialize_acces(line['access'])
     lineno = line['lineno']
     actions = deserialize_actions(topo, node, line['actions'])
@@ -779,55 +776,69 @@ def deserialize_route_map_line(topo, node, line):
 
 
 def deserialize_actions(topo, node, actions):
+    if not actions:
+        return None
     ret = []
-    for action in actions:
+    for action in actions[:]:
         if action['action'] == 'ActionSetLocalPref':
             ret.append(ActionSetLocalPref(action['value']))
         elif action['action'] == 'ActionSetCommunity':
-            comms = [Community(c) for c in action['communities']]
+            comms = [Community(c) if not is_empty(c) else c for c in action['communities']]
             additive = action['additive']
             ret.append(ActionSetCommunity(communities=comms, additive=additive))
     return ret
 
 
 def deserialize_acces(access):
-    assert access in ['permit', 'deny']
-    return Access.permit if access == 'permit' else Access.deny
+    if is_empty(access):
+        return VALUENOTSET
+    assert access in [u'permit', u'deny', VALUENOTSET], access
+
+    return Access.permit if access == u'permit' else Access.deny
 
 
-def deserialize_iplist(iplist):
-    networks = [ip_network(net) for net in iplist['networks']]
+def deserialize_iplist(iplist, inv_prefix_map):
+    networks = [inv_prefix_map.get(net, net) for net in iplist['networks']]
     access = deserialize_acces(iplist['access'])
     name = iplist['name']
     return IpPrefixList(name=name, access=access, networks=networks)
 
 
-def deserialize_comm_list(commslist):
-    communities = [Community(comm) for comm in commslist['communities']]
+def deserialize_comm_list(topo, node, commslist):
+    print "\tD", commslist
+    communities = [Community(str(comm)) if not is_empty(comm) else comm for comm in commslist['communities']]
     access = deserialize_acces(commslist['access'])
     list_id = commslist['list_id']
-    return CommunityList(list_id=list_id, access=access, communities=communities)
+    assert not is_empty(access)
+    comm_list = CommunityList(list_id=list_id, access=access, communities=communities)
+    if comm_list.list_id in topo.get_bgp_communities_list(node):
+        assert comm_list == topo.get_bgp_communities_list(node)[comm_list.list_id]
+    else:
+        topo.add_bgp_community_list(node, comm_list)
+    return comm_list
 
 
-def deseralize_matches(topo, node, matches):
+def deserialize_matches(topo, node, matches, inv_prefix_map):
     ret = []
-    for match in matches:
+    if not matches:
+        return None
+    for match in matches[:]:
         if match['match_type'] == 'MatchNextHop':
-            ret.append(MatchNextHop(match['nexthop']))
+            next_hop = inv_prefix_map.get(match['nexthop'], match['nexthop'])
+            ret.append(MatchNextHop(next_hop))
         elif match['match_type'] == 'MatchIpPrefixListList':
-            iplist = deserialize_iplist(match['prefix_list'])
+            iplist = deserialize_iplist(match['prefix_list'], inv_prefix_map)
             topo.add_ip_prefix_list(node, iplist)
             ret.append(MatchIpPrefixListList(iplist))
         elif match['match_type'] == 'MatchCommunitiesList':
-            comms = deserialize_comm_list(match['communities_list'])
-            topo.add_bgp_community_list(node, comms)
+            comms = deserialize_comm_list(topo, node, match['communities_list'])
             ret.append(MatchCommunitiesList(comms))
         else:
             raise NotImplementedError(match)
     return ret
 
 
-def serialize_action(action):
+def serialize_action(action, prefix_map):
     if isinstance(action, ActionSetLocalPref):
         if is_empty(action.value):
             return
@@ -845,16 +856,18 @@ def ser_access(access):
     return 'permit' if access == Access.permit else 'deny'
 
 
-def serialize_match(match):
+def serialize_match(match, prefix_map):
     if isinstance(match, MatchNextHop):
         if is_empty(match.match):
             return
-        return {'match_type': 'MatchNextHop', 'nexthop': match.match}
+        nexthop = prefix_map.get(str(match.match), match.match)
+        return {'match_type': 'MatchNextHop', 'nexthop': unicode(nexthop)}
     elif isinstance(match, MatchIpPrefixListList):
-        ips = [unicode(c) for c in match.match.networks if not is_empty(c)]
+        ips = [unicode(prefix_map.get(c, c)) for c in match.match.networks if not is_empty(c)]
         if not ips:
             return
-        return {'match_type': 'MatchIpPrefixListList', 'prefix_list': {'name': match.match.name, 'access': ser_access(match.match.access), 'networks': ips}}
+        tmp = {'match_type': 'MatchIpPrefixListList', 'prefix_list': {'name': match.match.name, 'access': ser_access(match.match.access), 'networks': ips}}
+        return tmp
     elif isinstance(match, MatchCommunitiesList):
         comms = [c.value for c in match.match.communities if not is_empty(c)]
         if not comms:
@@ -864,16 +877,18 @@ def serialize_match(match):
         raise NotImplementedError(match)
 
 
-def serialize_route_map(rmap):
+def serialize_route_map(rmap, prefix_map):
     ret = []
     for line in rmap.lines:
         if is_empty(line.access):
             continue
-        matches = [serialize_match(match) for match in line.matches]
+        matches = [serialize_match(match, prefix_map) for match in line.matches]
         matches = [match for match in matches if match]
+        matches = matches if matches else None
 
-        actions = [serialize_action(action) for action in line.actions]
+        actions = [serialize_action(action, prefix_map) for action in line.actions]
         actions = [action for action in actions if action]
+        actions = actions if actions else None
 
         ret.append(
             {'name': rmap.name,
@@ -882,6 +897,67 @@ def serialize_route_map(rmap):
              'matches': matches,
              'actions': actions})
     return ret
+
+
+def make_symb_matches(matches):
+    new_matches = []
+    if not matches:
+        return None
+    for match in matches:
+        if match['match_type'] == 'MatchNextHop':
+            new_matches.append({'match_type': 'MatchNextHop', 'nexthop': VALUENOTSET})
+        elif match['match_type'] == 'MatchIpPrefixListList':
+            new_match = {
+                'match_type': 'MatchIpPrefixListList',
+                'prefix_list': {
+                    'name': match['prefix_list']['name'],
+                    'access': 'permit',
+                    'networks': [VALUENOTSET for _ in match['prefix_list']['networks']]}}
+            new_matches.append(new_match)
+        elif match['match_type'] == 'MatchCommunitiesList':
+            new_match = {
+                'match_type': 'MatchCommunitiesList',
+                'communities_list': {
+                    'list_id': match['communities_list']['list_id'],
+                    'access': 'permit',
+                    'communities': [VALUENOTSET for _ in match['communities_list']['communities']]}}
+            new_matches.append(new_match)
+        else:
+            raise NotImplementedError(match)
+    return new_matches
+
+def make_symb_actions(actions):
+    if not actions:
+        return
+    new_actions = []
+    for action in actions:
+        if action['action'] == 'ActionSetLocalPref':
+            new_actions.append({'action': 'ActionSetLocalPref', 'value': VALUENOTSET})
+        elif action['action'] == 'ActionSetCommunity':
+            new_action = {
+                'action': 'ActionSetCommunity',
+                'additive': action['communities'],
+                'communities': [VALUENOTSET for _ in action['communities']]}
+            new_actions.append(new_action)
+    return new_actions
+
+
+def make_symb_line(line):
+    new_line = {
+        'name': line['name'],
+        'access': VALUENOTSET,
+        'lineno': line['lineno'],
+        'matches': make_symb_matches(line['matches']),
+        'actions': make_symb_actions(line['actions']),
+    }
+    return new_line
+
+
+def make_symbolic_attrs(rmap):
+    new_lines = []
+    for line in rmap:
+        new_lines.append(make_symb_line(line))
+    return new_lines
 
 
 def main():
@@ -901,6 +977,10 @@ def main():
     parser.add_argument('--seed', type=int, default=0,
                         help='The seed of the random generator')
 
+    parser.add_argument('--sketch', required=True, type=str,
+                        choices=['abs', 'attrs'],
+                        help='sketch type')
+
     args = parser.parse_args()
     topo_file = args.file
     req_type = args.type
@@ -908,7 +988,7 @@ def main():
     fixed = args.fixed
     reqs_file = args.values
     seed = args.seed
-    sketch_type = 'abs'
+    sketch_type = args.sketch
 
     assert 0 <= fixed <= 1.0
 
@@ -921,8 +1001,6 @@ def main():
     basename = os.path.basename(topo_file).strip('.graphml')
     out_name = "%s_%s_%s_%s" % (basename, sketch_type, req_type, reqsize)
 
-
-
     with open(reqs_file, 'r') as fd:
         exec (fd.read())
 
@@ -930,19 +1008,32 @@ def main():
     reqsize = reqsize
 
     partially_eval_rmaps = {}
+    inv_prefix_map = {}
     if fixed > 0:
-        with open('serialized/%s.json' % out_name, 'r') as ff:
+        sname = "%s_%s_%s_%s" % (basename, 'abs', req_type, reqsize)
+        with open('serialized/%s.json' % sname, 'r') as ff:
             read_maps = json.load(ff)
-        sampled_maps = rand.sample(read_maps.keys(), int(round(len(read_maps) * fixed)))
-        for name in sampled_maps:
-            partially_eval_rmaps[name] = read_maps[name]
+            inv_prefix_map = read_maps['inv_prefix_map']
+        sampled_maps = rand.sample(read_maps['rmaps'].keys(), int(round(len(read_maps) * fixed)))
+        if sketch_type == 'abs':
+            for name in sampled_maps:
+                partially_eval_rmaps[name] = read_maps['rmaps'][name]
+        elif sketch_type == 'attrs':
+            import copy
+            for name in read_maps['rmaps']:
+                if name not in sampled_maps:
+                    partially_eval_rmaps[name] = copy.copy(read_maps['rmaps'][name])
+                else:
+                    partially_eval_rmaps[name] = make_symbolic_attrs(copy.copy(read_maps['rmaps'][name]))
+        else:
+            raise NotImplementedError(sketch_type)
 
     k = 2
     if req_type == 'simple':
         ospf_reqs = eval('reqs_simple_%d' % reqsize)
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
         #all_reqs, syn_vals = gen_simple(topo, ospf_reqs, all_communities)
-        all_reqs = gen_simple_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps)
+        all_reqs = gen_simple_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps, inv_prefix_map)
     elif req_type == 'ecmp':
         ospf_reqs = eval('reqs_ecmp_%d_%d' % (reqsize, k))
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
@@ -953,7 +1044,7 @@ def main():
     elif req_type == 'order':
         ospf_reqs = eval('reqs_order_%d_%d' % (reqsize, k))
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
-        all_reqs = gen_order_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps)
+        all_reqs = gen_order_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps, inv_prefix_map)
     else:
         raise ValueError("Unknow req type %s", req_type)
 
@@ -989,26 +1080,31 @@ def main():
     print "BGP partial eval Time:", bgp_syn
     print "Z3 Synthesis Time:", z3_syn
     print "TOTAL SYN TIME:", end - begin
-
-    serialized_route_maps = {}
-    for router in p.ibgp_propagation.nodes():
-        if topo.is_peer(router):
-            continue
-        for name, rmap in topo.get_route_maps(router).iteritems():
-            serialized_route_maps[name] = serialize_route_map(rmap)
-
-    with open('serialized/%s.json' % out_name, 'w') as ff:
-        json.dump(serialized_route_maps, ff, indent=2)
-
-
-
     p.update_network_graph()
+
+
     from synet.topo.gns3 import GNS3Topo
     gns3 = GNS3Topo(topo)
+
     out_dir = 'out-configs/%s_%d' % (out_name, rand.randint(0, 1000))
     print "Writing configs to:", out_dir
     gns3.write_configs(out_dir)
 
+    if sketch_type == 'abs' and fixed == 0:
+        serialized_route_maps = {}
+        for router in p.ibgp_propagation.nodes():
+            if topo.is_peer(router):
+                continue
+            for name, rmap in topo.get_route_maps(router).iteritems():
+                serialized_route_maps[name] = serialize_route_map(rmap, prefix_map=gns3.config_gen.prefix_map)
+        info = {
+            'rmaps': serialized_route_maps,
+            'prefix_map': dict([(str(k), unicode(v)) for k, v in gns3.config_gen.prefix_map.iteritems()]),
+            'inv_prefix_map': dict([(unicode(v), str(k)) for k, v in gns3.config_gen.prefix_map.iteritems()]),
+        }
+
+        with open('serialized/%s.json' % out_name, 'w') as ff:
+            json.dump(info, ff, indent=2)
 
 
 if __name__ == '__main__':
