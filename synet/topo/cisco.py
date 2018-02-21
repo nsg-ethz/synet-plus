@@ -89,8 +89,10 @@ class CiscoConfigGen(object):
                 continue
             network = self.prefix_map.get(network, network)
             lineno = (i + 1) * 10
-            addr = str(network.network_address)
-            prefixlen = network.prefixlen
+            if network in self.prefix_map:
+                network = self.prefix_map[network]
+            addr = str(getattr(network, 'network_address', network))
+            prefixlen = getattr(network, 'prefixlen', 32)
             config += "ip prefix-list %s seq %d %s %s/%d\n" % (name, lineno,
                                                                access, addr,
                                                                prefixlen)
@@ -228,6 +230,7 @@ class CiscoConfigGen(object):
                 router = parsed[0]
                 iface = '/'.join(parsed[1:])
                 next_hop = self.g.get_iface_addr(router, iface)
+                self.prefix_map[match.match] = next_hop
             if hasattr(next_hop, 'ip'):
                 next_hop = next_hop.ip
             config += 'match ip next-hop %s' % next_hop
