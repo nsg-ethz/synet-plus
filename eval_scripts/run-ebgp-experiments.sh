@@ -2,7 +2,7 @@
 
 # Generate evaluation values for all given reqs
 NUM_PROCESSES=20
-NUM_REPEATS=10
+NUM_REPEATS=1
 
 
 PATH_TO_TOPOS="topos/*/"
@@ -19,13 +19,16 @@ values="${file}_ospf_reqs.py "
     do
         for req_type in "order" "simple";
         do
-            for fixed in "0" "0.5" "1.0";
+            for fixed in "0";
             do
-                for RUN_ID in $(seq 1 $NUM_REPEATS);
+                for sketch in "abs";
                 do
-                    echo $topo $values $req_type $reqs $fixed $RUN_ID
-                done
+                    for RUN_ID in $(seq 1 $NUM_REPEATS);
+                    do
+                        echo $topo $values $req_type $reqs $fixed $RUN_ID
+                    done
+               done
             done
         done
     done
-done | xargs -n 6 -I{} -P $NUM_PROCESSES sh -c "sh ./eval_scripts/run-ebgp.sh {}"
+done | xargs -n 7 -I{} -P $NUM_PROCESSES sh -c "sh ./eval_scripts/run-ebgp.sh {}"
