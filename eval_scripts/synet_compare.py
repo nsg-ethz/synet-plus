@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+import z3
 import argparse
 import logging
 import random
 import re
 import networkx as nx
 from timeit import default_timer as timer
+import itertools
 
 from synet.utils.topo_gen import gen_grid_topology
 from synet.utils.common import PathReq
@@ -16,9 +18,46 @@ from synet.synthesis.connected import ConnectedSyn
 from synet.topo.bgp import Announcement
 from synet.topo.bgp import BGP_ATTRS_ORIGIN
 from synet.topo.bgp import Community
-from synet.synthesis.propagation import EBGPPropagation
+from synet.synthesis.new_propagation import EBGPPropagation
 
-from synet.utils.smt_context import VALUENOTSET
+from synet.utils.fnfree_smt_context import SolverContext
+from synet.utils.fnfree_smt_context import VALUENOTSET
+from synet.utils.fnfree_smt_context import is_empty
+from synet.utils.fnfree_smt_context import read_announcements
+
+from synet.utils.bgp_utils import compute_next_hop_map
+from synet.utils.bgp_utils import extract_all_next_hops
+from synet.topo.bgp import Access
+from synet.topo.bgp import ActionSetCommunity
+from synet.topo.bgp import ActionSetLocalPref
+from synet.topo.bgp import Announcement
+from synet.topo.bgp import BGP_ATTRS_ORIGIN
+from synet.topo.bgp import Community
+from synet.topo.bgp import CommunityList
+from synet.topo.bgp import MatchCommunitiesList
+from synet.topo.bgp import RouteMap
+from synet.topo.bgp import RouteMapLine
+from synet.topo.bgp import IpPrefixList
+from synet.topo.bgp import MatchIpPrefixListList
+from synet.topo.bgp import MatchNextHop
+from synet.topo.bgp import MatchSelectOne
+from synet.topo.bgp import ActionSetOne
+
+
+
+def get_sym(concrete_anns, ctx):
+    return read_announcements(concrete_anns, ctx)
+
+
+def create_context(reqs, g, announcements, create_as_paths=False):
+    connected = ConnectedSyn(reqs, g, full=True)
+    connected.synthesize()
+    next_hops_map = compute_next_hop_map(g)
+    next_hops = extract_all_next_hops(next_hops_map)
+    peers = [node for node in g.routers_iter() if g.is_bgp_enabled(node)]
+    ctx = SolverContext.create_context(announcements, peer_list=peers,
+                                       next_hop_list=next_hops, create_as_paths=create_as_paths)
+    return ctx
 
 
 def parse_inputs(inputs):
@@ -156,16 +195,27 @@ def static(n, nreqs=10):
     static_syn = StaticSyn(static_reqs, topo)
     static_syn.synthesize()
 
+
 def bgp(n, nreqs=10):
     req_file = './topos/cav/gridrand%d-bgp-%d-req.logic' % (n, nreqs)
     topo = gen_grid_topology(n, n, 0)
-    for node in topo.local_routers_iter():
-        topo.set_bgp_asnum(node, 100)
-
     static_reqs, ospf_reqs, bgp_reqs = read_reqs(req_file)
 
+    seed = 159734782
+    path_gen = 200
+    ospfRand = random.Random(seed)
+
+    for node in topo.routers_iter():
+        topo.enable_ospf(node, 100)
+        topo.set_bgp_asnum(node, 100)
+        # Initially all costs are empty
+        topo.set_static_routes_empty(node)
+
+    for src, dst in topo.edges_iter():
+        topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
+
     peer = 'ATT'
-    egresses = ['R11']
+    egresses = set([p.path[-2] for p in bgp_reqs])
     topo.add_peer(peer)
     topo.set_bgp_asnum(peer, 5000)
     for req in bgp_reqs:
@@ -175,12 +225,13 @@ def bgp(n, nreqs=10):
         topo.add_peer_edge(peer, egress)
         topo.add_peer_edge(egress, peer)
         topo.add_bgp_neighbor(peer, egress, VALUENOTSET, VALUENOTSET)
+
     for src in topo.local_routers_iter():
         for dst in topo.local_routers_iter():
             if src == dst or dst in topo.get_bgp_neighbors(src):
                 continue
-            print "ADD BGP NEIGHBOR", src, dst
             topo.add_bgp_neighbor(src, dst, VALUENOTSET, VALUENOTSET)
+
     prefix = 'GOOGLE'
     communities = [Community("100:%d" % i) for i in range(5)]
     ann = Announcement(
@@ -189,14 +240,52 @@ def bgp(n, nreqs=10):
         origin=BGP_ATTRS_ORIGIN.EBGP,
         as_path=[1, 2, 5000], as_path_len=3,
         next_hop='%sHop' % peer, local_pref=100,
+        med=10,
         communities=dict([(c, False) for c in communities]), permitted=True)
     topo.add_bgp_advertise(peer, ann)
 
     conn = ConnectedSyn([], topo, full=True)
     conn.synthesize()
 
-    p = EBGPPropagation(bgp_reqs, topo, allow_igp=True)
+    static_syn = StaticSyn(static_reqs, topo)
+    static_syn.synthesize()
+
+    ospf = OSPFCEGIS(topo, gen_paths=path_gen, random_obj=ospfRand)
+    for req in ospf_reqs:
+        ospf.add_req(req)
+
+    assert ospf.synthesize(allow_ecmp=True)
+    assert not ospf.removed_reqs
+
+    for router in topo.local_routers_iter():
+        count = itertools.count(1)
+        for neighbor in topo.get_bgp_neighbors(router):
+            if router == neighbor:
+                continue
+            comm_list = CommunityList(list_id=count.next(), access=Access.permit, communities=[VALUENOTSET, VALUENOTSET, VALUENOTSET])
+            topo.add_bgp_community_list(router, comm_list)
+            match_comm = MatchCommunitiesList(comm_list)
+            iplist = IpPrefixList(name='ip%s' % count.next(), access=Access.permit, networks=[VALUENOTSET])
+            topo.add_ip_prefix_list(router, iplist)
+            match_ip = MatchIpPrefixListList(iplist)
+            match_next_hop = MatchNextHop(VALUENOTSET)
+            match_sel = MatchSelectOne([match_comm, match_next_hop, match_ip])
+            actions = [ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET], True)]
+            rline = RouteMapLine([match_sel], actions, VALUENOTSET, 10)
+            dline = RouteMapLine(None, None, Access.deny, 100)
+            rmap = RouteMap("Rimp_%s_from_%s" % (router, neighbor), lines=[rline, dline])
+            topo.add_route_map(router, rmap)
+            topo.add_bgp_import_route_map(router, neighbor, rmap.name)
+
+
+    ctx = create_context(bgp_reqs, topo, [ann])
+    p = EBGPPropagation(bgp_reqs, topo, ctx)
+    p.compute_dags()
     p.synthesize()
+    solver = z3.Solver()
+    ret = ctx.check(solver)
+    assert ret == z3.sat, solver.unsat_core()
+    p.update_network_graph()
 
 def main():
     parser = argparse.ArgumentParser(description='EBGP baseline experiment.')
@@ -214,6 +303,11 @@ def main():
         ospf(args.n)
         t2 = timer()
         print "TOTAL_OSPF_TIME:", t2 - t1
+    elif args.p == 'bgp':
+        t1 = timer()
+        bgp(args.n)
+        t2 = timer()
+        print "TOTAL_BGP_TIME:", t2 - t1
     #bgp(3, nreqs=1)
 
 
