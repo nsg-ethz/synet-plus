@@ -628,7 +628,7 @@ class NetworkGraph(nx.DiGraph):
         """
         assert isinstance(community_list, CommunityList)
         lists = self.get_bgp_communities_list(node)
-        assert community_list.list_id not in lists
+        assert community_list.list_id not in lists, "List exists %s" % community_list.list_id
         lists[community_list.list_id] = community_list
         return community_list
 
