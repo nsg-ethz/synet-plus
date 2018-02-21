@@ -138,7 +138,7 @@ class Community(object):
 
     @staticmethod
     def string_to_int(value):
-        assert ":" in value
+        assert ":" in value, value
         high, low = value.split(":")
         bin_high = '{0:016b}'.format(int(high))
         bin_low = '{0:016b}'.format(int(low))
