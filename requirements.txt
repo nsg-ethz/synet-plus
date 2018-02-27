@@ -1,5 +1,5 @@
 ipaddress
 enum34
-networkx
+networkx==1.11
 nose
 nose-timer
