@@ -69,59 +69,6 @@ def get_announcement(prefix, peer, comms):
 
 
 def two_ebgp_nodes():
-    graph = NetworkGraph()
-    r1, r2 = 'R1', 'R2'
-    graph.add_router(r1)
-    graph.add_router(r2)
-    graph.add_router_edge(r1, r2)
-    graph.add_router_edge(r2, r1)
-
-    # BGP configs
-    graph.set_bgp_asnum(r1, 100)
-    graph.set_bgp_asnum(r2, 200)
-    graph.add_bgp_neighbor(r1, r2, router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
-
-    # Some internal network
-    net = ip_network(u'128.0.0.0/24')
-    prefix = '128_0_0_0'
-    lo0 = 'lo10'
-    prefix_map = {prefix: net}
-    graph.set_loopback_addr(r1, lo0, ip_interface("%s/%d" % (net.hosts().next(), net.prefixlen)))
-    graph.add_bgp_announces(r1, lo0)
-
-    # The communities recognized by us
-    comms = [Community("100:10"), Community("100:20")]
-    cs = dict([(c, False) for c in comms])
-    # The announcement that will be propagated by R1
-    ann = get_announcement(prefix=prefix, peer='R1', comms=cs)
-
-    path = PathReq(Protocols.BGP, prefix, ['R2', 'R1'], False)
-    reqs = [path]
-
-    # Get SMT Context
-    ctx = create_context(reqs, graph, [ann])
-    propagation = EBGPPropagation(reqs, graph, ctx)
-    propagation.compute_dags()
-    propagation.synthesize()
-
-    # Synthesize all the interfaces and link configurations
-    connecte_syn = ConnectedSyn([], graph, full=True)
-    connecte_syn.synthesize()
-
-    # SMT Solving
-    solver = z3.Solver()
-    assert ctx.check(solver) == z3.sat, solver.unsat_core()
-
-    # Update graph with the concrete values after solver
-    propagation.update_network_graph()
-
-    graph.set_iface_names()
-
-    gns3 = GNS3Topo(graph=graph, prefix_map=prefix_map)
-    gns3.write_configs('out-configs/ibgp-simple')
-
-
-def two_ebgp_nodes():
     """
     Two routers connected via eBGP
     Very simple once router announces a single prefix and the other selects it
