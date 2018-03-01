@@ -40,7 +40,6 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
-
 def get_sym(concrete_anns, ctx):
     return read_announcements(concrete_anns, ctx)
 
@@ -393,7 +392,6 @@ def test_double_import():
 
     path = PathReq(Protocols.BGP, prefix, ['R2', 'R1'], False)
     reqs = [path]
-
 
     ctx = create_context(reqs, graph, [ann], create_as_paths=True)
 
