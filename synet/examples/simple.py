@@ -6,6 +6,7 @@ Examples showing how to use SyNET over simple networks.
 from ipaddress import ip_interface
 from ipaddress import ip_network
 
+import argparse
 import z3
 
 from synet.synthesis.connected import ConnectedSyn
@@ -40,7 +41,6 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
-
 def get_sym(concrete_anns, ctx):
     return read_announcements(concrete_anns, ctx)
 
@@ -68,7 +68,7 @@ def get_announcement(prefix, peer, comms):
     return ann
 
 
-def two_ebgp_nodes():
+def two_ebgp_nodes(export_path):
     """
     Two routers connected via eBGP
     Very simple once router announces a single prefix and the other selects it
@@ -130,10 +130,10 @@ def two_ebgp_nodes():
     # Update graph with the concrete values after solver
     propagation.update_network_graph()
     gns3 = GNS3Topo(graph=graph, prefix_map=prefix_map)
-    gns3.write_configs('out-configs/ibgp-simple')
+    gns3.write_configs('%s/ibgp-simple' % export_path)
 
 
-def two_ebgp_nodes_route_map():
+def two_ebgp_nodes_route_map(export_path):
     """
     Two routers connected via eBGP with route maps
     Very simple one router announces a single prefix and the other selects it
@@ -218,10 +218,11 @@ def two_ebgp_nodes_route_map():
     # Update graph with the concrete values after solver
     propagation.update_network_graph()
     gns3 = GNS3Topo(graph=graph, prefix_map=prefix_map)
-    gns3.write_configs('out-configs/ebgp-route-map')
+    gns3.write_configs('%s/ebgp-route-map' % export_path)
+    graph.write_graphml('%s/ebgp-route-map/topology.graphml' % export_path)
 
 
-def two_ibgp_nodes():
+def two_ibgp_nodes(export_path):
     """
     Two routers connected via iBGP
     Very simple once router announces a single prefix and the other selects it
@@ -292,10 +293,10 @@ def two_ibgp_nodes():
     # Update graph with the concrete values after solver
     propagation.update_network_graph()
     gns3 = GNS3Topo(graph=graph, prefix_map=prefix_map)
-    gns3.write_configs('out-configs/ibgp-simple')
+    gns3.write_configs('%s/ibgp-simple' % export_path)
 
 
-def linear_ebgp(N):
+def linear_ebgp(N, export_path):
     """
     Routers connected in a line and each eBGP pair with it's direct neighbors
     """
@@ -351,7 +352,7 @@ def linear_ebgp(N):
     propagation.update_network_graph()
 
     gns3 = GNS3Topo(g, prefix_map)
-    gns3.write_configs('./out-configs/linear-ebgp-%d' % N)
+    gns3.write_configs('%s/linear-ebgp-%d' % (export_path, N))
 
 
 def test_double_import():
@@ -394,7 +395,6 @@ def test_double_import():
     path = PathReq(Protocols.BGP, prefix, ['R2', 'R1'], False)
     reqs = [path]
 
-
     ctx = create_context(reqs, graph, [ann], create_as_paths=True)
 
     from synet.utils.fnfree_policy import SMTRouteMap
@@ -424,10 +424,16 @@ def test_double_import():
 
 
 def main():
-    two_ebgp_nodes()
-    two_ebgp_nodes_route_map()
-    two_ibgp_nodes()
-    linear_ebgp(4)
+    parser = argparse.ArgumentParser(description='Example of how to use NetComplete programmatically')
+    parser.add_argument('path', type=str, default='./out_configs',
+                        help='The directory the configuration is exported to')
+    args = parser.parse_args()
+    export_path = args.path
+
+    two_ebgp_nodes(export_path)
+    two_ebgp_nodes_route_map(export_path)
+    two_ibgp_nodes(export_path)
+    linear_ebgp(4, export_path)
     test_double_import()
 
 
