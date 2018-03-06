@@ -16,14 +16,14 @@ __email__ = "a.hassany@gmail.com"
 class GNS3Topo(object):
     def __init__(self, graph, prefix_map=None):
         assert isinstance(graph, NetworkGraph)
-        home = os.environ['HOME']
         self.prefix_map = prefix_map if prefix_map else {}
         self.g = graph
         self.local_dynampis = '127.0.0.1:7200',
-        self.workingdir = '%s/tmp' % home,
+        self.workingdir = '/home/ahassany/tmp',
         self.idlepc = '0x631868a4'
         self.router_model = '7200'
-        iosimage = '%s/GNS3/images/IOS/c7200-advipservicesk9-mz.152-4.S5.image' % home
+        outdir = 'out',
+        iosimage = '/home/ahassany/GNS3/images/IOS/c7200-advipservicesk9-mz.152-4.S5.image'
         self.router_info = {
             'image': iosimage,
             'npe': 'npe-400',

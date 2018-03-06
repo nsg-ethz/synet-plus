@@ -6,7 +6,7 @@ Examples showing how to use SyNET over simple networks.
 from ipaddress import ip_interface
 from ipaddress import ip_network
 
-import sys
+import argparse
 import z3
 
 from synet.synthesis.connected import ConnectedSyn
@@ -424,9 +424,12 @@ def test_double_import():
 
 
 def main():
-    export_path = './out_configs'
-    if sys.argv.count > 1:
-        export_path = sys.argv[1]
+    parser = argparse.ArgumentParser(description='Example of how to use NetComplete programmatically')
+    parser.add_argument('path', type=str, default='./out_configs',
+                        help='The directory the configuration is exported to')
+    args = parser.parse_args()
+    export_path = args.path
+
     two_ebgp_nodes(export_path)
     two_ebgp_nodes_route_map(export_path)
     two_ibgp_nodes(export_path)
