@@ -151,7 +151,7 @@ def gen_simple(topo, ospf_reqs, all_communities):
             peer=peer,
             origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2], as_path_len=2,
-            next_hop='%sHop' % peer, local_pref=100,
+            next_hop='%sHop' % peer, local_pref=100, med=100,
             communities=cs, permitted=True)
         topo.add_bgp_advertise(peer, ann)
         bgp_req = PathReq(Protocols.BGP, prefix, req.path + [peer], False)
