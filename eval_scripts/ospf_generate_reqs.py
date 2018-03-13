@@ -92,10 +92,13 @@ def get_different_paths(g, source, min_disjoint, rand):
 
 def get_reqs(graph, reqsize, k, rand):
     paths = []
-    while len(paths) < reqsize:
-        source = rand.choice(graph.nodes())
+    nodes = list(graph.nodes())
+    rand.shuffle(nodes)
+    for source in nodes:
         paths = get_different_paths(graph, source, k, rand)
-    selected = rand.sample(paths, reqsize)
+        if len(paths) < reqsize:
+            break
+    selected = rand.sample(paths, min(reqsize, len(paths)))
     reqs = {}
     for lpaths in selected:
         edges = []
@@ -180,7 +183,7 @@ def generate_ordered_reqs(topo, reqsize, ordered, rand):
         if k == ordered:
             valid.append(computed_paths[(src, dst)])
 
-    if valid >= reqsize:
+    if len(valid) >= reqsize:
         sampled = random.sample(valid, reqsize)
         reqs = []
         for plist in sampled:
