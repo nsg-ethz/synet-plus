@@ -53,10 +53,8 @@ class NetworkGraph(nx.DiGraph):
     An extended version of networkx.DiGraph
     """
     def __init__(self, graph=None):
-        if graph:
-            super(NetworkGraph, self).__init__(graph)
-        else:
-            super(NetworkGraph, self).__init__()
+        assert not graph or isinstance(graph, NetworkGraph)
+        super(NetworkGraph, self).__init__(graph)
 
     def add_node(self, n, attr_dict=None, **attr):
         """
@@ -796,7 +794,7 @@ class NetworkGraph(nx.DiGraph):
             graph.node[node]['label'] = label
             graph.node[node][VERTEX_TYPE] = vtype
 
-        for src, dst, attrs in self.edges_iter(data=True):
+        for src, dst, attrs in self.edges(data=True):
             etype = str(attrs[EDGE_TYPE])
             graph.add_edge(src, dst)
             graph[src][dst]['label'] = etype.split('.')[-1]
@@ -815,7 +813,7 @@ class NetworkGraph(nx.DiGraph):
             graph.node[node]['ifaces'] = self.get_ifaces(node)
             graph.node[node]['dyn'] = self.node[node]['dyn']
             graph.node[node]['loopbacks'] = self.node[node]['loopbacks']
-        for src, dst, attrs in self.edges_iter(data=True):
+        for src, dst, attrs in self.edges(data=True):
             graph[src][dst]['iface'] = self.get_edge_iface(src, dst)
         return graph
 
@@ -839,7 +837,7 @@ class NetworkGraph(nx.DiGraph):
             else:
                 out += '  <node internal="%s" name="%s"></node>\n' % (internal, node)
         seen = []
-        for src, dst in self.edges_iter():
+        for src, dst in self.edges():
             if (src, dst) in seen:
                 continue
             out += '  <edge source="%s" target="%s"></edge>\n' % (src, dst)
