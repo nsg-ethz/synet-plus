@@ -33,7 +33,7 @@ def extract_ospf_graph(network_graph, log):
     for node in network_graph.nodes():
         if network_graph.is_local_router(node):
             ospf_graph.add_node(node)
-    for src, dst in network_graph.edges_iter():
+    for src, dst in network_graph.edges():
         # First skip an edge that is not connecting
         # two OSPF enabled routers
         if not network_graph.is_ospf_enabled(src):
