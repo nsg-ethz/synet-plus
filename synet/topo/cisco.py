@@ -425,6 +425,7 @@ class CiscoConfigGen(object):
         config = ""
         process_id = self.g.get_ospf_process_id(node)
         config += "router ospf %d\n" % process_id
+        config += " maximum-paths 32\n"
         for network, area in self.g.get_ospf_networks(node).iteritems():
             if network in self.g.get_loopback_interfaces(node):
                 network = self.g.get_loopback_addr(node, network).network
