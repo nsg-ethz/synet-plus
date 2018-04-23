@@ -87,8 +87,10 @@ class EBGPVerify(object):
                     segment = self._get_segment(graph.node[node]['order'], pred, node)
                 else:
                     segment = self._get_segment(graph.node[node]['order'], pred, None)
-                first_match = graph.node[pred]['order'].index(segment[0])
-                comp = graph.node[pred]['order'][first_match:len(segment) + 1]
+                comp = graph.node[pred]['order'][0]
+                if segment[0] in graph.node[pred]['order']:
+                    first_match = graph.node[pred]['order'].index(segment[0])
+                    comp = graph.node[pred]['order'][first_match:len(segment) + 1]
                 err = "node %s, pred %s: expected %s but found %s" % (node, pred, segment, comp)
                 if segment != comp:
                     unmatching_orders.append((segment, comp, err))
