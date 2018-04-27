@@ -69,6 +69,7 @@ class OSPFSyn(SynthesisComponent):
         # Requirements that couldn't be satisfied by ospf
         self.removed_reqs = []
         self.all_req_paths = None  # Keep track of all paths in the reqs
+        self._names_cache = []
 
     def reset_solver(self):
         """Reset and clear all caches and create new solver"""
@@ -173,6 +174,10 @@ class OSPFSyn(SynthesisComponent):
                 rand_path_name = get_path_name(rand_path)
                 rand_path_cost = self._get_path_cost(rand_path)
                 track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                if track_name in self._names_cache:
+                    continue
+                else:
+                    self._names_cache.append(track_name)
                 if is_symbolic(rand_path_cost) or is_symbolic(path_cost):
                     self.solver.assert_and_track(
                         path_cost < rand_path_cost, track_name)
@@ -207,6 +212,10 @@ class OSPFSyn(SynthesisComponent):
         for p_index in range(1, len(paths)):
             path_name = path_names[p_index]
             track_name = '%s_ISEQUAL_%s' % (primary_name, path_name)
+            if track_name in self._names_cache:
+                continue
+            else:
+                self._names_cache.append(track_name)
             cost = path_costs[p_index]
             if is_symbolic(cost) or is_symbolic(primary_cost):
                 self.solver.assert_and_track(primary_cost == cost, track_name)
@@ -222,6 +231,10 @@ class OSPFSyn(SynthesisComponent):
                 rand_path_name = get_path_name(rand_path)
                 rand_path_cost = self._get_path_cost(rand_path)
                 track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                if track_name in self._names_cache:
+                    continue
+                else:
+                    self._names_cache.append(track_name)
                 if is_symbolic(rand_path_cost) or is_symbolic(primary_cost):
                     self.solver.assert_and_track(primary_cost < rand_path_cost, track_name)
                 else:
@@ -279,6 +292,10 @@ class OSPFSyn(SynthesisComponent):
                     path_cost = path_costs[index]
                     path_name = path_names[index]
                     track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                    if track_name in self._names_cache:
+                        continue
+                    else:
+                        self._names_cache.append(track_name)
                     if is_symbolic(path_cost) or is_symbolic(rand_path_cost):
                         self.solver.assert_and_track(
                             path_cost < rand_path_cost, track_name)
@@ -323,6 +340,10 @@ class OSPFSyn(SynthesisComponent):
                     rand_path_name = get_path_name(rand_path)
                     rand_path_cost = self._get_path_cost(rand_path)
                     track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                    if track_name in self._names_cache:
+                        continue
+                    else:
+                        self._names_cache.append(track_name)
                     if is_symbolic(path_cost) or is_symbolic(rand_path_cost):
                         self.solver.assert_and_track(
                             path_cost < rand_path_cost, track_name)
