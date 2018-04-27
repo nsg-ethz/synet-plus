@@ -116,7 +116,7 @@ class TestSMTMatchAttribute(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -139,7 +139,7 @@ class TestSMTMatchAttribute(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -159,14 +159,14 @@ class TestSMTMatchAttribute(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        pref = ctx.create_fresh_var(z3.IntSort(), value=100)
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=100)
         # Act
         match = SMTMatchAttribute('local_pref', pref, sym_anns, ctx)
         ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         ann1_value = match.is_match(sym_anns[1]).get_value()
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         z3.reset_params()
         is_sat = ctx.check(solver)
         # Assert
@@ -182,7 +182,7 @@ class TestSMTMatchAttribute(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         # Provide symbolic variable for the match
-        pref = ctx.create_fresh_var(z3.IntSort())
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx))
         # Act
         match = SMTMatchAttribute('local_pref', pref, sym_anns, ctx)
         match0 = match.is_match(sym_anns[0])
@@ -190,7 +190,7 @@ class TestSMTMatchAttribute(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -238,7 +238,7 @@ class TestSMTMatchCommunity(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        value = ctx.create_fresh_var(z3.BoolSort(), value=True)
+        value = ctx.create_fresh_var(z3.BoolSort(ctx=ctx.z3_ctx), value=True)
         # Provide concrete value for the match
         c1 = Community("100:16")
         # Act
@@ -248,7 +248,7 @@ class TestSMTMatchCommunity(unittest.TestCase):
         ann0_value = match.is_match(sym_anns[0]).get_value()
         ann1_value = match.is_match(sym_anns[1]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -299,7 +299,7 @@ class TestSMTMatchAnd(unittest.TestCase):
         prefix = ctx.create_fresh_var(prefix_sort, value=p1_val)
         match_prefix = SMTMatchAttribute('prefix', prefix, sym_anns, ctx)
 
-        pref = ctx.create_fresh_var(z3.IntSort(), value=100)
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=100)
         match_pref = SMTMatchAttribute('local_pref', pref, sym_anns, ctx)
         matches = [match_prefix, match_pref]
         # Act
@@ -308,7 +308,7 @@ class TestSMTMatchAnd(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -331,7 +331,7 @@ class TestSMTMatchAnd(unittest.TestCase):
         prefix = ctx.create_fresh_var(prefix_sort)
         match_prefix = SMTMatchAttribute('prefix', prefix, sym_anns, ctx)
 
-        pref = ctx.create_fresh_var(z3.IntSort())
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx))
         match_pref = SMTMatchAttribute('local_pref', pref, sym_anns, ctx)
         matches = [match_prefix, match_pref]
         # Act
@@ -339,7 +339,7 @@ class TestSMTMatchAnd(unittest.TestCase):
         ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == False)
         is_sat = ctx.check(solver)
@@ -392,7 +392,7 @@ class TestSMTMatchOr(unittest.TestCase):
         prefix = ctx.create_fresh_var(prefix_sort, value=p1_val)
         match_prefix = SMTMatchAttribute('prefix', prefix, sym_anns, ctx)
 
-        pref = ctx.create_fresh_var(z3.IntSort(), value=110)
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=110)
         match_pref = SMTMatchAttribute('local_pref', pref, sym_anns, ctx)
         matches = [match_prefix, match_pref]
         # Act
@@ -401,7 +401,7 @@ class TestSMTMatchOr(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -424,7 +424,7 @@ class TestSMTMatchOr(unittest.TestCase):
         prefix = ctx.create_fresh_var(prefix_sort)
         match_prefix = SMTMatchAttribute('prefix', prefix, sym_anns, ctx)
 
-        pref = ctx.create_fresh_var(z3.IntSort())
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx))
         match_pref = SMTMatchAttribute('local_pref', pref, sym_anns, ctx)
         matches = [match_prefix, match_pref]
         # Act
@@ -432,7 +432,7 @@ class TestSMTMatchOr(unittest.TestCase):
         ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == True)
         is_sat = ctx.check(solver)
@@ -491,7 +491,7 @@ class TestSMTMatchPrefix(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -517,7 +517,7 @@ class TestSMTMatchPrefix(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -575,7 +575,7 @@ class TestSMTMatchPeer(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -601,7 +601,7 @@ class TestSMTMatchPeer(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -649,7 +649,7 @@ class TestSMTMatchMED(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         # Provide concrete value for the match
         val = concrete_anns[0].med
         sym = ctx.create_fresh_var(vsort, value=val)
@@ -659,7 +659,7 @@ class TestSMTMatchMED(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -683,7 +683,7 @@ class TestSMTMatchMED(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -741,7 +741,7 @@ class TestSMTMatchNextHop(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -766,7 +766,7 @@ class TestSMTMatchNextHop(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -826,7 +826,7 @@ class TestSMTMatchAsPath(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -854,7 +854,7 @@ class TestSMTMatchAsPath(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -902,7 +902,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         # Provide concrete value for the match
         val = concrete_anns[0].as_path_len
         sym = ctx.create_fresh_var(vsort, value=val)
@@ -912,7 +912,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -930,7 +930,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         sym = ctx.create_fresh_var(vsort)
         # Act
         match = SMTMatchASPathLen(sym, sym_anns, ctx)
@@ -939,7 +939,7 @@ class TestSMTMatchAsPathLen(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -987,7 +987,7 @@ class TestSMTMatchPermitted(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        vsort = z3.BoolSort()
+        vsort = z3.BoolSort(ctx=ctx.z3_ctx)
         # Provide concrete value for the match
         val = concrete_anns[0].permitted
         sym = ctx.create_fresh_var(vsort, value=val)
@@ -997,7 +997,7 @@ class TestSMTMatchPermitted(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -1014,7 +1014,7 @@ class TestSMTMatchPermitted(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        vsort = z3.BoolSort()
+        vsort = z3.BoolSort(ctx=ctx.z3_ctx)
         sym = ctx.create_fresh_var(vsort)
         # Act
         match = SMTMatchPermitted(sym, sym_anns, ctx)
@@ -1023,7 +1023,7 @@ class TestSMTMatchPermitted(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -1079,7 +1079,7 @@ class TestSMTMatchOrigin(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -1105,7 +1105,7 @@ class TestSMTMatchOrigin(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -1158,7 +1158,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == False)
         is_sat = ctx.check(solver)
@@ -1186,7 +1186,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
 
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == False)
         is_sat = ctx.check(solver)
@@ -1209,7 +1209,7 @@ class TestSMTMatchSelectOne(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
 
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match.is_match(sym_anns[0]).var == True)
         solver.add(match.is_match(sym_anns[1]).var == False)
         is_sat = ctx.check(solver)
@@ -1257,11 +1257,11 @@ class TestAction(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        pref = ctx.create_fresh_var(z3.IntSort(), value=200)
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=200)
         # Act
         action = SMTSetAttribute(match, 'local_pref', pref, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1274,12 +1274,12 @@ class TestAction(unittest.TestCase):
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        value = ctx.create_fresh_var(z3.IntSort())
+        value = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx))
         match = SMTMatchAll(ctx)
         # Act
         action = SMTSetAttribute(match, 'local_pref', value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1302,7 +1302,7 @@ class TestAction(unittest.TestCase):
         # Act
         action = SMTSetAttribute(match, 'prefix', p1_sym, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1322,7 +1322,7 @@ class TestAction(unittest.TestCase):
         # Act
         action = SMTSetAttribute(match, 'prefix', p1_sym, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].prefix.var == sym_val)
         is_sat = ctx.check(solver)
         # Assert
@@ -1367,11 +1367,11 @@ class TestSMTSetLocalPref(unittest.TestCase):
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
         local_pref = 200
-        pref = ctx.create_fresh_var(z3.IntSort(), value=local_pref)
+        pref = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=local_pref)
         # Act
         action = SMTSetLocalPref(match, pref, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1390,7 +1390,7 @@ class TestSMTSetLocalPref(unittest.TestCase):
         # Act
         action = SMTSetLocalPref(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].local_pref.var == local_pref)
         #solver.add(new_anns[0].local_pref.var == local_pref)
         is_sat = ctx.check(solver)
@@ -1443,7 +1443,7 @@ class TestSMTSetPrefix(unittest.TestCase):
         # Act
         action = SMTSetPrefix(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1462,7 +1462,7 @@ class TestSMTSetPrefix(unittest.TestCase):
         # Act
         action = SMTSetPrefix(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].prefix.var == sym_anns[0].prefix.var)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1515,7 +1515,7 @@ class TestSMTSetPeer(unittest.TestCase):
         # Act
         action = SMTSetPeer(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1534,7 +1534,7 @@ class TestSMTSetPeer(unittest.TestCase):
         # Act
         action = SMTSetPeer(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].peer.var == sym_anns[0].peer.var)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1586,7 +1586,7 @@ class TestSMTSetOrigin(unittest.TestCase):
         # Act
         action = SMTSetOrigin(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1603,7 +1603,7 @@ class TestSMTSetOrigin(unittest.TestCase):
         # Act
         action = SMTSetOrigin(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].origin.var == sym_anns[0].origin.var)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1649,12 +1649,12 @@ class TestSMTSetPermitted(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        vsort = z3.BoolSort()
+        vsort = z3.BoolSort(ctx=ctx.z3_ctx)
         value = ctx.create_fresh_var(vsort, value=False)
         # Act
         action = SMTSetPermitted(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1671,7 +1671,7 @@ class TestSMTSetPermitted(unittest.TestCase):
         # Act
         action = SMTSetPermitted(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].permitted.var == False)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1723,7 +1723,7 @@ class TestSMTSetASPath(unittest.TestCase):
         # Act
         action = SMTSetASPath(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1741,7 +1741,7 @@ class TestSMTSetASPath(unittest.TestCase):
         # Act
         action = SMTSetASPath(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].as_path.var == sym_anns[0].as_path.var)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1787,12 +1787,12 @@ class TestSMTSetASPathLen(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         value = ctx.create_fresh_var(vsort, value=10)
         # Act
         action = SMTSetASPathLen(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1809,7 +1809,7 @@ class TestSMTSetASPathLen(unittest.TestCase):
         # Act
         action = SMTSetASPathLen(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].as_path_len.var == 10)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1861,7 +1861,7 @@ class TestSMTSetNextHop(unittest.TestCase):
         # Act
         action = SMTSetNextHop(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1880,7 +1880,7 @@ class TestSMTSetNextHop(unittest.TestCase):
         # Act
         action = SMTSetNextHop(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1927,12 +1927,12 @@ class TestSMTSetMED(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         value = ctx.create_fresh_var(vsort, value=100)
         # Act
         action = SMTSetMED(match, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1949,7 +1949,7 @@ class TestSMTSetMED(unittest.TestCase):
         # Act
         action = SMTSetMED(match, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].med.var == 100)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -1996,7 +1996,7 @@ class TestSMTSetOne(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         local_pref = ctx.create_fresh_var(vsort, value=200)
         med = ctx.create_fresh_var(vsort, value=300)
         action1 = SMTSetLocalPref(match, local_pref, sym_anns, ctx)
@@ -2005,7 +2005,7 @@ class TestSMTSetOne(unittest.TestCase):
         action = SMTSetOne(match, sym_anns, ctx, actions=[action1, action2])
         action.execute()
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].med.var == med.get_value())
         is_sat = ctx.check(solver)
         # Assert
@@ -2023,7 +2023,7 @@ class TestSMTSetOne(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         local_pref = ctx.create_fresh_var(vsort, value=200)
         med = ctx.create_fresh_var(vsort, value=300)
         set_pref = SMTSetLocalPref(match, local_pref, sym_anns, ctx)
@@ -2034,7 +2034,7 @@ class TestSMTSetOne(unittest.TestCase):
         action = SMTSetOne(match, sym_anns, ctx, actions=[set_pref, set_med, set_comm])
         action.execute()
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].communities[comm].var == True)
         solver.add(new_anns[1].communities[comm].var == True)
         is_sat = ctx.check(solver)
@@ -2060,7 +2060,7 @@ class TestSMTSetOne(unittest.TestCase):
         action = SMTSetOne(match, sym_anns, ctx)
         action.execute()
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].med.var == med)
         is_sat = ctx.check(solver)
         # Assert
@@ -2080,14 +2080,14 @@ class TestSMTSetOne(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=ctx.z3_ctx)
         local_pref = ctx.create_fresh_var(vsort, value=200)
         comm = self.communities[0]
         # Act
         action = SMTSetOne(match, sym_anns, ctx)
         #action.execute()
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].communities[comm].var == True)
         solver.add(new_anns[1].communities[comm].var == True)
         is_sat = ctx.check(solver)
@@ -2143,7 +2143,7 @@ class TestSMTSetCommunity(unittest.TestCase):
         # Act
         action = SMTSetCommunity(match, community, None, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -2159,11 +2159,11 @@ class TestSMTSetCommunity(unittest.TestCase):
         sym_anns = self.get_sym(concrete_anns, ctx)
         match = SMTMatchAll(ctx)
         community = self.communities[0]
-        value = ctx.create_fresh_var(z3.BoolSort())
+        value = ctx.create_fresh_var(z3.BoolSort(ctx=ctx.z3_ctx))
         # Act
         action = SMTSetCommunity(match, community, value, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].communities[community].var == True)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -2215,7 +2215,7 @@ class TestSMTMatch(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -2240,7 +2240,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2267,7 +2267,7 @@ class TestSMTMatch(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -2292,7 +2292,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2319,7 +2319,7 @@ class TestSMTMatch(unittest.TestCase):
         ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
         ann0_value = match.is_match(sym_anns[0]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -2344,7 +2344,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2376,7 +2376,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_value = match.is_match(sym_anns[0]).get_value()
         ann1_value = match.is_match(sym_anns[1]).get_value()
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         # Check the partial evaluation
@@ -2406,7 +2406,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2440,7 +2440,7 @@ class TestSMTMatch(unittest.TestCase):
         # Evaluate constraints
         match0 = match.is_match(sym_anns[0])
         match1 = match.is_match(sym_anns[1])
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2470,7 +2470,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2508,7 +2508,7 @@ class TestSMTMatch(unittest.TestCase):
         ann0_is_concrete = match0.is_concrete
         ann1_is_concrete = match0.is_concrete
         # Evaluate constraints
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(match0.var == True)
         solver.add(match1.var == False)
         is_sat = ctx.check(solver)
@@ -2566,7 +2566,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetNextHop('Hop1')
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -2584,7 +2584,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetNextHop(VALUENOTSET)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -2605,7 +2605,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetLocalPref(200)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -2623,7 +2623,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetLocalPref(VALUENOTSET)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -2644,7 +2644,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionPermitted(Access.deny)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -2662,7 +2662,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionPermitted(VALUENOTSET)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].permitted.var == False)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -2684,7 +2684,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetCommunity([c], additive=True)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -2704,7 +2704,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetCommunity([VALUENOTSET], additive=True)
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].communities[c].var == True)
         # FIXME: Check if one is enough!!!!
         solver.add(new_anns[1].communities[c].var == True)
@@ -2730,7 +2730,7 @@ class TestSMTActions(unittest.TestCase):
         raction = ActionSetOne([set_local_pref, set_next_hop])
         action = SMTActions(match, [raction], sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[0].local_pref.var == 200)
         is_sat = ctx.check(solver)
@@ -2778,7 +2778,7 @@ class TestSMTRouteMapLine(unittest.TestCase):
 
         selectors = {}
         for announcement in sym_anns:
-            index_var = ctx.create_fresh_var(z3.IntSort(), name_prefix='SS')
+            index_var = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name_prefix='SS')
             selectors[announcement] = index_var
             ctx.register_constraint(index_var.var == 10, name_prefix='RmaplineIndex')
 
@@ -2787,7 +2787,7 @@ class TestSMTRouteMapLine(unittest.TestCase):
         rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
         action = SMTRouteMapLine(selectors, rline, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         #solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.var)
         is_sat = ctx.check(solver)
@@ -2807,7 +2807,7 @@ class TestSMTRouteMapLine(unittest.TestCase):
         hop = 'Hop1'
         selectors = {}
         for announcement in sym_anns:
-            index_var = ctx.create_fresh_var(z3.IntSort(), name_prefix='SS')
+            index_var = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name_prefix='SS')
             selectors[announcement] = index_var
             ctx.register_constraint(index_var.var == 10, name_prefix='RmaplineIndex')
         # Act
@@ -2815,7 +2815,7 @@ class TestSMTRouteMapLine(unittest.TestCase):
         rline = RouteMapLine(matches=None, actions=[raction], access=Access.permit, lineno=10)
         action = SMTRouteMapLine(selectors, rline, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
         solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.var)
         #solver.add(new_anns[0].local_pref.var == 200)
@@ -2869,7 +2869,7 @@ class TestSMTRouteMap(unittest.TestCase):
         rmap = RouteMap(name='r1', lines=[rline])
         action = SMTRouteMap(rmap, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -2890,7 +2890,7 @@ class TestSMTRouteMap(unittest.TestCase):
         rmap = RouteMap(name='r1', lines=[rline])
         action = SMTRouteMap(rmap, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.vsort.get_symbolic_value('Hop1'))
         #solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.vsort.get_symbolic_value('Hop1'))
         #solver.add(new_anns[0].local_pref.var == 200)
@@ -2917,7 +2917,7 @@ class TestSMTRouteMap(unittest.TestCase):
         rmap = RouteMap(name='r1', lines=[rline1, rline2])
         action = SMTRouteMap(rmap, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[1].local_pref.var == 300)
         is_sat = ctx.check(solver)
@@ -2941,14 +2941,22 @@ class TestSMTRouteMap(unittest.TestCase):
         raction2_2 = ActionSetNextHop('Hop4')
         c1 = Community("100:16")
         c3 = Community("100:18")
-        match_c1 = MatchCommunitiesList(CommunityList(list_id=1, access=Access.permit, communities=[c1]))
-        match_c3 = MatchCommunitiesList(CommunityList(list_id=1, access=Access.permit, communities=[c3]))
-        rline1 = RouteMapLine(matches=[match_c1], actions=[raction1_1, raction1_2], access=Access.permit, lineno=10)
-        rline2 = RouteMapLine(matches=[match_c3], actions=[raction2_1, raction2_2], access=Access.permit, lineno=20)
+        match_c1 = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c1]))
+        match_c3 = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c3]))
+        rline1 = RouteMapLine(matches=[match_c1],
+                              actions=[raction1_1, raction1_2],
+                              access=Access.permit,
+                              lineno=10)
+        rline2 = RouteMapLine(matches=[match_c3],
+                              actions=[raction2_1, raction2_2],
+                              access=Access.permit,
+                              lineno=20)
         rmap = RouteMap(name='r1', lines=[rline1, rline2])
         action = SMTRouteMap(rmap, sym_anns, ctx)
         new_anns = action.announcements
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         #solver.add(new_anns[0].local_pref.var == 200)
         #solver.add(new_anns[1].local_pref.var == 300)
         is_sat = ctx.check(solver)
@@ -3002,15 +3010,15 @@ class TestSMTSelectorMatch(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         match_all = SMTMatchAll(ctx)
-        selector_var1 = ctx.create_fresh_var(z3.IntSort(), name='Selector1')
-        selector_var2 = ctx.create_fresh_var(z3.IntSort(), name='Selector2')
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector2')
         selectors = {}
         selectors[sym_anns[0]] = selector_var1
         selectors[sym_anns[1]] = selector_var2
         # Act
         select1 = SMTSelectorMatch(selectors, 10, match_all, sym_anns, ctx)
         select2 = SMTSelectorMatch(selectors, 20, match_all, sym_anns, ctx)
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(select1.is_match(sym_anns[0]).var == True)
         solver.add(select2.is_match(sym_anns[0]).var == False)
         solver.add(select1.is_match(sym_anns[1]).var == False)
@@ -3025,15 +3033,15 @@ class TestSMTSelectorMatch(unittest.TestCase):
         sym_anns = self.get_sym(concrete_anns, ctx)
         match1 = SMTMatch(MatchNextHop(VALUENOTSET), sym_anns, ctx)
         match2 = SMTMatch(MatchNextHop(VALUENOTSET), sym_anns, ctx)
-        selector_var1 = ctx.create_fresh_var(z3.IntSort(), name='Selector1')
-        selector_var2 = ctx.create_fresh_var(z3.IntSort(), name='Selector2')
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector2')
         selectors = {}
         selectors[sym_anns[0]] = selector_var1
         selectors[sym_anns[1]] = selector_var2
         # Act
         select1 = SMTSelectorMatch(selectors, 10, match1, sym_anns, ctx)
         select2 = SMTSelectorMatch(selectors, 20, match2, sym_anns, ctx)
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(select1.is_match(sym_anns[0]).var == True)
         solver.add(select2.is_match(sym_anns[0]).var == False)
         solver.add(select1.is_match(sym_anns[1]).var == False)
@@ -3060,15 +3068,15 @@ class TestSMTSelectorMatch(unittest.TestCase):
         sym_anns = self.get_sym(concrete_anns, ctx)
         match1 = SMTMatch(MatchLocalPref(100), sym_anns, ctx)
         match2 = SMTMatch(MatchLocalPref(100), sym_anns, ctx)
-        selector_var1 = ctx.create_fresh_var(z3.IntSort(), name='Selector1')
-        selector_var2 = ctx.create_fresh_var(z3.IntSort(), name='Selector2')
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector2')
         selectors = {}
         selectors[sym_anns[0]] = selector_var1
         selectors[sym_anns[1]] = selector_var2
         # Act
         select1 = SMTSelectorMatch(selectors, 10, match1, sym_anns, ctx)
         select2 = SMTSelectorMatch(selectors, 20, match2, sym_anns, ctx)
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(select1.is_match(sym_anns[0]).var == True)
         solver.add(select1.is_match(sym_anns[1]).var == True)
         solver.add(select2.is_match(sym_anns[0]).var == False)

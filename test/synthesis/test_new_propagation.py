@@ -200,7 +200,7 @@ class PropagationTest2(unittest.TestCase):
         unmatching_order = propagation.compute_dags()
         assert not unmatching_order
         propagation.synthesize()
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         ret = ctx.check(solver)
         assert ret == z3.sat, solver.unsat_core()
         print solver.model()
@@ -333,7 +333,7 @@ class PropagationTest2(unittest.TestCase):
         self.assertEqual(ibgp.node['R5_2']['order'], [set([('R1', 'R4', 'R5_0', 'R5_2')])])
         self.assertEqual(ibgp.node['R5_3']['order'], [set([('R1', 'R4', 'R5_0', 'R5_2', 'R5_3')]), set([('R1', 'R3', 'R5_1', 'R5_3')])])
         propagation.synthesize()
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         ret = ctx.check(solver)
         assert ret == z3.sat, solver.unsat_core()
         print solver.model()
@@ -373,7 +373,7 @@ class PropagationTest2(unittest.TestCase):
         nx.nx_pydot.write_dot(ibgp, '/tmp/ibgp_linear.dot')
         propagation.synthesize()
 
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         ret = ctx.check(solver)
         assert ret == z3.sat, solver.unsat_core()
         propagation.update_network_graph()
@@ -428,7 +428,7 @@ class PropagationTest2(unittest.TestCase):
         nx.nx_pydot.write_dot(ibgp, '/tmp/ibgp_linear.xdot')
         propagation.synthesize()
 
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         ret = ctx.check(solver)
         assert ret == z3.sat, solver.unsat_core()
         propagation.update_network_graph()

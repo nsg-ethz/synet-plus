@@ -30,7 +30,8 @@ class EnumTypeTest(unittest.TestCase):
         values = ['A', 'B', 'C']
         name = 'TestType'
         # Act
-        enum_type = EnumType(name, values)
+        z3_ctx = z3.Context()
+        enum_type = EnumType(name, values, z3_ctx=z3_ctx)
         # Assert
         self.assertEquals(enum_type.name, name)
         self.assertEquals(enum_type.concrete_values, values)
@@ -112,7 +113,8 @@ class VarTest(unittest.TestCase):
     def test_symbolic_int(self):
         # Arrange
         name = 'TestVar1'
-        vsort = z3.IntSort()
+        z3_ctx = z3.Context()
+        vsort = z3.IntSort(ctx=z3_ctx)
         value = 10
         # Act
         var = SMTVar(name, vsort)
@@ -121,7 +123,7 @@ class VarTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.assertEquals(var.get_value(), value)
         # Concertize the value
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=z3_ctx)
         solver.add(var.var == value)
         self.assertEquals(solver.check(), z3.sat)
         model = solver.model()
@@ -143,7 +145,8 @@ class VarTest(unittest.TestCase):
         sort_name = 'TestType'
         name = 'TestVar1'
         value = 'A'
-        vsort = EnumType(sort_name, values)
+        z3_ctx = z3.Context()
+        vsort = EnumType(sort_name, values, z3_ctx=z3_ctx)
         # Act
         var = SMTVar(name, vsort, value)
         # Assert
@@ -159,7 +162,8 @@ class VarTest(unittest.TestCase):
         sort_name = 'TestType'
         name = 'TestVar1'
         value = 'A'
-        vsort = EnumType(sort_name, values)
+        z3_ctx = z3.Context()
+        vsort = EnumType(sort_name, values, z3_ctx=z3_ctx)
         # Act
         var = SMTVar(name, vsort)
         # Assert
@@ -171,7 +175,7 @@ class VarTest(unittest.TestCase):
             self.assertEquals(var.get_value(), 10)
 
         # Concertize the value
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=z3_ctx)
         solver.add(var.var == vsort.get_symbolic_value(value))
         self.assertEquals(solver.check(), z3.sat)
         model = solver.model()
@@ -228,7 +232,7 @@ class VarTest(unittest.TestCase):
 @attr(speed='fast')
 class SolverContextTest(unittest.TestCase):
     def test_new_var(self):
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         name1 = ctx.fresh_var_name()
         name2 = ctx.fresh_var_name()
         self.assertTrue(isinstance(name1, basestring))
@@ -240,14 +244,14 @@ class SolverContextTest(unittest.TestCase):
         vsort = z3.IntSort()
         var = SMTVar(name, vsort)
 
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         ctx._register_var(var)
         self.assertTrue(var.name in ctx._vars)
         with self.assertRaises(ValueError):
             ctx._register_var(var)
 
     def test_create_var(self):
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         var = ctx.create_fresh_var(z3.IntSort(), value=10)
         self.assertTrue(isinstance(var, SMTVar))
         with self.assertRaises(ValueError):
@@ -255,7 +259,7 @@ class SolverContextTest(unittest.TestCase):
 
     def test_create_var_prefix(self):
         # Arrange
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         prefix = 'CustPrefix'
         # Act
         var = ctx.create_fresh_var(z3.IntSort(), value=10, name_prefix=prefix)
@@ -264,7 +268,7 @@ class SolverContextTest(unittest.TestCase):
         self.assertTrue(var.name.startswith(prefix))
 
     def test_fresh_const_name(self):
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         name1 = ctx.fresh_constraint_name()
         name2 = ctx.fresh_constraint_name()
         self.assertTrue(isinstance(name1, basestring))
@@ -273,7 +277,7 @@ class SolverContextTest(unittest.TestCase):
 
     def test_fresh_const_name_prefix(self):
         # Arrange
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         prefix = 'CustPrefix'
         # Act
         name1 = ctx.fresh_constraint_name(prefix=prefix)
@@ -291,7 +295,7 @@ class SolverContextTest(unittest.TestCase):
         var2 = SMTVar('var1', z3.IntSort())
         const = var1.var + var2.var > 10
         # Act
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         name = ctx.register_constraint(const)
         with self.assertRaises(ValueError):
             ctx.register_constraint(const, name)
@@ -308,7 +312,7 @@ class SolverContextTest(unittest.TestCase):
         var2 = SMTVar('var1', z3.IntSort())
         const = var1.var + var2.var > 10
         name = 'cosnt1'
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         ctx.register_constraint(const, name)
         self.assertIsNotNone(ctx.get_constraint(name))
         self.assertIsNotNone(ctx.get_constraints_info(name))
@@ -321,7 +325,7 @@ class SolverContextTest(unittest.TestCase):
         # Arrange
         values = ['A', 'B', 'C']
         sort_name = 'TestType'
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         # Act
         vsort = ctx.create_enum_type(sort_name, values)
         # Assert
@@ -337,13 +341,13 @@ class SolverContextTest(unittest.TestCase):
         # Arrange
         values = ['A', 'B', 'C']
         sort_name = 'TestType'
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
         vsort = ctx.create_enum_type(sort_name, values)
         var1 = ctx.create_fresh_var(vsort)
         val1 = vsort.get_symbolic_value('A')
-        var2 = ctx.create_fresh_var(z3.IntSort())
-        var3 = ctx.create_fresh_var(z3.BoolSort())
-        solver = z3.Solver()
+        var2 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx))
+        var3 = ctx.create_fresh_var(z3.BoolSort(ctx=ctx.z3_ctx))
+        solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(var1.var == val1)
         solver.add(var2.var == 10)
         solver.add(var3.var == True)

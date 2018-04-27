@@ -1069,7 +1069,7 @@ def main():
     t2 = timer()
     bgp_syn = t2 -t1
     t1 = timer()
-    solver = z3.Solver()
+    solver = z3.Solver(ctx=ctx.z3_ctx)
     ret = ctx.check(solver)
     t2 = timer()
     z3_syn = t2 - t1

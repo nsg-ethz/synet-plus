@@ -64,11 +64,11 @@ def read_announcements(announcements, smt_ctx):
             ('peer', PEER_SORT, None),
             ('origin', BGP_ORIGIN_SORT, lambda x: x.name),
             ('as_path', ASPATH_SORT, get_as_path_key),
-            ('as_path_len', z3.IntSort(), None),
+            ('as_path_len', z3.IntSort(ctx=smt_ctx.z3_ctx), None),
             ('next_hop', NEXT_HOP_SORT, None),
-            ('local_pref', z3.IntSort(), None),
-            ('med', z3.IntSort(), None),
-            ('permitted', z3.BoolSort(), None),
+            ('local_pref', z3.IntSort(ctx=smt_ctx.z3_ctx), None),
+            ('med', z3.IntSort(ctx=smt_ctx.z3_ctx), None),
+            ('permitted', z3.BoolSort(ctx=smt_ctx.z3_ctx), None),
         ]
         for attr, vsort, conv in all_attrs:
             concrete_value = getattr(announcement, attr)
@@ -90,7 +90,7 @@ def read_announcements(announcements, smt_ctx):
             if is_empty(value):
                 value = None
             comm_var = smt_ctx.create_fresh_var(
-                vsort=z3.BoolSort(), value=value)
+                vsort=z3.BoolSort(ctx=smt_ctx.z3_ctx), value=value)
             vals['communities'][community] = comm_var
         new_ann = Announcement(**vals)
         new_announcements.append(new_ann)
@@ -100,7 +100,7 @@ def read_announcements(announcements, smt_ctx):
 class EnumType(object):
     """Create a enum sort"""
 
-    def __init__(self, name, values):
+    def __init__(self, name, values, z3_ctx):
         """
         :param name: Name of the type
         :param values: list of all possible values
@@ -108,7 +108,10 @@ class EnumType(object):
         assert values, "Requires at least one value for '%s'" % name
         self._name = name
         self._concrete_values = values
-        self._sort, self._symbolic_values = z3.EnumSort(name, values)
+        self.z3_ctx = z3_ctx
+        self._sort, self._symbolic_values = z3.EnumSort(name, values,
+                                                        ctx=self.z3_ctx)
+
 
     @property
     def name(self):
@@ -273,12 +276,13 @@ class SolverContext(object):
     Keep track of all variables and constraints to make sure they're unique
     """
 
-    def __init__(self):
+    def __init__(self, z3_ctx):
         self._vars = {}  # Map a name to a var id
         self._tracked = {}  # Map a name to constraints, additional info
         self._next_varnum = itertools.count(0)
         self._next_constnum = itertools.count(0)
         self._enum_types = {}
+        self.z3_ctx = z3_ctx
 
     def create_enum_type(self, name, values):
         """Create new Enum type"""
@@ -291,7 +295,7 @@ class SolverContext(object):
                     err = "Duplicate value '%s' already defined in %s" % (
                         value, ename)
                     raise ValueError(err)
-        enum_type = EnumType(name, values)
+        enum_type = EnumType(name, values, z3_ctx=self.z3_ctx)
         self._enum_types[name] = enum_type
         return self._enum_types[name]
 
@@ -403,17 +407,18 @@ class SolverContext(object):
         print "Reading model time: %f" % (t2 - t1)
 
     def check(self, solver, track=True, set_model=True):
+        err1 = "Z3 Solver is not attached to the same Z3 context"
+        assert solver.ctx == self.z3_ctx, err1
+
         t1 = timer()
         partially_eval_vars = len([var for var in self._vars.values() if var.is_concrete])
         partially_eval_const = 0
-        print "Adding constraints", t1
         for name, const in self.constraints_itr():
+            err2 = "Constraint is not attached to the same Z3 context: %s" % const
+            assert const.ctx == self.z3_ctx, err2
             if track:
-                #print 'X' * 20, name, 'X' * 20
-                #print const
-                #print 'X' * 50
                 if isinstance(const, bool):
-                    var = self.create_fresh_var(z3.BoolSort(), value=None, name_prefix='BoolHack_')
+                    var = self.create_fresh_var(z3.BoolSort(ctx=self.z3_ctx), value=None, name_prefix='BoolHack_')
                     solver.assert_and_track(var.var == const, name)
                     solver.assert_and_track(var.var == True, "%s_hack" % name)
                     partially_eval_const += 1
@@ -421,7 +426,6 @@ class SolverContext(object):
                     solver.assert_and_track(const, name)
             else:
                 solver.add(const)
-            #assert not name.startswith('SelectOne_match')
         t2 = timer()
         print "X" * 50
         print "Total Number of variables:", len(self._vars)
@@ -461,7 +465,7 @@ class SolverContext(object):
         next_hope_list = next_hop_list if next_hop_list else []
         announcements = announcements if announcements else []
 
-        ctx = SolverContext()
+        ctx = SolverContext(z3.Context())
 
         # Prefixes
         read_list = [x.prefix for x in announcements if not is_empty(x.prefix)]

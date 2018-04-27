@@ -72,7 +72,7 @@ class SMTMatchAll(SMTAbstractMatch):
     def __init__(self, ctx):
         self.ctx = ctx
         self.match_var = ctx.create_fresh_var(
-            z3.BoolSort(), name_prefix='match_all_', value=True)
+            z3.BoolSort(ctx=self.ctx.z3_ctx), name_prefix='match_all_', value=True)
 
     def is_match(self, announcement):
         return self.match_var
@@ -87,7 +87,7 @@ class SMTMatchNone(SMTAbstractMatch):
     def __init__(self, ctx):
         self.ctx = ctx
         self.match_var = ctx.create_fresh_var(
-            z3.BoolSort(), name_prefix='match_none_', value=False)
+            z3.BoolSort(ctx=self.ctx.z3_ctx), name_prefix='match_none_', value=False)
 
     def is_match(self, announcement):
         return self.match_var
@@ -115,9 +115,11 @@ class SMTMatchAnd(SMTAbstractMatch):
             elif shortcut and not all(shortcut):
                 value = False
                 is_concrete = True
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_and_', value=value)
+            match_var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx), name_prefix='match_and_', value=value)
             if not is_concrete:
-                constraint = z3.And([result.var == True for result in results if not result.is_concrete])
+                tmp = [result.var == True for result in results if not result.is_concrete]
+                tmp += [self.ctx.z3_ctx]
+                constraint = z3.And(*tmp)
                 self.ctx.register_constraint(
                     match_var.var == constraint, name_prefix='const_and_')
             self.matched_announcements[announcement] = match_var
@@ -156,9 +158,10 @@ class SMTMatchOr(SMTAbstractMatch):
                 value = True
                 is_concrete = True
             match_var = self.ctx.create_fresh_var(
-                z3.BoolSort(), name_prefix='match_or_', value=value)
+                z3.BoolSort(ctx=self.ctx.z3_ctx), name_prefix='match_or_', value=value)
             if not is_concrete:
-                constraint = z3.Or([result.var == True for result in results])
+                tmp = [result.var == True for result in results] + [self.ctx.z3_ctx]
+                constraint = z3.Or(*tmp)
                 self.ctx.register_constraint(
                     match_var.var == constraint, name_prefix='const_or_')
             self.matched_announcements[announcement] = match_var
@@ -211,14 +214,14 @@ class SMTMatchSelectOne(SMTAbstractMatch):
         # Create map for the different matches
         self.matches = {}
         self.index_var = self.ctx.create_fresh_var(
-            z3.IntSort(), name_prefix='SelectOne_index_')
+            z3.IntSort(ctx=self.ctx.z3_ctx), name_prefix='SelectOne_index_')
         for index, match in enumerate(matches):
             self.matches[index] = match
         # Make index in the range of number of matches
         self.ctx.register_constraint(
             z3.And(
-                self.index_var >= 0,
-                self.index_var.var < index + 1),
+                self.index_var.var >= 0,
+                self.index_var.var < index + 1, self.ctx.z3_ctx),
             name_prefix='SelectOne_index_range_')
 
     def _get_match(self, announcement, current_index=0):
@@ -226,7 +229,7 @@ class SMTMatchSelectOne(SMTAbstractMatch):
         if current_index not in self.matches:
             # Base case
             return False
-            return z3.And(self.index_var.var == current_index, False)
+            return z3.And(self.index_var.var == current_index, False, self.ctx.z3_ctx)
         is_match  = self.matches[current_index].is_match(announcement)
         if is_match.is_concrete:
             match_var = is_match.get_value()
@@ -234,11 +237,11 @@ class SMTMatchSelectOne(SMTAbstractMatch):
             match_var = self.matches[current_index].is_match(announcement).var
         index_check = self.index_var.var == current_index
         next_attr = self._get_match(announcement, current_index + 1)
-        return z3.If(index_check, match_var, next_attr)
+        return z3.If(index_check, match_var, next_attr, ctx=self.ctx.z3_ctx)
 
     def is_match(self, announcement):
         if announcement not in self.matched_announcements:
-            var = self.ctx.create_fresh_var(z3.BoolSort())
+            var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx))
             self.matched_announcements[announcement] = var
             constraint = var.var == self._get_match(announcement)
             self.ctx.register_constraint(
@@ -294,7 +297,7 @@ class SMTMatchAttribute(SMTAbstractMatch):
             if not is_symbolic(constraint):
                 value = constraint
             match_var = self.ctx.create_fresh_var(
-                z3.BoolSort(),
+                z3.BoolSort(ctx=self.ctx.z3_ctx),
                 name_prefix='match_%s_var_' % self.attribute,
                 value=value)
             if is_symbolic(constraint):
@@ -317,15 +320,15 @@ class SMTMatchCommunity(SMTAbstractMatch):
         :param ctx:
         """
         assert isinstance(ctx, SolverContext)
+        self.ctx = ctx
         assert announcements, "Cannot match on empty announcements"
         assert community in announcements[0].communities
         if not value:
             value = ctx.create_fresh_var(
-                z3.BoolSort(),
+                z3.BoolSort(ctx=self.ctx.z3_ctx),
                 name_prefix='Match_Community_var_',
                 value=True)
         assert isinstance(value, SMTVar)
-        self.ctx = ctx
         self.value = value
         self.community = community
         self.announcements = announcements
@@ -338,7 +341,7 @@ class SMTMatchCommunity(SMTAbstractMatch):
             value = None
             if not is_symbolic(constraint):
                 value = constraint
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), value=value)
+            match_var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx), value=value)
             if is_symbolic(constraint):
                 self.ctx.register_constraint(match_var.var == constraint)
             self.matched_announcements[announcement] = match_var
@@ -563,13 +566,18 @@ class SMTSetAttribute(SMTAbstractAction):
                         attv = attr_var.var if attr_var.is_concrete else attr_var.get_var()
                         constraint = z3.If(is_match.var,
                                            new_var.var == vv,
-                                           new_var.var == attv)
+                                           new_var.var == attv,
+                                           ctx=self.smt_ctx.z3_ctx)
                         constraints.append(constraint)
                     new_vals[attr] = new_var
                     if attr == 'permitted':
                         # Permitted is a special case
                         # it cannot move from False to True
-                        constraint = z3.Implies(attr_var.var == False, new_vals[attr].var == False)
+                        constraint = z3.Implies(
+                            attr_var.var == False,
+                            new_vals[attr].var == False,
+                            ctx=self.smt_ctx.z3_ctx
+                        )
                         constraints.append(constraint)
                 else:
                     new_vals[attr] = attr_var
@@ -579,7 +587,8 @@ class SMTSetAttribute(SMTAbstractAction):
                 SELECTOR[new_ann] = SELECTOR[announcement]
             announcements.append(new_ann)
         if constraints:
-            self.smt_ctx.register_constraint(z3.And(*constraints), name_prefix='Set_%s_' % attr)
+            tmp = constraints + [self.smt_ctx.z3_ctx]
+            self.smt_ctx.register_constraint(z3.And(*tmp), name_prefix='Set_%s_' % attr)
         self._announcements = self._old_announcements.create_new(announcements, self)
 
 
@@ -595,10 +604,10 @@ class SMTSetCommunity(SMTAbstractAction):
         if value is None:
             prefix = 'Set_community_val_'
             value = ctx.create_fresh_var(
-                z3.BoolSort(), name_prefix=prefix, value=True)
+                z3.BoolSort(ctx=ctx.z3_ctx), name_prefix=prefix, value=True)
         assert isinstance(value, SMTVar)
         err = "Value is not of type BoolSort %s" % (value.vsort)
-        assert z3.BoolSort() == value.vsort, err
+        assert z3.BoolSort(ctx=ctx.z3_ctx) == value.vsort, err
         self.match = match
         self.community = community
         self.value = value
@@ -649,11 +658,12 @@ class SMTSetCommunity(SMTAbstractAction):
                             else:
                                 # No partial eval
                                 new_var = self.smt_ctx.create_fresh_var(
-                                    z3.BoolSort(),
+                                    z3.BoolSort(ctx=self.smt_ctx.z3_ctx),
                                     name_prefix='set_community_%s_val' % community.name)
                                 constraint = z3.If(is_match.var,
                                                    new_var.var == self.value.var,
-                                                   new_var.var == old_var.var)
+                                                   new_var.var == old_var.var,
+                                                   ctx=self.smt_ctx.z3_ctx)
                                 constraints.append(constraint)
                             new_comms[community] = new_var
                     new_vals[attr] = new_comms
@@ -663,7 +673,8 @@ class SMTSetCommunity(SMTAbstractAction):
                 SELECTOR[new_ann] = SELECTOR[announcement]
             announcements.append(new_ann)
         if constraints:
-            self.smt_ctx.register_constraint(z3.And(*constraints), name_prefix='Set_comm_')
+            tmp = constraints + [self.smt_ctx.z3_ctx]
+            self.smt_ctx.register_constraint(z3.And(*tmp), name_prefix='Set_comm_')
         self._announcements = self._old_announcements.create_new(announcements, self)
 
     def get_config(self):
@@ -709,7 +720,7 @@ class SMTSetOne(SMTAbstractAction):
         # Create map for the different actions
         self.actions = {}
         self.index_var = self.ctx.create_fresh_var(
-            z3.IntSort(), name_prefix='SetOneIndex_')
+            z3.IntSort(ctx=self.ctx.z3_ctx), name_prefix='SetOneIndex_')
         index = itertools.count(0)
         for action in actions:
             err1 = 'All actions must have the same match'
@@ -719,7 +730,7 @@ class SMTSetOne(SMTAbstractAction):
             self.actions[index.next()] = action
         # Make index in the range of number of actions
         index_range = z3.And(self.index_var.var >= 0,
-                             self.index_var.var < index.next())
+                             self.index_var.var < index.next(), self.ctx.z3_ctx)
         self.ctx.register_constraint(index_range,
                                      name_prefix='setone_index_max_')
         self.execute()
@@ -755,7 +766,7 @@ class SMTSetOne(SMTAbstractAction):
         value = getattr(action.announcements[ann_index], attribute)
         index_check = self.index_var.var == index
         next_attr = self._get_actions(ann_index, attribute, default, index + 1)
-        return z3.If(index_check, value.var, next_attr)
+        return z3.If(index_check, value.var, next_attr, ctx=self.ctx.z3_ctx)
 
     def _get_communities(self, ann_index, community, default, index=0):
         """Recursively construct a match for a given community"""
@@ -767,7 +778,7 @@ class SMTSetOne(SMTAbstractAction):
         index_check = self.index_var.var == index
         next_attr = self._get_communities(
             ann_index, community, default, index + 1)
-        return z3.If(index_check, value.var, next_attr)
+        return z3.If(index_check, value.var, next_attr, ctx=self.ctx.z3_ctx)
 
     def execute(self):
         new_anns = []
@@ -794,7 +805,7 @@ class SMTSetOne(SMTAbstractAction):
                         for community in self.communities:
                             prefix = 'setone_community_var_'
                             new_var = self.ctx.create_fresh_var(
-                                z3.BoolSort(), name_prefix=prefix)
+                                z3.BoolSort(ctx=self.ctx.z3_ctx), name_prefix=prefix)
                             value = self._get_communities(
                                 index, community, new_var.var)
                             prefix = 'setone_%s_' % attr
@@ -1053,14 +1064,14 @@ class SMTMatchCommunityList(SMTAbstractMatch):
 
     def _get_community_match(self, community):
         if not is_empty(community):
-            var = self.ctx.create_fresh_var(vsort=z3.BoolSort(), value=True)
+            var = self.ctx.create_fresh_var(vsort=z3.BoolSort(ctx=self.ctx.z3_ctx), value=True)
             match = SMTMatchCommunity(community=community, value=var,
                                       announcements=self.announcements,
                                       ctx=self.ctx)
         else:
             comms = []
             for comm in self.ctx.communities:
-                var = self.ctx.create_fresh_var(z3.BoolSort(), value=True)
+                var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx), value=True)
                 smt = SMTMatchCommunity(comm, var, self.announcements, self.ctx)
                 comms.append(smt)
             match = SMTMatchSelectOne(self.announcements, self.ctx, comms)
@@ -1147,12 +1158,12 @@ class SMTMatch(SMTAbstractMatch):
 
     def _load_match_local_pref(self):
         value = self.match.match if not is_empty(self.match.match) else None
-        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
+        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(ctx=self.ctx.z3_ctx), value=value)
         self.smt_match = SMTMatchLocalPref(self.value, self.announcements, self.ctx)
 
     def _load_match_med(self):
         value = self.match.match if not is_empty(self.match.match) else None
-        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
+        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(ctx=self.ctx.z3_ctx), value=value)
         self.smt_match = SMTMatchMED(self.value, self.announcements, self.ctx)
 
     def _load_match_as_path(self):
@@ -1165,7 +1176,7 @@ class SMTMatch(SMTAbstractMatch):
 
     def _load_match_as_path_len(self):
         value = self.match.match if not is_empty(self.match.match) else None
-        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(), value=value)
+        self.value = self.ctx.create_fresh_var(vsort=z3.IntSort(ctx=self.ctx.z3_ctx), value=value)
         self.smt_match = SMTMatchASPathLen(self.value, self.announcements, self.ctx)
 
     def _load_match_peer(self):
@@ -1256,7 +1267,7 @@ class SMTActions(SMTAbstractAction):
 
     def _set_access(self, action, anns):
         value = action.value if not is_empty(action.value) else None
-        vsort = z3.BoolSort()
+        vsort = z3.BoolSort(ctx=self.ctx.z3_ctx)
         if value:
             value = True if value == Access.permit else False
         var = self.ctx.create_fresh_var(vsort=vsort, value=value)
@@ -1265,7 +1276,7 @@ class SMTActions(SMTAbstractAction):
     def _set_community(self, community, anns):
         assert is_empty(community) or isinstance(community, Community)
         community = community if not is_empty(community) else None
-        vsort = z3.BoolSort()
+        vsort = z3.BoolSort(ctx=self.ctx.z3_ctx)
         if community:
             var = self.ctx.create_fresh_var(vsort=vsort, value=True)
             return SMTSetCommunity(self.smt_match, community, var, anns, self.ctx)
@@ -1282,7 +1293,7 @@ class SMTActions(SMTAbstractAction):
         prev_anns = anns
         if action.additive == False:
             for comm in self.ctx.communities:
-                var = self.ctx.create_fresh_var(z3.BoolSort(), value=False)
+                var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx), value=False)
                 a = SMTSetCommunity(self.match, comm, var, prev_anns, self.ctx)
                 prev_anns = a.announcements
                 tmp.append(a)
@@ -1294,7 +1305,7 @@ class SMTActions(SMTAbstractAction):
 
     def _set_local_pref(self, action, anns):
         value = action.value if not is_empty(action.value) else None
-        vsort = z3.IntSort()
+        vsort = z3.IntSort(ctx=self.ctx.z3_ctx)
         var = self.ctx.create_fresh_var(vsort=vsort, value=value)
         return SMTSetLocalPref(self.smt_match, var, anns, self.ctx)
 
@@ -1370,9 +1381,12 @@ class SMTSelectorMatch(SMTAbstractMatch):
                 value = False
             if sel.is_concrete and sel.get_value() != self.selector_value:
                 value = False
-            match_var = self.ctx.create_fresh_var(z3.BoolSort(), name_prefix='match_sel_', value=value)
+            match_var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx), name_prefix='match_sel_', value=value)
             if not value:
-                self.ctx.register_constraint(z3.And(is_match.var, sel.var == self.selector_value) == match_var.var, name_prefix='Selector_')
+                self.ctx.register_constraint(
+                    z3.And(is_match.var,
+                           sel.var == self.selector_value, self.ctx.z3_ctx) == match_var.var,
+                    name_prefix='Selector_')
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
@@ -1463,10 +1477,11 @@ class SMTRouteMap(SMTAbstractAction):
         line_numbers = [line.lineno for line in route_map.lines]
         selectors = {}
         for announcement in self.old_announcements:
-            index_var = self.ctx.create_fresh_var(z3.IntSort(), name_prefix=name_prefix)
+            index_var = self.ctx.create_fresh_var(z3.IntSort(ctx=self.ctx.z3_ctx), name_prefix=name_prefix)
             selectors[announcement] = index_var
             SELECTOR[announcement] = index_var
             possible_vals = [index_var.var == lineno for lineno in line_numbers]
+            possible_vals += [self.ctx.z3_ctx]
             self.ctx.register_constraint(z3.Or(*possible_vals),
                                          name_prefix='RmapIndexBound_')
 

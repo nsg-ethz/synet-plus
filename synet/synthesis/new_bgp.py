@@ -73,11 +73,11 @@ def create_sym_ann(ctx, fixed_values=None, name_prefix=None):
         ('peer', PEER_SORT, None),
         ('origin', BGP_ORIGIN_SORT, lambda x: x.name),
         ('as_path', ASPATH_SORT, get_as_path_key),
-        ('as_path_len', z3.IntSort(), None),
+        ('as_path_len', z3.IntSort(ctx.z3_ctx), None),
         ('next_hop', NEXT_HOP_SORT, None),
-        ('local_pref', z3.IntSort(), None),
-        ('med', z3.IntSort(), None),
-        ('permitted', z3.BoolSort(), None),
+        ('local_pref', z3.IntSort(ctx.z3_ctx), None),
+        ('med', z3.IntSort(ctx.z3_ctx), None),
+        ('permitted', z3.BoolSort(ctx.z3_ctx), None),
     ]
     for attr, vsort, conv in all_attrs:
         is_enum = isinstance(vsort, basestring)
@@ -99,7 +99,10 @@ def create_sym_ann(ctx, fixed_values=None, name_prefix=None):
         value = fixed_values.get(comms, {}).get(community, None)
         nprefix = "Comm_%s_" % str(community).replace(":", "_")
         nprefix = "%s_%s" % (name_prefix, nprefix) if name_prefix else nprefix
-        comm_var = ctx.create_fresh_var(vsort=z3.BoolSort(), value=value, name_prefix=nprefix)
+        comm_var = ctx.create_fresh_var(
+            vsort=z3.BoolSort(ctx.z3_ctx),
+            value=value,
+            name_prefix=nprefix)
         vals['communities'][community] = comm_var
         #print "CREATED", comm_var
     new_ann = Announcement(**vals)
@@ -274,7 +277,7 @@ class BGP(object):
                 ann = copy.copy(ann)  # Shallow copy
                 if is_ebgp_neighbor:
                     ann.local_pref = self.ctx.create_fresh_var(
-                        z3.IntSort(),
+                        z3.IntSort(self.ctx.z3_ctx),
                         value=DEFAULT_LOCAL_PREF)
                 imported[prop] = ann
 
@@ -302,14 +305,14 @@ class BGP(object):
                     curr = getattr(self.anns_map[prop], attr)
                     imp = getattr(ann, attr)
                     prefix = 'Imp_%s_from_%s_%s_' % (self.node, neighbor, attr)
-                    self.ctx.register_constraint(curr.var == imp.var,
+                    self.ctx.register_constraint(z3.And(curr.var == imp.var, self.ctx.z3_ctx),
                                                  name_prefix=prefix)
                 for community in self.ctx.communities:
 
                     curr = self.anns_map[prop].communities[community]
                     imp = ann.communities[community]
                     prefix = 'Imp_%s_from_%s_Comm_%s_' % (self.node, neighbor, community.name)
-                    self.ctx.register_constraint(curr.var == imp.var, name_prefix=prefix)
+                    self.ctx.register_constraint(z3.And(curr.var == imp.var, self.ctx.z3_ctx), name_prefix=prefix)
 
     def selector_func(self, best_propagated, best_ann_var,
                       other_propagated, other_ann_var):
@@ -358,19 +361,23 @@ class BGP(object):
         select_origin = z3.Or(
             # IGP is the lowest
             z3.And(s_origin == igp_origin,
-                   o_origin != igp_origin),
+                   o_origin != igp_origin, self.ctx.z3_ctx),
             # EGP over incomplete
             z3.And(s_origin == ebgp_origin,
-                   o_origin == incomplete_origin))
+                   o_origin == incomplete_origin, self.ctx.z3_ctx),
+            self.ctx.z3_ctx)
 
         # Selection based on AS Path len
         select_as_path_len = z3.And(
             as_len_enabled == True,  # Can we use AS Path len
-            s_aslen < o_aslen)
+            s_aslen < o_aslen,
+            self.ctx.z3_ctx
+        )
 
         # Prefer eBGP routes over iBGP
         select_ebgp = z3.And(node_as_num != best_as_num,
-                             node_as_num == other_as_num)
+                             node_as_num == other_as_num,
+                             self.ctx.z3_ctx)
 
         # IGP
         select_igp = False # self.get_select_igp(best_propagated, other_propagated)
@@ -385,16 +392,19 @@ class BGP(object):
                 other_permitted == False,
                 # 2) If Permitted, local pref
                 z3.And(other_permitted,
-                       s_localpref > o_localpref),
+                       s_localpref > o_localpref,
+                       self.ctx.z3_ctx),
                 # 3) AS Path Length
                 z3.And(other_permitted,
                        s_localpref == o_localpref,
-                       select_as_path_len == True),
+                       select_as_path_len == True,
+                       self.ctx.z3_ctx),
                 # 4) Origin Code IGP < EGP < Incomplete
                 z3.And(other_permitted,
                        s_localpref == o_localpref,
                        select_as_path_len == False,
-                       select_origin == True),
+                       select_origin == True,
+                       self.ctx.z3_ctx),
                 # 5) TODO: MED Selection
                 # 6) Prefer eBGP over iBGP paths.
                 z3.And(
@@ -402,7 +412,8 @@ class BGP(object):
                     s_localpref == o_localpref,
                     select_as_path_len == False,
                     select_origin == False,
-                    select_ebgp == True),
+                    select_ebgp == True,
+                    self.ctx.z3_ctx),
                 # 7) Path with the lowest IGP metric to the BGP next hop.
                 z3.And(
                     other_permitted,
@@ -412,6 +423,7 @@ class BGP(object):
                     select_ebgp == False,
                     select_igp == True,
                     use_igp == True,
+                    self.ctx.z3_ctx
                 ),
                 # TODO (AH): More selection process
 
@@ -421,6 +433,7 @@ class BGP(object):
                 #      Continue, if bestpath is not yet selected.
                 # 9) Prefer the route that comes from the BGP router
                 #    with the lowest router ID.
+                self.ctx.z3_ctx,
             ))
         # Make sure all variables are bound to a value
         # (not just the best route)
@@ -440,7 +453,8 @@ class BGP(object):
 
         #self.constraints["%s_set" % name] = z3.And(*const_set)
         #self.constraints[name] = z3.And(*const_selection)
-        self.ctx.register_constraint(z3.And(*const_selection) == True, name_prefix="SELECT_%s_" % self.node)
+        tmp = const_selection + [self.ctx.z3_ctx]
+        self.ctx.register_constraint(z3.And(*tmp) == True, name_prefix="SELECT_%s_" % self.node)
 
     def mark_selected(self):
         for propagated, ann in self.anns_map.iteritems():
