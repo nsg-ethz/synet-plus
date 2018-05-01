@@ -3268,6 +3268,89 @@ class TestSMTRouteMap(unittest.TestCase):
         # Assert
         self.assertEquals(is_sat, z3.unsat)
 
+    def test_two_lines_community(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        match_c1 = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[VALUENOTSET]))
+        rline1 = RouteMapLine(matches=[match_c1],
+                              actions=None,
+                              access=Access.permit,
+                              lineno=10)
+        rline2 = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
+        rmap = RouteMap(name='r1', lines=[rline1, rline2])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(new_anns[0].permitted.var == True)
+        solver.add(new_anns[1].permitted.var == False)
+        is_sat = ctx.check(solver, track=False)
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].permitted.get_value(), True)
+        self.assertEquals(new_anns[1].permitted.get_value(), False)
+        config = action.get_config()
+        self.assertEquals(len(config.lines), 2)
+
+        match_c1 = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c1]))
+        rline1_c = RouteMapLine(matches=[match_c1],
+                                actions=None,
+                                access=Access.permit,
+                                lineno=10)
+        rline2_c = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
+        self.assertEquals(config.lines[0], rline1_c)
+        self.assertEquals(config.lines[1], rline2_c)
+
+
+    def test_two_lines_two_communities(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        match_c1 = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[VALUENOTSET, VALUENOTSET]))
+        rline1 = RouteMapLine(matches=[match_c1],
+                              actions=None,
+                              access=Access.permit,
+                              lineno=10)
+        rline2 = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
+        rmap = RouteMap(name='r1', lines=[rline1, rline2])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(new_anns[0].permitted.var == True)
+        solver.add(new_anns[1].permitted.var == False)
+        is_sat = ctx.check(solver, track=False)
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].permitted.get_value(), True)
+        self.assertEquals(new_anns[1].permitted.get_value(), False)
+        config = action.get_config()
+        self.assertEquals(len(config.lines), 2)
+
+        match_c1 = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c1, c3]))
+        rline1_c = RouteMapLine(matches=[match_c1],
+                                actions=None,
+                                access=Access.permit,
+                                lineno=10)
+        rline2_c = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
+        self.assertEquals(config.lines[0], rline1_c)
+        self.assertEquals(config.lines[1], rline2_c)
+
 
 @attr(speed='fast')
 class TestSMTSelectorMatch(unittest.TestCase):
