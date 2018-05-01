@@ -125,6 +125,9 @@ class SMTMatchAnd(SMTAbstractMatch):
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
 
+    def __str__(self):
+        return "SMTMatchAnd(%s)" % [str(m) for m in self.matches]
+
     def get_config(self):
         configs = [match.get_config() for match in self.matches]
         return [c for c in configs if c]
@@ -166,6 +169,9 @@ class SMTMatchOr(SMTAbstractMatch):
                     match_var.var == constraint, name_prefix='const_or_')
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
+
+    def __str__(self):
+        return "SMTMatchOr(%s)" % self.matches
 
     def get_config(self):
         return [match.get_config() for match in self.matches]
@@ -306,6 +312,9 @@ class SMTMatchAttribute(SMTAbstractMatch):
                     name_prefix='const_match_%s_' % self.attribute)
             self.matched_announcements[announcement] = match_var
         return self.matched_announcements[announcement]
+
+    def __str__(self):
+        return "SMTMatchAttribute(attribute=%s, value=%s)" % (self.attribute, self.value)
 
 
 class SMTMatchCommunity(SMTAbstractMatch):
@@ -1411,12 +1420,17 @@ class SMTRouteMapLine(SMTAbstractAction):
         self.line = line
         self._old_announcements = announcements
         self.line_no_match = line_no_match
-        if line.matches:
+        if not line.matches:
+            # Empty matches all by default
+            self.smt_match = SMTMatch(None, self.old_announcements, self.ctx)
+        elif len(line.matches) == 1:
+            # One match, no need to use And
+            self.smt_match =  SMTMatch(line.matches[0], self.old_announcements, self.ctx)
+        else:
+            # More than match, combine them with an And
             self.smt_match = SMTMatchAnd(
                 [SMTMatch(match, self.old_announcements, self.ctx) for match in line.matches],
                 self.old_announcements, self.ctx)
-        else:
-            self.smt_match = SMTMatch(None, self.old_announcements, self.ctx)
         self.selector_match = SMTSelectorMatch(line_no_match, self.line.lineno,
                                                self.smt_match, self.old_announcements, self.ctx)
         self.permitted_action = ActionPermitted(line.access)
@@ -1468,6 +1482,7 @@ class SMTRouteMapLine(SMTAbstractAction):
             self.smt_match, self._raw_actions[1:], self._raw_actions[0], self.line
         )
 
+
 class SMTRouteMap(SMTAbstractAction):
     """Synthesize RouteMap"""
 
@@ -1478,16 +1493,20 @@ class SMTRouteMap(SMTAbstractAction):
         self.smt_lines = []
         global SELECTOR
 
+        # Logic to ensure that the announcement is matched against only
+        # one line
         name_prefix = 'SelectOneRmapLineIndex_'
-
         line_numbers = [line.lineno for line in route_map.lines]
         selectors = {}
         for announcement in self.old_announcements:
-            index_var = self.ctx.create_fresh_var(z3.IntSort(ctx=self.ctx.z3_ctx), name_prefix=name_prefix)
+            index_var = self.ctx.create_fresh_var(
+                z3.IntSort(ctx=self.ctx.z3_ctx), name_prefix=name_prefix)
             selectors[announcement] = index_var
             SELECTOR[announcement] = index_var
             possible_vals = [index_var.var == lineno for lineno in line_numbers]
             possible_vals += [self.ctx.z3_ctx]
+            # Bound the selector variable only to the available
+            # route map line numbers
             self.ctx.register_constraint(z3.Or(*possible_vals),
                                          name_prefix='RmapIndexBound_')
 
@@ -1495,10 +1514,31 @@ class SMTRouteMap(SMTAbstractAction):
         for i, line in enumerate(self.route_map.lines):
             box = SMTRouteMapLine(selectors, line, prev_anns, self.ctx)
             self.smt_lines.append(box)
+            # Cascade changes
             prev_anns = self.smt_lines[-1].announcements
-
+            # Constraints to ensure the ordering is preserved when matching
+            # different route map lines
+            for ann, index_var in selectors.iteritems():
+                if i == 0:
+                    const = z3.If(box.smt_match.is_match(ann).var == True,
+                                  index_var.var == line.lineno,
+                                  index_var.var != line.lineno,
+                                  ctx=self.ctx.z3_ctx)
+                else:
+                    prev = [b.smt_match.is_match(ann).var == False for b in self.smt_lines[:-1]]
+                    prev += [self.ctx.z3_ctx]
+                    prev = z3.And(*prev)
+                    const = z3.If(
+                        z3.And(prev == True,
+                               box.smt_match.is_match(ann).var == True,
+                               self.ctx.z3_ctx),
+                        index_var.var == line.lineno,
+                        index_var.var != line.lineno,
+                        ctx=self.ctx.z3_ctx)
+                self.ctx.register_constraint(const,
+                                             name_prefix='rmap_%s_order_' %
+                                                         self.route_map.name)
         self._announcements = self.smt_lines[-1].announcements
-        #assert len(self.smt_lines) == 1, 'Only one line is supported'
 
     @property
     def announcements(self):

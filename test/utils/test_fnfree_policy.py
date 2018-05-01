@@ -3214,6 +3214,60 @@ class TestSMTRouteMap(unittest.TestCase):
         self.assertEquals(new_anns[1].next_hop.get_value(), 'Hop4')
         self.assertEquals(action.get_config(), rmap)
 
+    def test_lines_order(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        raction1 = ActionSetLocalPref(200)
+        raction2 = ActionSetLocalPref(300)
+        rline1 = RouteMapLine(matches=None,
+                              actions=[raction1],
+                              access=Access.permit,
+                              lineno=10)
+        rline2 = RouteMapLine(matches=None,
+                              actions=[raction2],
+                              access=Access.permit,
+                              lineno=20)
+        rmap = RouteMap(name='r1', lines=[rline1, rline2])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].local_pref.get_value(), 200)
+        self.assertEquals(new_anns[1].local_pref.get_value(), 200)
+        self.assertEquals(action.get_config(), rmap)
+
+    def test_lines_order_unsat(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Act
+        raction1 = ActionSetLocalPref(200)
+        raction2 = ActionSetLocalPref(300)
+        rline1 = RouteMapLine(matches=None,
+                              actions=[raction1],
+                              access=Access.permit,
+                              lineno=10)
+        rline2 = RouteMapLine(matches=None,
+                              actions=[raction2],
+                              access=Access.permit,
+                              lineno=20)
+        rmap = RouteMap(name='r1', lines=[rline1, rline2])
+        action = SMTRouteMap(rmap, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(new_anns[0].local_pref.var == 300)
+        solver.add(new_anns[1].local_pref.var == 300)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.unsat)
+
 
 @attr(speed='fast')
 class TestSMTSelectorMatch(unittest.TestCase):
@@ -3325,4 +3379,63 @@ class TestSMTSelectorMatch(unittest.TestCase):
         self.assertEquals(is_sat, z3.sat, solver.unsat_core())
         self.assertIn(selector_var1.get_value(), [10, 20])
         self.assertIn(selector_var2.get_value(), [10, 20])
+        self.assertEquals(match1.get_config(), match2.get_config())
+
+    def test_select_first2(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match1 = SMTMatchAll(ctx)
+        match2 = SMTMatchAll(ctx)
+        selector_var1 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector1')
+        selector_var2 = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name='Selector2')
+        selectors = {}
+        selectors[sym_anns[0]] = selector_var1
+        selectors[sym_anns[1]] = selector_var2
+        # Act
+        select1 = SMTSelectorMatch(selectors, 10, match1, sym_anns, ctx)
+        select2 = SMTSelectorMatch(selectors, 20, match2, sym_anns, ctx)
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        #solver.add(select1.is_match(sym_anns[0]).var == True)
+        #solver.add(select1.is_match(sym_anns[1]).var == True)
+        #solver.add(select2.is_match(sym_anns[0]).var == False)
+        #solver.add(select2.is_match(sym_anns[1]).var == False)
+        solver.add(
+            z3.If(match1.is_match(sym_anns[0]).var,
+                  selector_var1.var == 10,
+                  selector_var1.var != 10,
+                  ctx.z3_ctx))
+        solver.add(
+            z3.If(
+                z3.And(
+                    z3.Not(match1.is_match(sym_anns[0]).var, ctx.z3_ctx),
+                    match2.is_match(sym_anns[0]).var,
+                    ctx.z3_ctx
+                ),
+                selector_var1.var == 20,
+                selector_var1.var != 20,
+                ctx.z3_ctx))
+
+        solver.add(
+            z3.If(match1.is_match(sym_anns[1]).var,
+                  selector_var2.var == 10,
+                  selector_var2.var != 10,
+                  ctx.z3_ctx))
+        solver.add(
+            z3.If(
+                z3.And(
+                    z3.Not(match1.is_match(sym_anns[1]).var, ctx.z3_ctx),
+                    match2.is_match(sym_anns[1]).var,
+                    ctx.z3_ctx
+                ),
+                selector_var2.var == 20,
+                selector_var2.var != 20,
+                ctx.z3_ctx))
+
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        self.assertEquals(selector_var1.get_value(), 10)
+        self.assertEquals(selector_var2.get_value(), 10)
         self.assertEquals(match1.get_config(), match2.get_config())
