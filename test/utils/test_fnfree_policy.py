@@ -3042,6 +3042,31 @@ class TestSMTRouteMapLine(unittest.TestCase):
         self.assertEquals(new_anns[1].next_hop.get_value(), hop)
         self.assertEquals(action.get_config(), RouteMapLine(matches=None, actions=[ActionSetNextHop(hop)], access=Access.permit, lineno=10))
 
+    def test_drop_line(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        selectors = {}
+        for announcement in sym_anns:
+            index_var = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), name_prefix='SS')
+            selectors[announcement] = index_var
+            ctx.register_constraint(index_var.var == 10, name_prefix='RmaplineIndex')
+        # Act
+        rline = RouteMapLine(matches=None, actions=None, access=VALUENOTSET, lineno=10)
+        action = SMTRouteMapLine(selectors, rline, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(new_anns[0].permitted.var == False)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertFalse(new_anns[0].permitted.get_value())
+        self.assertFalse(new_anns[1].permitted.get_value())
+        cline = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=10)
+        self.assertEquals(action.get_config(), cline)
+
 
 @attr(speed='fast')
 class TestSMTRouteMap(unittest.TestCase):
