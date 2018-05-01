@@ -261,6 +261,34 @@ class TestSMTMatchCommunity(unittest.TestCase):
         self.assertTrue(match.is_match(sym_anns[0]).get_value())
         self.assertFalse(match.is_match(sym_anns[1]).get_value())
 
+    def test_match_sym(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        value = ctx.create_fresh_var(z3.BoolSort(ctx=ctx.z3_ctx))
+        # Provide concrete value for the match
+        c1 = Community("100:16")
+        # Act
+        match = SMTMatchCommunity(c1, value, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        # Evaluate constraints
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(match.is_match(sym_anns[0]).var == True)
+        is_sat = ctx.check(solver)
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+
+
 
 @attr(speed='fast')
 class TestSMTMatchAnd(unittest.TestCase):
