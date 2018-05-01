@@ -557,28 +557,29 @@ class SMTSetAttribute(SMTAbstractAction):
                 attr_var = getattr(announcement, attr)
                 if attr == self.attribute:
                     is_match = self.match.is_match(announcement)
-                    if is_match.is_concrete:
+                    if is_match.is_concrete and attr != 'permitted':
                         new_var = self.value if is_match.get_value() else attr_var
                     else:
                         new_var = self.smt_ctx.create_fresh_var(
                             attr_var.vsort, name_prefix='Action%sVal' % attr)
                         vv = self.value.var if self.value.is_concrete else self.value.get_var()
                         attv = attr_var.var if attr_var.is_concrete else attr_var.get_var()
-                        constraint = z3.If(is_match.var,
-                                           new_var.var == vv,
-                                           new_var.var == attv,
-                                           ctx=self.smt_ctx.z3_ctx)
+                        if attr == 'permitted':
+                            # Permitted only overwrite announcements
+                            # that were not dropped before
+                            constraint = z3.If(z3.And(is_match.var,
+                                                      attv == True,
+                                                      self.smt_ctx.z3_ctx),
+                                               new_var.var == vv,
+                                               new_var.var == attv,
+                                               ctx=self.smt_ctx.z3_ctx)
+                        else:
+                            constraint = z3.If(is_match.var,
+                                               new_var.var == vv,
+                                               new_var.var == attv,
+                                               ctx=self.smt_ctx.z3_ctx)
                         constraints.append(constraint)
                     new_vals[attr] = new_var
-                    if attr == 'permitted':
-                        # Permitted is a special case
-                        # it cannot move from False to True
-                        constraint = z3.Implies(
-                            attr_var.var == False,
-                            new_vals[attr].var == False,
-                            ctx=self.smt_ctx.z3_ctx
-                        )
-                        constraints.append(constraint)
                 else:
                     new_vals[attr] = attr_var
             new_ann = Announcement(**new_vals)
@@ -1424,6 +1425,7 @@ class SMTRouteMapLine(SMTAbstractAction):
         if line.actions:
             assert isinstance(line.actions, Iterable)
             actions += line.actions
+        self._raw_actions = actions
         self.smt_actions = SMTActions(self.selector_match, actions,
                                       self.old_announcements, self.ctx,
                                       selector=self.line_no_match)
@@ -1461,6 +1463,10 @@ class SMTRouteMapLine(SMTAbstractAction):
                             access=permittted,
                             lineno=self.line.lineno)
 
+    def __str__(self):
+        return "SMTRouteMapLine(matches=%s, actions=%s, access=%s, lineno=%s)" % (
+            self.smt_match, self._raw_actions[1:], self._raw_actions[0], self.line
+        )
 
 class SMTRouteMap(SMTAbstractAction):
     """Synthesize RouteMap"""

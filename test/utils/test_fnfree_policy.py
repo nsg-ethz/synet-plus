@@ -1626,15 +1626,27 @@ class TestSMTSetPermitted(unittest.TestCase):
             prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[1, 2, 5, 7, 6], as_path_len=5,
             next_hop='Hop1', local_pref=100, med=10,
-            communities={c1: True, c2: False, c3: False}, permitted=True)
+            communities={c1: True, c2: False, c3: False}, permitted=False)
 
         ann2 = Announcement(
             prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
             as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
-            next_hop='Hop2', local_pref=110, med=10,
+            next_hop='Hop2', local_pref=100, med=10,
             communities={c1: False, c2: False, c3: True}, permitted=True)
 
-        return ann1, ann2
+        ann3 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=120, med=10,
+            communities={c1: True, c2: False, c3: False}, permitted=False)
+
+        ann4 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.IGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=120, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+
+        return ann1, ann2, ann3, ann4
 
     def get_ctx(self, concrete_anns):
         ctx = SolverContext.create_context(concrete_anns)
@@ -1643,12 +1655,13 @@ class TestSMTSetPermitted(unittest.TestCase):
     def get_sym(self, concrete_anns, ctx):
         return read_announcements(concrete_anns, ctx)
 
-    def test_int_concrete(self):
+    def test_int_concrete_drop(self):
         # Arrange
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        match = SMTMatchAll(ctx)
+        localpref_val = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=100)
+        match = SMTMatchLocalPref(localpref_val, sym_anns, ctx)
         vsort = z3.BoolSort(ctx=ctx.z3_ctx)
         value = ctx.create_fresh_var(vsort, value=False)
         # Act
@@ -1661,19 +1674,44 @@ class TestSMTSetPermitted(unittest.TestCase):
         ctx.set_model(solver.model())
         self.assertEquals(new_anns[0].permitted.get_value(), False)
         self.assertEquals(new_anns[1].permitted.get_value(), False)
+        self.assertEquals(new_anns[2].permitted.get_value(), False)
+        self.assertEquals(new_anns[3].permitted.get_value(), True)
 
-    def test_int_sym(self):
+    def test_int_concrete_allow(self):
         # Arrange
         concrete_anns = self.get_anns()
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
-        match = SMTMatchAll(ctx)
+        localpref_val = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=100)
+        match = SMTMatchLocalPref(localpref_val, sym_anns, ctx)
+        vsort = z3.BoolSort(ctx=ctx.z3_ctx)
+        value = ctx.create_fresh_var(vsort, value=True)
+        # Act
+        action = SMTSetPermitted(match, value, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertEquals(new_anns[0].permitted.get_value(), False)
+        self.assertEquals(new_anns[1].permitted.get_value(), True)
+        self.assertEquals(new_anns[2].permitted.get_value(), False)
+        self.assertEquals(new_anns[3].permitted.get_value(), True)
+
+    def test_int_sym_drop(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        localpref_val = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=100)
+        match = SMTMatchLocalPref(localpref_val, sym_anns, ctx)
         # Act
         action = SMTSetPermitted(match, None, sym_anns, ctx)
         new_anns = action.announcements
         solver = z3.Solver(ctx=ctx.z3_ctx)
         solver.add(new_anns[0].permitted.var == False)
-        #solver.add(new_anns[0].local_pref.var == 200)
+        solver.add(new_anns[1].permitted.var == False)
         is_sat = ctx.check(solver)
         # Assert
         self.assertEquals(is_sat, z3.sat)
@@ -1681,6 +1719,30 @@ class TestSMTSetPermitted(unittest.TestCase):
         self.assertEquals(action.value.get_value(), False)
         self.assertEquals(new_anns[0].permitted.get_value(), False)
         self.assertEquals(new_anns[1].permitted.get_value(), False)
+        self.assertEquals(new_anns[2].permitted.get_value(), False)
+        self.assertEquals(new_anns[3].permitted.get_value(), True)
+
+    def test_int_sym_allow(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        localpref_val = ctx.create_fresh_var(z3.IntSort(ctx=ctx.z3_ctx), value=100)
+        match = SMTMatchLocalPref(localpref_val, sym_anns, ctx)
+        # Act
+        action = SMTSetPermitted(match, None, sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(new_anns[1].permitted.var == True)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertEquals(action.value.get_value(), True)
+        self.assertEquals(new_anns[0].permitted.get_value(), False)
+        self.assertEquals(new_anns[1].permitted.get_value(), True)
+        self.assertEquals(new_anns[2].permitted.get_value(), False)
+        self.assertEquals(new_anns[3].permitted.get_value(), True)
 
 
 @attr(speed='fast')
