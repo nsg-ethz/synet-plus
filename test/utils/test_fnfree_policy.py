@@ -36,6 +36,7 @@ from synet.utils.fnfree_policy import SMTMatchAll
 from synet.utils.fnfree_policy import SMTMatchAnd
 from synet.utils.fnfree_policy import SMTMatchAttribute
 from synet.utils.fnfree_policy import SMTMatchCommunity
+from synet.utils.fnfree_policy import SMTMatchCommunityList
 from synet.utils.fnfree_policy import SMTMatchLocalPref
 from synet.utils.fnfree_policy import SMTMatchOr
 from synet.utils.fnfree_policy import SMTMatchOrigin
@@ -288,6 +289,129 @@ class TestSMTMatchCommunity(unittest.TestCase):
         self.assertTrue(match.is_match(sym_anns[0]).get_value())
         self.assertFalse(match.is_match(sym_anns[1]).get_value())
 
+
+@attr(speed='fast')
+class TestSMTMatchCommunityList(unittest.TestCase):
+    def get_anns(self):
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+
+        ann1 = Announcement(
+            prefix='Prefix1', peer='Peer1', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2, 5, 7, 6], as_path_len=5,
+            next_hop='Hop1', local_pref=100, med=10,
+            communities={c1: True, c2: False, c3: True}, permitted=True)
+
+        ann2 = Announcement(
+            prefix='Prefix2', peer='Peer2', origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[9, 2, 5, 7, 8, 3, 10], as_path_len=7,
+            next_hop='Hop2', local_pref=110, med=10,
+            communities={c1: False, c2: False, c3: True}, permitted=True)
+        return ann1, ann2
+
+    def get_ctx(self, concrete_anns):
+        ctx = SolverContext.create_context(concrete_anns)
+        return ctx
+
+    def get_sym(self, concrete_anns, ctx):
+        return read_announcements(concrete_anns, ctx)
+
+    def test_match_concrete(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Provide concrete value for the match
+        c1 = Community("100:16")
+        c3 = Community("100:18")
+        clist = CommunityList(list_id=1, access=Access.permit, communities=[c1, c3])
+        # Act
+        match = SMTMatchCommunityList(clist, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        ann0_value = match.is_match(sym_anns[0]).get_value()
+        ann1_value = match.is_match(sym_anns[1]).get_value()
+        # Evaluate constraints
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        is_sat = ctx.check(solver)
+        # Assert
+        # Check the partial evaluation
+        self.assertTrue(ann0_is_concrete)
+        self.assertTrue(ann1_is_concrete)
+        self.assertTrue(ann0_value)
+        self.assertFalse(ann1_value)
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        cmatch = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c1, c3]))
+        self.assertEquals(match.get_config(), cmatch)
+
+    def test_match_sym_one(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Provide concrete value for the match
+        c1 = Community("100:16")
+        c3 = Community("100:18")
+        clist = CommunityList(list_id=1, access=Access.permit,
+                              communities=[VALUENOTSET])
+        # Act
+        match = SMTMatchCommunityList(clist, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        # Evaluate constraints
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(match.is_match(sym_anns[0]).var == True)
+        solver.add(match.is_match(sym_anns[1]).var == False)
+        is_sat = ctx.check(solver)
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        self.assertEquals(is_sat, z3.sat)
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        cmatch = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c1]))
+        self.assertEquals(match.get_config(), cmatch)
+
+    def test_match_sym_two(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        # Provide concrete value for the match
+        c1 = Community("100:16")
+        c3 = Community("100:18")
+        clist = CommunityList(list_id=1, access=Access.permit,
+                              communities=[VALUENOTSET, VALUENOTSET])
+        # Act
+        match = SMTMatchCommunityList(clist, sym_anns, ctx)
+        ann0_is_concrete = match.is_match(sym_anns[0]).is_concrete
+        ann1_is_concrete = match.is_match(sym_anns[1]).is_concrete
+        # Evaluate constraints
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(match.is_match(sym_anns[0]).var == True)
+        solver.add(match.is_match(sym_anns[1]).var == False)
+        is_sat = ctx.check(solver)
+        # Assert
+        # Check the partial evaluation
+        self.assertFalse(ann0_is_concrete)
+        self.assertFalse(ann1_is_concrete)
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        self.assertEquals(is_sat, z3.sat)
+        self.assertTrue(match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(match.is_match(sym_anns[1]).get_value())
+        cmatch = MatchCommunitiesList(
+            CommunityList(list_id=1, access=Access.permit, communities=[c1, c3]))
+        self.assertEquals(match.get_config(), cmatch)
 
 
 @attr(speed='fast')
