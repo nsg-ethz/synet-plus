@@ -146,7 +146,7 @@ class CiscoConfigGen(object):
             #addr = self.g.get_edge_addr(node, neighbor)
             addr = self.g.get_iface_addr(node, iface)
             desc = self.g.get_iface_description(node, iface)
-            if self.g.is_ospf_enabled(node):
+            if self.g.is_ospf_enabled(node) and self.g.is_ospf_enabled(neighbor):
                 ospf_cost = self.g.get_edge_ospf_cost(node, neighbor)
             else:
                 ospf_cost = None
