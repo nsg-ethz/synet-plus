@@ -3309,7 +3309,6 @@ class TestSMTRouteMap(unittest.TestCase):
         self.assertEquals(config.lines[0], rline1_c)
         self.assertEquals(config.lines[1], rline2_c)
 
-
     def test_two_lines_two_communities(self):
         # Arrange
         concrete_anns = self.get_anns()
@@ -3350,6 +3349,40 @@ class TestSMTRouteMap(unittest.TestCase):
         rline2_c = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
         self.assertEquals(config.lines[0], rline1_c)
         self.assertEquals(config.lines[1], rline2_c)
+
+    def test_two_lines_community(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        c1 = Community("100:16")
+        c2 = Community("100:17")
+        c3 = Community("100:18")
+        match_c1 = MatchCommunitiesList(CommunityList(list_id=1, access=Access.permit, communities=[c1]))
+        r1line1 = RouteMapLine(matches=[match_c1], actions=[ActionSetCommunity([c2])], access=Access.permit, lineno=10)
+        r1line2 = RouteMapLine(matches=None, actions=None, access=Access.permit, lineno=100)
+        rmap1 = RouteMap(name='Rmap1', lines=[r1line1, r1line2])
+        clist = CommunityList(list_id=2, access=Access.permit, communities=[c2])
+        r2line1 = RouteMapLine(
+            matches=[MatchCommunitiesList(clist)],
+            actions=None, access=Access.permit, lineno=10)
+        r2line2 = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
+        rmap2 = RouteMap(name='Rmap2', lines=[r2line1, r2line2])
+        # Act
+        smtmap1 = SMTRouteMap(rmap1, sym_anns, ctx)
+        smtmap2 = SMTRouteMap(rmap2, smtmap1.announcements, ctx)
+
+        self.assertTrue(smtmap1.smt_lines[0].smt_match.is_match(sym_anns[0]).get_value())
+        self.assertFalse(smtmap1.smt_lines[0].smt_match.is_match(sym_anns[1]).get_value())
+
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        is_sat = ctx.check(solver)
+        new_anns = smtmap2.announcements
+        # Assert
+        self.assertEquals(is_sat, z3.sat, solver.unsat_core())
+        ctx.set_model(solver.model())
+        self.assertTrue(new_anns[0].permitted.get_value())
+        self.assertFalse(new_anns[1].permitted.get_value())
 
 
 @attr(speed='fast')

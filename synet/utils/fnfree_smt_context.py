@@ -92,7 +92,7 @@ def read_announcements(announcements, smt_ctx):
             comm_var = smt_ctx.create_fresh_var(
                 vsort=z3.BoolSort(ctx=smt_ctx.z3_ctx), value=value)
             vals['communities'][community] = comm_var
-        new_ann = Announcement(**vals)
+        new_ann = Announcement(prev_announcement=announcement, **vals)
         new_announcements.append(new_ann)
     return AnnouncementsContext(new_announcements)
 

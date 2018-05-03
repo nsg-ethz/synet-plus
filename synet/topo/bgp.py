@@ -34,7 +34,7 @@ class Announcement(object):
 
     def __init__(self, prefix, peer, origin,
                  as_path, as_path_len, next_hop, local_pref, med, communities,
-                 permitted):
+                 permitted, prev_announcement=None):
         """
         :param prefix: the prefix that's being announced
         :param peer: the peer from whom that prefix has been received
@@ -60,10 +60,13 @@ class Announcement(object):
         :param med: MED value, int
         :param communities: dict Community values: Community->True/False
         :param permitted: Access.permit or Access.deny
+        :param prev_announcement: keep track of the announcement that generated this one
         """
         if isinstance(as_path, list):
             if not is_symbolic(as_path_len) and not is_empty(as_path_len):
                 assert len(as_path) == as_path_len
+        if prev_announcement:
+            assert isinstance(prev_announcement, Announcement)
 
         self.prefix = prefix
         self.peer = peer
@@ -75,6 +78,7 @@ class Announcement(object):
         self.med = med
         self.communities = communities
         self.permitted = permitted
+        self.prev_announcement = prev_announcement
         self.__setattr__ = self._disable_mutations
 
     def _disable_mutations(self, key, value):
