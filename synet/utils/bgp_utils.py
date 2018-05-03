@@ -12,15 +12,20 @@ __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
 
 
-def synthesize_next_hop(network_graph, node, neighbor):
+def synthesize_next_hop(network_graph, node, neighbor, ibgp_loopback=True):
     """
-    Synthesizes a next hop interface between two router
+    Synthesizes a next hop interface between two router.
+
+    If ibgp_loopback is set to True, iBGP peering session will
+    created between loopback interfaces of the routers, otherwise
+    the direct interface is used for peering between the two
+
     :return the name of the interface (on the neighbor)
     """
     # TODO: Synthesize proper next hop
     asnum1 = network_graph.get_bgp_asnum(node)
     asnum2 = network_graph.get_bgp_asnum(neighbor)
-    if asnum1 != asnum2 and network_graph.has_edge(neighbor, node):
+    if not ibgp_loopback or (asnum1 != asnum2 and network_graph.has_edge(neighbor, node)):
         iface = network_graph.get_edge_iface(neighbor, node)
     else:
         loopbacks = network_graph.get_loopback_interfaces(neighbor)
@@ -30,9 +35,14 @@ def synthesize_next_hop(network_graph, node, neighbor):
     return iface
 
 
-def compute_next_hop_map(network_graph):
+def compute_next_hop_map(network_graph, ibgp_loopback=True):
     """
     Compute the possible next hop values in the network
+
+    If ibgp_loopback is set to True, iBGP peering session will
+    created between loopback interfaces of the routers, otherwise
+    the direct interface is used for peering between the two
+
     :return dict [node][neighbor]->next_hop
     """
     next_hop_map = {}
@@ -46,7 +56,8 @@ def compute_next_hop_map(network_graph):
         for neighbor in neighbors:
             iface = network_graph.get_bgp_neighbor_iface(node, neighbor)
             if is_empty(iface):
-                iface = synthesize_next_hop(network_graph, node, neighbor)
+                iface = synthesize_next_hop(network_graph, node, neighbor,
+                                            ibgp_loopback=ibgp_loopback)
             network_graph.set_bgp_neighbor_iface(node, neighbor, iface)
             assert iface, "Synthesize connected first"
             iface = iface.replace("/", "-")
