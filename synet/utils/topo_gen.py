@@ -126,7 +126,7 @@ def read_topology_zoo(filename):
             label = '%sID%s' % (label, node)
         assert not g.has_node(label), 'Duplicate node %s with label %s' % (node, label)
         lbl_map[node] = label
-        g.add_node(label, **{VERTEX_TYPE: NODE_TYPE})
+        g.add_node(label, **{VERTEX_TYPE: VERTEXTYPE.ROUTER})
     for src, dst in graphml.edges():
         g.add_edge(lbl_map[src], lbl_map[dst], EDGE_TYPE=EDGETYPE.ROUTER_EDGE)
         g.add_edge(lbl_map[dst], lbl_map[src], EDGE_TYPE=EDGETYPE.ROUTER_EDGE)
