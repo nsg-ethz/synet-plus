@@ -309,8 +309,8 @@ class PropagationTest2(unittest.TestCase):
         unmatching_order = propagation.compute_dags()
         ebgp = propagation.ebgp_graphs['Prefix0']
         ibgp = propagation.ibgp_graphs['Prefix0']
-        nx.nx_pydot.write_dot(ibgp, '/tmp/ibgp_good.xdot')
-        nx.nx_pydot.write_dot(ebgp, '/tmp/ebgp_good.xdot')
+        #nx.nx_pydot.write_dot(ibgp, '/tmp/ibgp_good.xdot')
+        #nx.nx_pydot.write_dot(ebgp, '/tmp/ebgp_good.xdot')
 
         # Assert
         assert not unmatching_order
@@ -333,10 +333,6 @@ class PropagationTest2(unittest.TestCase):
         self.assertEqual(ibgp.node['R5_2']['order'], [set([('R1', 'R4', 'R5_0', 'R5_2')])])
         self.assertEqual(ibgp.node['R5_3']['order'], [set([('R1', 'R4', 'R5_0', 'R5_2', 'R5_3')]), set([('R1', 'R3', 'R5_1', 'R5_3')])])
         propagation.synthesize()
-        solver = z3.Solver(ctx=ctx.z3_ctx)
-        ret = ctx.check(solver)
-        assert ret == z3.sat, solver.unsat_core()
-        print solver.model()
 
     def test_ibgp_linear(self):
         # Arrange
@@ -345,8 +341,15 @@ class PropagationTest2(unittest.TestCase):
         net = "Prefix0"
         prefix_map = {net: ip_network(u'128.0.0.0/24')}
         g.set_loopback_addr('R1', 'lo0',
-                            ip_interface("%s/%d" % (prefix_map[net].hosts().next(), prefix_map[net].prefixlen)))
+                            ip_interface("%s/%d" % (prefix_map[net].hosts().next(),
+                                                    prefix_map[net].prefixlen)))
         g.add_bgp_announces('R1', 'lo0')
+        for i, node in enumerate(sorted(g.routers_iter())):
+            g.set_loopback_addr('R%d' % (i + 1), 'lo100', ip_interface(u'192.168.0.%d/32' % i))
+        for i in range(1, N):
+            r1 = 'R1'
+            r2 = "R%d" % (i + 1)
+            g.set_bgp_neighbor_iface(r1, r2, 'lo100')
 
         for i in range(2, N + 1):
             r1 = 'R1'
@@ -359,18 +362,19 @@ class PropagationTest2(unittest.TestCase):
             g.add_route_map(node, rmap)
             g.add_bgp_import_route_map(node, r1, rmap.name)
 
-        nx.nx_pydot.write_dot(g, '/tmp/linear.dot')
-        req = PathReq(Protocols.BGP, dst_net='Prefix0', path=['R3', 'R2', 'R1'], strict=False)
+        #nx.nx_pydot.write_dot(g, '/tmp/linear.dot')
+        req = PathReq(Protocols.BGP, dst_net='Prefix0',
+                      path=['R3', 'R2', 'R1'], strict=False)
         ctx = self.create_context([req], g)
         # Act
         propagation = EBGPPropagation([req], g, ctx)
         propagation.compute_dags()
 
         # Assert
-        ebgp = propagation.ebgp_graphs['Prefix0']
-        ibgp = propagation.ibgp_graphs['Prefix0']
-        nx.nx_pydot.write_dot(ebgp, '/tmp/ebgp_linear.dot')
-        nx.nx_pydot.write_dot(ibgp, '/tmp/ibgp_linear.dot')
+        #ebgp = propagation.ebgp_graphs['Prefix0']
+        #ibgp = propagation.ibgp_graphs['Prefix0']
+        #nx.nx_pydot.write_dot(ebgp, '/tmp/ebgp_linear.dot')
+        #nx.nx_pydot.write_dot(ibgp, '/tmp/ibgp_linear.dot')
         propagation.synthesize()
 
         solver = z3.Solver(ctx=ctx.z3_ctx)
@@ -382,7 +386,10 @@ class PropagationTest2(unittest.TestCase):
             g.enable_ospf(router, 100)
             for iface in g.get_ifaces(router):
                 g.add_ospf_network(router, iface, 0)
-            g.add_ospf_network(router, 'lo100', 0)
+            if router != 'R1':
+                g.add_ospf_network(router,
+                                   g.get_loopback_addr(router, 'lo100').network, 0)
+        g.add_ospf_network('R1', g.get_loopback_addr('R1', 'lo0').network, 0)
 
         gns3 = GNS3Topo(g, prefix_map)
         gns3.write_configs('./out-configs/ibgp-linear-%d' % N)
