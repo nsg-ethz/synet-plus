@@ -9,8 +9,8 @@ import logging
 import networkx as nx
 import z3
 
-from synet.topo.bgp import Announcement
-from synet.topo.graph import NetworkGraph
+from tekton.bgp import Announcement
+from tekton.graph import NetworkGraph
 from synet.utils.fnfree_policy import SMTRouteMap
 from synet.utils.fnfree_smt_context import ASPATH_SORT
 from synet.utils.fnfree_smt_context import AnnouncementsContext

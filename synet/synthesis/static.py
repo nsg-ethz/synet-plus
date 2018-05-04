@@ -5,7 +5,7 @@ Synthesize Static Routes
 
 import copy
 from synet.utils.smt_context import is_empty
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 
 
 __author__ = "Ahmed El-Hassany"

@@ -35,19 +35,19 @@ from collections import namedtuple
 
 import z3
 
-from synet.topo.bgp import Access
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import ActionSetCommunity
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import ActionSetNextHop
-from synet.topo.bgp import Community
-from synet.topo.bgp import CommunityList
-from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import MatchIpPrefixListList
-from synet.topo.bgp import MatchNextHop
-from synet.topo.bgp import RouteMap
-from synet.topo.bgp import RouteMapLine
+from tekton.bgp import Access
+from tekton.bgp import Announcement
+from tekton.bgp import ActionSetCommunity
+from tekton.bgp import ActionSetLocalPref
+from tekton.bgp import ActionSetNextHop
+from tekton.bgp import Community
+from tekton.bgp import CommunityList
+from tekton.bgp import IpPrefixList
+from tekton.bgp import MatchCommunitiesList
+from tekton.bgp import MatchIpPrefixListList
+from tekton.bgp import MatchNextHop
+from tekton.bgp import RouteMap
+from tekton.bgp import RouteMapLine
 
 from synet.utils.smt_context import SMTASPathLenWrapper
 from synet.utils.smt_context import SMTASPathWrapper
@@ -65,7 +65,7 @@ from synet.utils.smt_context import is_symbolic
 from synet.utils.smt_context import VALUENOTSET
 
 # Hack for interface change
-from synet.topo.bgp import Announcement as FullAnnouncement
+from tekton.bgp import Announcement as FullAnnouncement
 from functools import partial
 Announcement = partial(FullAnnouncement, med=100)
 

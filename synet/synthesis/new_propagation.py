@@ -9,7 +9,7 @@ import networkx as nx
 
 from synet.synthesis.ebgpy_verify import EBGPVerify
 from synet.synthesis.new_bgp import BGP
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 from synet.utils.bgp_utils import PropagatedInfo
 from synet.utils.bgp_utils import annotate_graph
 from synet.utils.bgp_utils import compute_next_hop_map

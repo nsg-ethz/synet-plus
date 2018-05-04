@@ -103,7 +103,7 @@ def main():
     for node in topo.nodes():
         topo.enable_ospf(node, 100)
     # Initially all costs are empty
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
     # how many is fixed
     fixed_edges = ospfRand.sample(vals, int(round(len(vals) * fixed)))

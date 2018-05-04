@@ -13,22 +13,22 @@ from synet.utils.topo_gen import get_ibgp_linear_topo
 from synet.utils.topo_gen import get_griffin_graph
 from synet.utils.topo_gen import get_griffin_ibgp_graph
 
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 from ipaddress import ip_network
 from ipaddress import ip_interface
-from synet.topo.bgp import Access
-from synet.topo.bgp import RouteMap
-from synet.topo.bgp import RouteMapLine
-from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import MatchIpPrefixListList
-from synet.topo.bgp import MatchAsPath
-from synet.topo.bgp import MatchAsPathLen
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
+from tekton.bgp import Access
+from tekton.bgp import RouteMap
+from tekton.bgp import RouteMapLine
+from tekton.bgp import IpPrefixList
+from tekton.bgp import MatchIpPrefixListList
+from tekton.bgp import MatchAsPath
+from tekton.bgp import MatchAsPathLen
+from tekton.bgp import ActionSetLocalPref
+from tekton.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Community
 
-from synet.topo.gns3 import GNS3Topo
+from tekton.gns3 import GNS3Topo
 
 from synet.utils.bgp_utils import compute_next_hop_map
 from synet.utils.bgp_utils import extract_all_next_hops

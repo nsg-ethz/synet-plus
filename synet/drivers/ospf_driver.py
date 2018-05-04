@@ -91,7 +91,7 @@ def main():
     for node in g.local_routers_iter():
         g.enable_ospf(node, 100)
     # Initially assume all costs are empty
-    for src, dst in g.edges_iter():
+    for src, dst in g.edges():
         if not g.is_ospf_enabled(src):
             continue
         if not g.is_ospf_enabled(dst):
@@ -123,7 +123,7 @@ def main():
     print "Done generating random paths for requirements"
     if fixed > 0:
         weights = []
-        for src, dst in g.edges_iter():
+        for src, dst in g.edges():
             weights.append((src, dst, g[src][dst][tmp_weight_name]))
         population = int(round(len(weights) * fixed))
         sampled = ospfRand.sample(weights, population)
@@ -159,7 +159,7 @@ def main():
     ospf.synthesize(retries_before_rest=10)
     ospf.update_network_graph()
     print "OSPF Edge cost"
-    for src, dst in g.edges_iter():
+    for src, dst in g.edges():
         print src, dst, g.get_edge_ospf_cost(src, dst)
 
 

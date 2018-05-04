@@ -9,7 +9,7 @@ from ipaddress import ip_address
 from ipaddress import ip_interface
 from ipaddress import ip_network
 
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 from synet.utils.common import ECMPPathsReq
 from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
@@ -213,7 +213,7 @@ class ConnectedSyn(object):
         # Assign iface names between edges (if needed)
         self.g.set_iface_names()
         if self.full:
-            for src, dst in self.g.edges_iter():
+            for src, dst in self.g.edges():
                 if not self.g.is_router(src):
                     continue
                 if not self.g.is_router(dst):
@@ -229,7 +229,7 @@ class ConnectedSyn(object):
         for src, dst in sorted(connected_pairs):
             self.synthesize_connection(src, dst)
         edges_to_remove = []
-        for src, dst in self.g.edges_iter():
+        for src, dst in self.g.edges():
             if (src, dst) not in connected_pairs:
                 if self.is_connnected(src, dst):
                     continue

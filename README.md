@@ -1,4 +1,18 @@
+### Install
 
+Install network graph library dependency first
+
+```
+pip install -e git+git@github.com:nsg-ethz/tekton.git#egg=Tekton
+# Or from a local clone
+pip install -e .
+```
+
+Install dependencies
+
+```
+pip install -r
+```
 
 ### Running BGP
 

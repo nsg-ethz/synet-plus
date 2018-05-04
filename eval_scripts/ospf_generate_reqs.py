@@ -151,7 +151,7 @@ def generate_ecmp_reqs(topo, reqsize, ecmp, rand):
 def generate_ordered_reqs(topo, reqsize, ordered, rand):
     """Generate reqsize of PathOrderReq each has ordered paths"""
     graph = nx.DiGraph()
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         graph.add_edge(src, dst)
 
     computed_paths = {}
@@ -203,7 +203,7 @@ def get_simple_reqs(topo, reqsize, rand):
     generated = False
     while not generated:
         # All OSPF Costs are initially empty
-        for src, dst in topo.edges_iter():
+        for src, dst in topo.edges():
             if not topo.is_local_router_edge(src, dst):
                 continue
             topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
@@ -227,7 +227,7 @@ def get_simple_reqs(topo, reqsize, rand):
         out_file += "]\n\n"
         vals_name = "edges_cost_simple_%d" % reqsize
         out_file += "%s = [\n" % vals_name
-        for src, dst in topo.edges_iter():
+        for src, dst in topo.edges():
             out_file += '    ("%s", "%s", %d),\n' % (
                 src, dst, topo.get_edge_ospf_cost(src, dst))
         out_file += "]\n\n"
@@ -241,7 +241,7 @@ def get_ecmp_reqs(topo, reqsize, ecmp, rand):
     generated = False
     while not generated:
         # All OSPF Costs are intially empty
-        for src, dst in topo.edges_iter():
+        for src, dst in topo.edges():
             if not topo.is_local_router_edge(src, dst):
                 continue
             topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
@@ -267,7 +267,7 @@ def get_ecmp_reqs(topo, reqsize, ecmp, rand):
         out_file += "]\n\n"
         vals_name = "edges_cost_ecmp_%d_%d" % (reqsize, ecmp)
         out_file += "%s = [\n" % vals_name
-        for src, dst in topo.edges_iter():
+        for src, dst in topo.edges():
             out_file += '    ("%s", "%s", %d),\n' % (
                 src, dst, topo.get_edge_ospf_cost(src, dst))
         out_file += "]\n\n"
@@ -278,7 +278,7 @@ def get_kconnected(topo, ecmp_reqs, reqsize, k, rand):
     out_file = ""
     print "X" * 40
     print "Generating KConneced for reqsize=%d, k=%d" % (reqsize, k)
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         if not topo.is_local_router_edge(src, dst):
             continue
         topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
@@ -299,7 +299,7 @@ def get_kconnected(topo, ecmp_reqs, reqsize, k, rand):
     out_file += "]\n\n"
     vals_name = "edges_cost_kconnected_%d_%d" % (reqsize, k)
     out_file += "%s = [\n" % vals_name
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         out_file += '    ("%s", "%s", %d),\n' % (
             src, dst, topo.get_edge_ospf_cost(src, dst))
     out_file += "]\n\n"
@@ -311,7 +311,7 @@ def get_path_order(topo, reqsize, pathorder, rand):
     generated = False
     while not generated:
         # All OSPF Costs are intially empty
-        for src, dst in topo.edges_iter():
+        for src, dst in topo.edges():
             if not topo.is_local_router_edge(src, dst):
                 continue
             topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
@@ -338,7 +338,7 @@ def get_path_order(topo, reqsize, pathorder, rand):
         out_file += "]\n\n"
         vals_name = "edges_cost_order_%d_%d" % (reqsize, pathorder)
         out_file += "%s = [\n" % vals_name
-        for src, dst in topo.edges_iter():
+        for src, dst in topo.edges():
             out_file += '    ("%s", "%s", %d),\n' % (
                 src, dst, topo.get_edge_ospf_cost(src, dst))
         out_file += "]\n\n"

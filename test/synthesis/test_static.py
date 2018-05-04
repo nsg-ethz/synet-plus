@@ -5,7 +5,7 @@ from nose.plugins.attrib import attr
 
 from synet.synthesis.static import CannotSynthesizeStaticRoute
 from synet.synthesis.static import StaticSyn
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 

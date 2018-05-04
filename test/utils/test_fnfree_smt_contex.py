@@ -4,9 +4,9 @@ import unittest
 import z3
 from nose.plugins.attrib import attr
 
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
+from tekton.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Community
 
 
 from synet.utils.fnfree_smt_context import EnumType

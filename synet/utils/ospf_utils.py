@@ -53,7 +53,7 @@ def extract_ospf_graph(network_graph, log):
 
 def load_graph_constrains(solver, graph):
     """Add constrains specific to the OSPF graph"""
-    for src, dst in graph.edges_iter():
+    for src, dst in graph.edges():
         cost = graph[src][dst]['cost']
         if is_empty(cost):
             cost = None
@@ -64,7 +64,7 @@ def load_graph_constrains(solver, graph):
 def get_output_configs(model, ospf_graph):
     """Returns list of (src, dst, cost)"""
     outputs = []
-    for src, dst in ospf_graph.edges_iter():
+    for src, dst in ospf_graph.edges():
         cost = ospf_graph[src][dst]['cost']
         if is_symbolic(cost):
             cost = model.eval(cost).as_long()
@@ -89,7 +89,7 @@ def synthesize_ospf_announce(network_graph, ospf_graph, reqs):
     """
     # Collect all announced network
     node_announces = gather_networks(reqs, protocols=[Protocols.OSPF])
-    for node in ospf_graph.nodes_iter():
+    for node in ospf_graph.nodes():
         curr_announced = network_graph.get_ospf_networks(node)
         if ALL_V4_NET in curr_announced:
             # This node already announced everything, no need

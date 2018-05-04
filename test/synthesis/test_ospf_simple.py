@@ -20,7 +20,7 @@ from synet.utils.common import ECMPPathsReq
 from synet.utils.common import PathOrderReq
 from synet.utils.topo_gen import get_fanout_topology
 
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 
 
 __author__ = "Ahmed El-Hassany"

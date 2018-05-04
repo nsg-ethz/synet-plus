@@ -16,7 +16,7 @@ class EBGPVerify(object):
 
     def __init__(self, network_graph, reqs):
         """
-        :param network_graph: synet.topo.graph.NetworkGraph
+        :param network_graph: tekton.graph.NetworkGraph
         :param reqs: list of BGP paths preferences
         """
         self.network_graph = network_graph

@@ -12,7 +12,7 @@ from timeit import default_timer as timer
 import networkx as nx
 import z3
 
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 from synet.utils.common import ECMPPathsReq
 from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
@@ -548,7 +548,7 @@ class OSPFSyn(SynthesisComponent):
         """
         sat = True
         req_paths = [r.path for r in req.paths]
-        all_edges = [(None, None)] + list(out_graph.edges_iter())
+        all_edges = [(None, None)] + list(out_graph.edges())
         primary = req_paths[0]
         for src, dst in all_edges:
             out_copy = out_graph.copy()
@@ -589,7 +589,7 @@ class OSPFSyn(SynthesisComponent):
         """
         sat = True
         req_paths = [r.path for r in req.paths]
-        all_edges = [(None, None)] + list(out_graph.edges_iter())
+        all_edges = [(None, None)] + list(out_graph.edges())
         primary = req_paths[0]
         for src, dst in all_edges:
             out_copy = out_graph.copy()

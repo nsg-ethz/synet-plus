@@ -13,7 +13,7 @@ import networkx as nx
 import z3
 from networkx.drawing import nx_pydot
 
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 
 
 __author__ = "Ahmed El-Hassany"

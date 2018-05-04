@@ -9,10 +9,10 @@ from synet.synthesis.connected import DuplicateAddressError
 from synet.synthesis.connected import NotValidSubnetsError
 from synet.synthesis.connected import ConnectedSyn
 
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
-from synet.topo.graph import NetworkGraph
+from tekton.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Community
+from tekton.graph import NetworkGraph
 
 from synet.utils.common import Protocols
 from synet.utils.common import PathReq
@@ -20,7 +20,7 @@ from synet.utils.smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
 
 # Hack for interface change
-from synet.topo.bgp import Announcement as FullAnnouncement
+from tekton.bgp import Announcement as FullAnnouncement
 from functools import partial
 Announcement = partial(FullAnnouncement, med=100)
 

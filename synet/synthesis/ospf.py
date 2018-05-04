@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 import networkx as nx
 import z3
 
-from synet.topo.graph import NetworkGraph
+from tekton.graph import NetworkGraph
 from synet.utils.common import ECMPPathsReq
 from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq

@@ -9,8 +9,8 @@ from timeit import default_timer as timer
 
 import z3
 
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Announcement
 
 
 __author__ = "Ahmed El-Hassany"

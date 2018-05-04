@@ -3,30 +3,30 @@ import unittest
 import z3
 from nose.plugins.attrib import attr
 
-from synet.topo.bgp import ActionSetNextHop
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import ActionSetCommunity
-from synet.topo.bgp import ActionSetPeer
-from synet.topo.bgp import ActionSetPrefix
-from synet.topo.bgp import ActionSetOne
-from synet.topo.bgp import Access
-from synet.topo.bgp import ActionPermitted
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
-from synet.topo.bgp import CommunityList
-from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import MatchAsPath
-from synet.topo.bgp import MatchAsPathLen
-from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import MatchIpPrefixListList
-from synet.topo.bgp import MatchLocalPref
-from synet.topo.bgp import MatchPeer
-from synet.topo.bgp import MatchNextHop
-from synet.topo.bgp import RouteMap
-from synet.topo.bgp import RouteMapLine
-from synet.topo.bgp import MatchMED
-from synet.topo.bgp import MatchSelectOne
+from tekton.bgp import ActionSetNextHop
+from tekton.bgp import ActionSetLocalPref
+from tekton.bgp import ActionSetCommunity
+from tekton.bgp import ActionSetPeer
+from tekton.bgp import ActionSetPrefix
+from tekton.bgp import ActionSetOne
+from tekton.bgp import Access
+from tekton.bgp import ActionPermitted
+from tekton.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Community
+from tekton.bgp import CommunityList
+from tekton.bgp import IpPrefixList
+from tekton.bgp import MatchAsPath
+from tekton.bgp import MatchAsPathLen
+from tekton.bgp import MatchCommunitiesList
+from tekton.bgp import MatchIpPrefixListList
+from tekton.bgp import MatchLocalPref
+from tekton.bgp import MatchPeer
+from tekton.bgp import MatchNextHop
+from tekton.bgp import RouteMap
+from tekton.bgp import RouteMapLine
+from tekton.bgp import MatchMED
+from tekton.bgp import MatchSelectOne
 from synet.utils.fnfree_policy import SMTActions
 from synet.utils.fnfree_policy import SMTSetAttribute
 from synet.utils.fnfree_policy import SMTMatch
@@ -2579,7 +2579,7 @@ class TestSMTMatch(unittest.TestCase):
         ctx = self.get_ctx(concrete_anns)
         sym_anns = self.get_sym(concrete_anns, ctx)
         clist = CommunityList(
-            list_id='clist1',
+            list_id=1,
             access=Access.permit,
             communities=[Community("100:16"), Community("100:18")])
         # Act

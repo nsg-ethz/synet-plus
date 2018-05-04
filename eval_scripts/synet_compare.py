@@ -15,9 +15,9 @@ from synet.synthesis.ospf_heuristic import OSPFSyn as OSPFCEGIS
 from synet.synthesis.ospf import OSPFSyn as OSPFConcrete
 from synet.synthesis.static import StaticSyn
 from synet.synthesis.connected import ConnectedSyn
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
+from tekton.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Community
 from synet.synthesis.new_propagation import EBGPPropagation
 
 from synet.utils.fnfree_smt_context import SolverContext
@@ -27,21 +27,21 @@ from synet.utils.fnfree_smt_context import read_announcements
 
 from synet.utils.bgp_utils import compute_next_hop_map
 from synet.utils.bgp_utils import extract_all_next_hops
-from synet.topo.bgp import Access
-from synet.topo.bgp import ActionSetCommunity
-from synet.topo.bgp import ActionSetLocalPref
-from synet.topo.bgp import Announcement
-from synet.topo.bgp import BGP_ATTRS_ORIGIN
-from synet.topo.bgp import Community
-from synet.topo.bgp import CommunityList
-from synet.topo.bgp import MatchCommunitiesList
-from synet.topo.bgp import RouteMap
-from synet.topo.bgp import RouteMapLine
-from synet.topo.bgp import IpPrefixList
-from synet.topo.bgp import MatchIpPrefixListList
-from synet.topo.bgp import MatchNextHop
-from synet.topo.bgp import MatchSelectOne
-from synet.topo.bgp import ActionSetOne
+from tekton.bgp import Access
+from tekton.bgp import ActionSetCommunity
+from tekton.bgp import ActionSetLocalPref
+from tekton.bgp import Announcement
+from tekton.bgp import BGP_ATTRS_ORIGIN
+from tekton.bgp import Community
+from tekton.bgp import CommunityList
+from tekton.bgp import MatchCommunitiesList
+from tekton.bgp import RouteMap
+from tekton.bgp import RouteMapLine
+from tekton.bgp import IpPrefixList
+from tekton.bgp import MatchIpPrefixListList
+from tekton.bgp import MatchNextHop
+from tekton.bgp import MatchSelectOne
+from tekton.bgp import ActionSetOne
 
 
 
@@ -164,7 +164,7 @@ def ospf(n, nreqs=10):
         topo.enable_ospf(node, 100)
         # Initially all costs are empty
         topo.set_static_routes_empty(node)
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
     conn = ConnectedSyn([], topo, full=True)
     conn.synthesize()
@@ -187,7 +187,7 @@ def static(n, nreqs=10):
         topo.enable_ospf(node, 100)
         # Initially all costs are empty
         topo.set_static_routes_empty(node)
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
     conn = ConnectedSyn([], topo, full=True)
     conn.synthesize()
@@ -211,7 +211,7 @@ def bgp(n, nreqs=10):
         # Initially all costs are empty
         topo.set_static_routes_empty(node)
 
-    for src, dst in topo.edges_iter():
+    for src, dst in topo.edges():
         topo.set_edge_ospf_cost(src, dst, VALUENOTSET)
 
     peer = 'ATT'
