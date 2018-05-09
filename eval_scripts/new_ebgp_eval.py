@@ -547,7 +547,7 @@ def gen_ecmp(topo, ospf_reqs, all_communities):
         write_dot(subg, '/tmp/subg.dot')
 
     for node in topo:
-        for from_node, _ in topo.in_edges_iter(node):
+        for from_node, _ in topo.in_edges(node):
             if topo.is_peer(node):
                 continue
             lineno = 10
@@ -572,7 +572,7 @@ def gen_ecmp(topo, ospf_reqs, all_communities):
                     route_map_lines[node][from_node] = []
                 route_map_lines[node][from_node].extend(lines)
 
-        for _, to_node in topo.out_edges_iter(node):
+        for _, to_node in topo.out_edges(node):
             if topo.is_peer(node):
                 continue
             lineno = 10
