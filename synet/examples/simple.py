@@ -124,7 +124,7 @@ def two_ebgp_nodes(export_path):
     connecte_syn.synthesize()
 
     # SMT Solving
-    solver = z3.Solver()
+    solver = z3.Solver(ctx=ctx.z3_ctx)
     assert ctx.check(solver) == z3.sat, solver.unsat_core()
 
     # Update graph with the concrete values after solver
@@ -211,8 +211,7 @@ def two_ebgp_nodes_route_map(export_path):
     connecte_syn.synthesize()
 
     # SMT Solving
-    solver = z3.Solver()
-    #print ctx.get_constraint('Const6')
+    solver = z3.Solver(ctx=ctx.z3_ctx)
     assert ctx.check(solver) == z3.sat, solver.unsat_core()
 
     # Update graph with the concrete values after solver
@@ -277,7 +276,7 @@ def two_ibgp_nodes(export_path):
 
 
     # SMT Solving
-    solver = z3.Solver()
+    solver = z3.Solver(ctx=ctx.z3_ctx)
     assert ctx.check(solver) == z3.sat, solver.unsat_core()
 
     # Enable OSPF
@@ -346,7 +345,7 @@ def linear_ebgp(N, export_path):
     propagation.compute_dags()
     propagation.synthesize()
 
-    solver = z3.Solver()
+    solver = z3.Solver(ctx=ctx.z3_ctx)
     ret = ctx.check(solver)
     assert ret == z3.sat, solver.unsat_core()
     propagation.update_network_graph()
@@ -413,7 +412,7 @@ def test_double_import():
     print "SMT 2 permitted", smt2.announcements[0].permitted
     ctx.register_constraint(smt1.announcements[0].permitted.var == True)
     ctx.register_constraint(smt2.announcements[0].permitted.var == False)
-    solver = z3.Solver()
+    solver = z3.Solver(ctx=ctx.z3_ctx)
     ret = ctx.check(solver)
     #print solver.to_smt2()
     assert ret == z3.sat, solver.unsat_core()
