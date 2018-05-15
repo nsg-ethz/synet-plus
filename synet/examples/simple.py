@@ -46,7 +46,7 @@ def get_sym(concrete_anns, ctx):
 
 
 def create_context(reqs, g, announcements, create_as_paths=False):
-    connected = ConnectedSyn(reqs, g, full=True)
+    connected = ConnectedSyn([], g, full=True)
     connected.synthesize()
     next_hops_map = compute_next_hop_map(g)
     next_hops = extract_all_next_hops(next_hops_map)
@@ -240,6 +240,16 @@ def two_ibgp_nodes(export_path):
     # The actual network interfaces used for peering will be synthesized
     graph.add_bgp_neighbor(r1, r2, router_a_iface=VALUENOTSET, router_b_iface=VALUENOTSET)
 
+    # Enable OSPF
+    graph.enable_ospf(r1, 100)
+    graph.enable_ospf(r2, 100)
+    graph.add_ospf_network(r1, 'lo100', 0)
+    graph.add_ospf_network(r2, 'lo100', 0)
+    for iface in graph.get_ifaces(r1):
+        graph.add_ospf_network(r1, iface, 0)
+    for iface in graph.get_ifaces(r2):
+        graph.add_ospf_network(r2, iface, 0)
+
     # Some internal network
     net = ip_network(u'128.0.0.0/24')
     prefix = '128_0_0_0'
@@ -270,27 +280,14 @@ def two_ibgp_nodes(export_path):
     propagation.compute_dags()
     propagation.synthesize()
 
-    # Synthesize all the interfaces and link configurations
-    connecte_syn = ConnectedSyn([], graph, full=True)
-    connecte_syn.synthesize()
-
-
     # SMT Solving
     solver = z3.Solver(ctx=ctx.z3_ctx)
     assert ctx.check(solver) == z3.sat, solver.unsat_core()
 
-    # Enable OSPF
-    graph.enable_ospf(r1, 100)
-    graph.enable_ospf(r2, 100)
-    graph.add_ospf_network(r1, 'lo100', 0)
-    graph.add_ospf_network(r2, 'lo100', 0)
-    for iface in graph.get_ifaces(r1):
-        graph.add_ospf_network(r1, iface, 0)
-    for iface in graph.get_ifaces(r2):
-        graph.add_ospf_network(r2, iface, 0)
-
     # Update graph with the concrete values after solver
+    ConnectedSyn([], graph, full=True).synthesize()
     propagation.update_network_graph()
+
     gns3 = GNS3Topo(graph=graph, prefix_map=prefix_map)
     gns3.write_configs('%s/ibgp-simple' % export_path)
 

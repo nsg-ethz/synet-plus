@@ -16,7 +16,7 @@ from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 from synet.utils.common import PreferredPathReq
 from synet.utils.common import Req
-from synet.utils.smt_context import VALUENOTSET
+from synet.utils.fnfree_smt_context import is_empty
 
 
 __author__ = "Ahmed El-Hassany"
@@ -56,7 +56,9 @@ class DuplicateAddressError(Exception):
 
 
 class ConnectedSyn(object):
-    def __init__(self, reqs, network_graph, full=False, start_net=u'10.0.0.0', prefix_len=31):
+    def __init__(self, reqs, network_graph, full=False,
+                 start_net=u'10.0.0.0', prefix_len=31,
+                 start_loopback=u'128.0.0.0', loopback_prefix_len=31):
         if not reqs:
             reqs = []
         assert isinstance(network_graph, NetworkGraph)
@@ -68,13 +70,15 @@ class ConnectedSyn(object):
         self.full = full
         self.prefix_len = prefix_len
         self._next_net = int(ip_address(start_net))
+        self._next_loopback = int(ip_address(start_loopback))
+        self.loopback_prefix_len = loopback_prefix_len
 
-    def get_next_net(self):
+    def get_next_net(self, next_net, prefix_len):
         """Get the next subnet to be assigned to interfaces"""
-        curr_ip = ip_address(self._next_net)
-        net = ip_network(u"%s/%d" % (curr_ip, self.prefix_len))
-        self._next_net += ((32 - self.prefix_len) ** 2) + 1
-        return net
+        curr_ip = ip_address(next_net)
+        net = ip_network(u"%s/%d" % (curr_ip, prefix_len))
+        next_net += ((32 - prefix_len) ** 2) + 1
+        return net, next_net
 
     def reqs_connected_pairs(self):
         """Get the connected paris based on direct user reqs"""
@@ -139,7 +143,7 @@ class ConnectedSyn(object):
 
         addr1 = self.g.get_iface_addr(src, iface1)
         addr2 = self.g.get_iface_addr(dst, iface2)
-        if VALUENOTSET in [addr1, addr2]:
+        if is_empty(addr1) or is_empty(addr2):
             return False
         net1 = addr1.network
         net2 = addr2.network
@@ -168,14 +172,14 @@ class ConnectedSyn(object):
         assert addr2, err2
 
         # Get the subnet for both ends of the line
-        if addr1 == addr2 and addr1 == VALUENOTSET:
+        if is_empty(addr1) and is_empty(addr2):
             # No initial config is given
             # Then synthesize completely new subnet
-            net1 = self.get_next_net()
+            net1, self._next_net = self.get_next_net(self._next_net, self.prefix_len)
             net2 = net1
-        elif VALUENOTSET in [addr1, addr2]:
+        elif is_empty(addr1) or is_empty(addr2):
             # Only one side is concrete
-            net = addr1.network if addr1 != VALUENOTSET else addr2.network
+            net = addr1.network if not is_empty(addr1) else addr2.network
             net1 = net
             net2 = net
         else:
@@ -188,7 +192,7 @@ class ConnectedSyn(object):
             raise NotValidSubnetsError(src, iface1, net1, dst, iface2, net2)
 
         # Assign IP addresses to the first interface (if needed)
-        if addr1 == VALUENOTSET:
+        if is_empty(addr1):
             for host in net1.hosts():
                 addr = ip_interface(u"%s/%d" % (host, net1.prefixlen))
                 if addr == addr2:
@@ -197,7 +201,7 @@ class ConnectedSyn(object):
                 self.g.set_iface_addr(src, iface1, addr)
                 break
         # Assign IP addresses to the second interface (if needed)
-        if addr2 == VALUENOTSET:
+        if is_empty(addr2):
             for host in net2.hosts():
                 addr = ip_interface(u"%s/%d" % (host, net2.prefixlen))
                 if addr != addr1:
@@ -209,6 +213,19 @@ class ConnectedSyn(object):
             raise DuplicateAddressError(src, iface1, addr1, dst, iface2, addr2)
         assert iface1
 
+    def synthesize_loopback_addresses(self):
+        for node in self.g.routers_iter():
+            for loopback in self.g.get_loopback_interfaces(node):
+                addr = self.g.get_loopback_addr(node, loopback)
+                if is_empty(addr):
+                    net, self._next_loopback = self.get_next_net(
+                        self._next_loopback, self.loopback_prefix_len)
+                    if any(True for _ in net.hosts()):
+                        host = net.hosts().next()
+                    else:
+                        host = net.network_address
+                    self.g.set_loopback_addr(node, loopback, ip_interface(host))
+
     def synthesize(self):
         # Assign iface names between edges (if needed)
         self.g.set_iface_names()
@@ -219,7 +236,8 @@ class ConnectedSyn(object):
                 if not self.g.is_router(dst):
                     continue
                 self.synthesize_connection(src, dst)
-            return
+            self.synthesize_loopback_addresses()
+            return True
 
         bgp_connected = self.get_bgp_connected_pairs()
         reqs_connecetd = self.reqs_connected_pairs()
@@ -239,3 +257,4 @@ class ConnectedSyn(object):
         edges_to_remove = list(set(edges_to_remove))
         for src, dst in edges_to_remove:
             self.g.remove_edge(src, dst)
+        self.synthesize_loopback_addresses()
