@@ -337,6 +337,26 @@ class SolverContextTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             ctx.create_enum_type("name2", values)
 
+    def test_compare_enum_type(self):
+        # Arrange
+        values = ['A', 'B', 'C']
+        sort_name = 'TestType'
+        ctx = SolverContext(z3.Context())
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        vsort = ctx.create_enum_type(sort_name, values)
+        A, B, C = [vsort.get_symbolic_value(x) for x in values]
+        GREATER, LESS, EQUAL, INCOMPLETE = ctx.compare_vars
+        # Act
+        func = ctx.create_enum_compare(sort_name)
+        solver.add(func(A, A) == EQUAL)
+        solver.add(func(A, B) == GREATER)
+        solver.add(func(A, C) == GREATER)
+        solver.add(func(B, B) == EQUAL)
+        solver.add(func(C, C) == EQUAL)
+        # Assert
+        ret = ctx.check(solver)
+        self.assertEquals(ret, z3.sat)
+
     def test_set_model(self):
         # Arrange
         values = ['A', 'B', 'C']

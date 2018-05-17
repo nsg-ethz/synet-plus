@@ -282,7 +282,12 @@ class SolverContext(object):
         self._next_varnum = itertools.count(0)
         self._next_constnum = itertools.count(0)
         self._enum_types = {}
+        self._enum_compare = {}
+        self._enum_compare_sort = {}
         self.z3_ctx = z3_ctx
+        self.compare_vals = ['GREATER', 'LESS', 'EQ', 'UNKNOWN']
+        self.comparator = self.create_enum_type('Comparator', self.compare_vals)
+        self.compare_vars = [self.comparator.get_symbolic_value(x) for x in self.compare_vals]
 
     def create_enum_type(self, name, values):
         """Create new Enum type"""
@@ -397,6 +402,17 @@ class SolverContext(object):
             raise ValueError("Constraint: %s was not registered before" % name)
         return self._tracked[name]['info']
 
+    def create_enum_compare(self, enum_name):
+        vsort = self.get_enum_type(enum_name)
+        z3sort = vsort.sort
+        name = 'compare_%s' % enum_name
+        err = "Compare function '{}' already created".format(name)
+        assert name not in self._enum_compare, err
+        func = z3.Function(name, z3sort, z3sort, self.comparator.sort)
+        self._enum_compare[name] = func
+        self._enum_compare_sort[name] = vsort
+        return func
+
     def set_model(self, model):
         """Set the Z3 model, after solving it"""
         t1 = timer()
@@ -426,12 +442,56 @@ class SolverContext(object):
                     solver.assert_and_track(const, name)
             else:
                 solver.add(const)
+
+        # Add comparator constraints:
+        GREATER, LESS, EQUAL, INCOMPLETE = self.compare_vars
+        tracked_eq = []
+        for name, func in self._enum_compare.iteritems():
+            vsort = self._enum_compare_sort[name]
+            for value1 in vsort.concrete_values:
+                var1 = vsort.get_symbolic_value(value1)
+                for value2 in vsort.concrete_values:
+                    var2 = vsort.get_symbolic_value(value2)
+                    pair = set([value1, value2])
+                    # Same var is equal
+                    if pair not in tracked_eq:
+                        equal_const1 = z3.Implies(var1 == var2,
+                                                  func(var1, var2) == EQUAL,
+                                                  self.z3_ctx)
+                        tracked_eq.append(pair)
+                    else:
+                        equal_const1 = None
+                    # Equal is reflexive
+                    equal_const2 = z3.Implies(func(var1, var2) == EQUAL,
+                                              func(var2, var1) == EQUAL,
+                                              self.z3_ctx)
+                    # Less is opposite of greater
+                    greater_less = z3.Implies(func(var1, var2) == GREATER,
+                                              func(var2, var1) == LESS,
+                                              self.z3_ctx)
+                    # Greater is opposite of less
+                    less_greater = z3.Implies(func(var1, var2) == LESS,
+                                              func(var2, var1) == GREATER,
+                                              self.z3_ctx)
+                    if track:
+                        suffix = "{}_{}_{}".format(name, value1, value2)
+                        if equal_const1 is not None:
+                            solver.assert_and_track(equal_const1, "compare_equal_const_{}".format(suffix))
+                        solver.assert_and_track(equal_const2, "compare_equal_reflexive_{}".format(suffix))
+                        solver.assert_and_track(greater_less, "greater_implies_less_{}".format(suffix))
+                        solver.assert_and_track(less_greater, "less_implies_greater_{}".format(suffix))
+                    else:
+                        solver.add(equal_const1)
+                        solver.add(equal_const2)
+                        solver.add(greater_less)
+                        solver.add(less_greater)
         t2 = timer()
         print "X" * 50
         print "Total Number of variables:", len(self._vars)
         print "Total Number of Constraints:", len(self._tracked)
         print "Total Number of Partially evaluated variables:", partially_eval_vars
-        print "Percentage Partially evaluated variables:", partially_eval_vars / (len(self._vars) * 1.0)
+        if len(self._vars):
+            print "Percentage Partially evaluated variables:", partially_eval_vars / (len(self._vars) * 1.0)
         print "Total Number of Partially evaluated constraints:", partially_eval_const
         if len(self._tracked) > 0:
             print "Percentage Partially evaluated constraints:", partially_eval_const / (len(self._tracked) * 1.0)
