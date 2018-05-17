@@ -6,6 +6,7 @@ import copy
 import logging
 
 import networkx as nx
+import z3
 
 from synet.synthesis.ebgpy_verify import EBGPVerify
 from synet.synthesis.new_bgp import BGP
@@ -46,6 +47,23 @@ class EBGPPropagation(object):
         self.ibgp_propagation = None
         self.ibgp_zones = self.extract_ibgp_zones()
         self.next_hop_map = compute_next_hop_map(self.network_graph)
+        self.set_bgp_router_ids()
+
+    def set_bgp_router_ids(self):
+        ids = []
+        for router in self.network_graph.routers_iter():
+            if not self.network_graph.is_bgp_enabled(router):
+                continue
+            router_id = self.network_graph.get_bgp_router_id(router)
+            var = self.ctx.create_fresh_var(z3.IntSort(self.ctx.z3_ctx),
+                                            value=router_id,
+                                            name_prefix='{}_router_id'.format(router))
+            ids.append(var)
+            self.network_graph.set_bgp_router_id(router, var)
+        for var in ids:
+            self.ctx.register_constraint(var.var > 0, name_prefix='router_id_0_')
+        unq = z3.Distinct(*[var.var for var in ids])
+        self.ctx.register_constraint(unq == True, name_prefix='router_id_unique')
 
     def extract_ibgp_zones(self):
         """Extract subgraphs such that each subgraph represents all routers within an AS"""

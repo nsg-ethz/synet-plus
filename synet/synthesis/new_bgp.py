@@ -19,6 +19,7 @@ from synet.utils.fnfree_smt_context import NEXT_HOP_SORT
 from synet.utils.fnfree_smt_context import PEER_SORT
 from synet.utils.fnfree_smt_context import PREFIX_SORT
 from synet.utils.fnfree_smt_context import SolverContext
+from synet.utils.fnfree_smt_context import is_empty
 from synet.utils.smt_context import get_as_path_key
 
 
@@ -340,8 +341,8 @@ class BGP(object):
         s_localpref = best_ann_var.local_pref.var
         o_localpref = other_ann_var.local_pref.var
 
-        s_aslen = best_ann_var.as_path_len
-        o_aslen = other_ann_var.as_path_len
+        s_aslen = best_ann_var.as_path_len.var
+        o_aslen = other_ann_var.as_path_len.var
 
         s_origin = best_ann_var.origin.var
         o_origin = other_ann_var.origin.var
@@ -384,6 +385,13 @@ class BGP(object):
         use_igp = False # z3.Const("use_igp_%s" % name, z3.BoolSort())
         #self.constraints["%s_use_igp" % name] = \
         #    use_igp == self.can_used_igp(best_propagated, other_propagated)
+
+        # Selection based on router IDs
+        best_router_id = self.network_graph.get_bgp_router_id(best_neighbor)
+        assert best_router_id, "Router ID is not set for {} {}".format(best_neighbor, best_router_id)
+        other_router_id = self.network_graph.get_bgp_router_id(other_neighbor)
+        assert other_router_id, "Router ID is not set for {} {}".format(best_neighbor, other_router_id)
+        select_router_id = best_router_id.var < other_router_id.var
 
         # The BGP selection process
         const_selection.append(
@@ -431,8 +439,18 @@ class BGP(object):
                 #    require installation in the
                 #    routing table for BGP Multipath.
                 #      Continue, if bestpath is not yet selected.
-                # 9) Prefer the route that comes from the BGP router
-                #    with the lowest router ID.
+                z3.And(
+                    other_permitted,
+                    s_localpref == o_localpref,
+                    select_as_path_len == False,
+                    select_origin == False,
+                    select_ebgp == False,
+                    z3.Or(use_igp == False,
+                          z3.And(use_igp==True, select_igp == False, self.ctx.z3_ctx),
+                          self.ctx.z3_ctx),
+                    select_router_id == True,
+                    self.ctx.z3_ctx
+                ),
                 self.ctx.z3_ctx,
             ))
         # Make sure all variables are bound to a value
@@ -498,3 +516,6 @@ class BGP(object):
         for smt_rmap in self.rmaps.values():
             rmap = smt_rmap.get_config()
             self.network_graph.add_route_map(self.node, rmap)
+        router_id = self.network_graph.get_bgp_router_id(self.node)
+        if router_id:
+            self.network_graph.set_bgp_router_id(self.node, router_id.get_value())
