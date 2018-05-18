@@ -431,7 +431,7 @@ class SolverContext(object):
         partially_eval_const = 0
         for name, const in self.constraints_itr():
             err2 = "Constraint is not attached to the same Z3 context: %s" % const
-            assert const.ctx == self.z3_ctx, err2
+            assert isinstance(const, bool) or const.ctx == self.z3_ctx, err2
             if track:
                 if isinstance(const, bool):
                     var = self.create_fresh_var(z3.BoolSort(ctx=self.z3_ctx), value=None, name_prefix='BoolHack_')
