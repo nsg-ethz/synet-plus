@@ -390,7 +390,7 @@ class BGP(object):
         best_router_id = self.network_graph.get_bgp_router_id(best_neighbor)
         assert best_router_id, "Router ID is not set for {} {}".format(best_neighbor, best_router_id)
         other_router_id = self.network_graph.get_bgp_router_id(other_neighbor)
-        assert other_router_id, "Router ID is not set for {} {}".format(best_neighbor, other_router_id)
+        assert other_router_id, "Router ID is not set for {} {}".format(other_router_id, other_router_id)
         select_router_id = best_router_id.var < other_router_id.var
 
         # The BGP selection process
@@ -446,7 +446,7 @@ class BGP(object):
                     select_origin == False,
                     select_ebgp == False,
                     z3.Or(use_igp == False,
-                          z3.And(use_igp==True, select_igp == False, self.ctx.z3_ctx),
+                          z3.And(use_igp == True, select_igp == False, self.ctx.z3_ctx),
                           self.ctx.z3_ctx),
                     select_router_id == True,
                     self.ctx.z3_ctx
@@ -487,22 +487,23 @@ class BGP(object):
         self.mark_selected()
         self.compute_imported_routes()
 
-        selected = get_propagated_info(self.ibgp_propagation, self.node, unselected=False)
-
         anns_order = {}
-        for propagated in selected:
-            if propagated.ann_name not in anns_order:
-                anns_order[propagated.ann_name] = []
-            anns_order[propagated.ann_name].append(propagated)
+        for net, info in self.ibgp_propagation.node[self.node]['nets'].iteritems():
+            if net not in anns_order:
+                anns_order[net] = []
+            anns_order[net] = info['order_info']
+
         for ann_name, values in anns_order.iteritems():
             if len(values) == 1:
                 # This router only learns one route
                 # No need to use the perference function
                 continue
-            for best_prop, other_prop in zip(values[0::1], values[1::1]):
-                best_ann = self.anns_map[best_prop]
-                other_ann = self.anns_map[other_prop]
-                self.selector_func(best_prop, best_ann, other_prop, other_ann)
+            for best_prop_set, other_prop_set in zip(values[0::1], values[1::1]):
+                for best_prop in best_prop_set:
+                    for other_prop in other_prop_set:
+                        best_ann = self.anns_map[best_prop]
+                        other_ann = self.anns_map[other_prop]
+                        self.selector_func(best_prop, best_ann, other_prop, other_ann)
 
     def get_config(self):
         """Get concrete route configs"""
