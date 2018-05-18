@@ -31,7 +31,7 @@ def extract_ospf_graph(network_graph, log):
     ospf_graph = nx.DiGraph()
     # Only local routers
     for node in network_graph.nodes():
-        if network_graph.is_local_router(node):
+        if network_graph.is_local_router(node) and network_graph.is_ospf_enabled(node):
             ospf_graph.add_node(node)
     for src, dst in network_graph.edges():
         # First skip an edge that is not connecting
