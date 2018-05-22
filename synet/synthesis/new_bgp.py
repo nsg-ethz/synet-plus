@@ -518,5 +518,7 @@ class BGP(object):
             rmap = smt_rmap.get_config()
             self.network_graph.add_route_map(self.node, rmap)
         router_id = self.network_graph.get_bgp_router_id(self.node)
-        if router_id:
+        if router_id and router_id.is_concrete:
             self.network_graph.set_bgp_router_id(self.node, router_id.get_value())
+        else:
+            self.network_graph.set_bgp_router_id(self.node, None)
