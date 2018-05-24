@@ -72,7 +72,8 @@ class EBGPPropagation(object):
             return
         for var in ids:
             self.ctx.register_constraint(var.var > 0, name_prefix='router_id_larger_than_zero_')
-        unq = z3.Distinct(*[var.var for var in ids])
+        dist = [var.var for var in ids] + [self.ctx.z3_ctx]
+        unq = z3.Distinct(*dist)
         self.ctx.register_constraint(unq == True, name_prefix='router_id_unique')
 
     def extract_ibgp_zones(self):
