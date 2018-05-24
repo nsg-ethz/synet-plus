@@ -21,6 +21,7 @@ from synet.utils.common import PathReq
 from synet.utils.common import Req
 from synet.utils.common import flatten
 from synet.utils.fnfree_smt_context import ASPATH_SORT
+from synet.utils.fnfree_smt_context import is_empty
 from synet.utils.smt_context import get_as_path_key
 
 
@@ -55,13 +56,22 @@ class EBGPPropagation(object):
             if not self.network_graph.is_bgp_enabled(router):
                 continue
             router_id = self.network_graph.get_bgp_router_id(router)
+            if not router_id:
+                # Sketch doesn't allow setting router ID
+                continue
+            if is_empty(router_id):
+                # Sketch has the router ID to be symbolic
+                router_id = None
             var = self.ctx.create_fresh_var(z3.IntSort(self.ctx.z3_ctx),
                                             value=router_id,
                                             name_prefix='{}_router_id'.format(router))
             ids.append(var)
             self.network_graph.set_bgp_router_id(router, var)
+        if not ids:
+            # No router IDs used in the sketch
+            return
         for var in ids:
-            self.ctx.register_constraint(var.var > 0, name_prefix='router_id_0_')
+            self.ctx.register_constraint(var.var > 0, name_prefix='router_id_larger_than_zero_')
         unq = z3.Distinct(*[var.var for var in ids])
         self.ctx.register_constraint(unq == True, name_prefix='router_id_unique')
 

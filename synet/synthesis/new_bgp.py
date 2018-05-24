@@ -388,10 +388,17 @@ class BGP(object):
 
         # Selection based on router IDs
         best_router_id = self.network_graph.get_bgp_router_id(best_neighbor)
-        assert best_router_id, "Router ID is not set for {} {}".format(best_neighbor, best_router_id)
+        if not best_router_id:
+            self.log.warn("Router ID is not set for {} {}".format(best_neighbor, best_router_id))
         other_router_id = self.network_graph.get_bgp_router_id(other_neighbor)
-        assert other_router_id, "Router ID is not set for {} {}".format(other_router_id, other_router_id)
-        select_router_id = best_router_id.var < other_router_id.var
+        if not other_router_id:
+            self.log.warn("Router ID is not set for {} {}".format(other_router_id, other_router_id))
+        if best_router_id and other_router_id:
+            # Router ID are known, we can make assumptions about them
+            select_router_id = best_router_id.var < other_router_id.var
+        else:
+            # Router IDs are NOT known, assume they're not in our favor
+            select_router_id = False
 
         # The BGP selection process
         const_selection.append(
@@ -439,6 +446,7 @@ class BGP(object):
                 #    require installation in the
                 #    routing table for BGP Multipath.
                 #      Continue, if bestpath is not yet selected.
+                # 9) Router IDs
                 z3.And(
                     other_permitted,
                     s_localpref == o_localpref,
