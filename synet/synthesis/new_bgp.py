@@ -398,7 +398,10 @@ class BGP(object):
             select_router_id = best_router_id.var < other_router_id.var
         else:
             # Router IDs are NOT known, assume they're not in our favor
-            select_router_id = False
+            select_router_id = self.ctx.create_fresh_var(
+                z3.BoolSort(self.ctx.z3_ctx),
+                value=False,
+                name_prefix='SelectRouterID_{}_'.format(self.node)).var
 
         # The BGP selection process
         const_selection.append(
