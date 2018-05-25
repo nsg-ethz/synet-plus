@@ -376,16 +376,25 @@ class EBGPPropagation(object):
                     attrs['origins'][propagated] = origin
         return set([prop.as_path for prop in cache.values()])
 
-    def synthesize(self):
+    def synthesize(self, use_igp=False):
         #self.compute_dags()
         for node in self.ibgp_propagation.nodes():
             self.ibgp_propagation.node[node]['box'] = BGP(node, self)
         for node in self.ibgp_propagation.nodes():
-            self.ibgp_propagation.node[node]['box'].synthesize()
+            self.ibgp_propagation.node[node]['box'].synthesize(use_igp=use_igp)
         print "Y" * 50
         print "PROPAGATION GRAPH SIZE:", self.ibgp_propagation.number_of_nodes()
         print "NETWORK GRAPH SIZE:", self.network_graph.number_of_nodes()
         print "Y" * 50
+
+    def get_generated_ospf_requirements(self):
+        reqs = []
+        for node in self.ibgp_propagation.nodes():
+            box = self.ibgp_propagation.node[node]['box']
+            tmp = box.generated_ospf_reqs
+            if tmp:
+                reqs.extend(tmp)
+        return reqs
 
     def update_network_graph(self):
         """Update the network graph with the concrete values"""

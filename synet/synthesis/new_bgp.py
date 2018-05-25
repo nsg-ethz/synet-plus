@@ -5,8 +5,8 @@ Synthesize configurations for (e/i)BGP protocol
 
 import copy
 import logging
-
 import networkx as nx
+import sys
 import z3
 
 from tekton.bgp import Announcement
@@ -138,6 +138,7 @@ class BGP(object):
         # The set of PropagatedInfo that will be exported to neighbors
         self.exported_routes = self.compute_exported_routes()
         self.export_ctx = {}
+        self.generated_ospf_reqs = []
 
     def create_symbolic_announcements(self):
         """
@@ -315,8 +316,46 @@ class BGP(object):
                     prefix = 'Imp_%s_from_%s_Comm_%s_' % (self.node, neighbor, community.name)
                     self.ctx.register_constraint(z3.And(curr.var == imp.var, self.ctx.z3_ctx), name_prefix=prefix)
 
+    def get_path_cost(self, path):
+        """
+        Get the IGP path cost for a given path
+        Currently only reads OSPF costs
+        """
+        costs = []
+        inverse = list(reversed(path))
+        current_as = self.network_graph.get_bgp_asnum(self.node)
+        sub_path = [inverse[0]]
+        for src, dst in zip(inverse[0::1], inverse[1::1]):
+            if self.network_graph.is_bgp_enabled(dst):
+                dst_as = self.network_graph.get_bgp_asnum(dst)
+            else:
+                dst_as = current_as
+            if dst_as != current_as:
+                break
+            cost = self.network_graph.get_edge_ospf_cost(src, dst)
+            if is_empty(cost):
+                prefix = "_{}_{}_".format(src, dst)
+                cost = self.ctx.create_fresh_var(
+                    z3.IntSort(self.ctx.z3_ctx),
+                    name_prefix="IGP_edge_cost_{}".format(prefix))
+                self.ctx.register_constraint(
+                    cost.var > 0,
+                    name_prefix="positive_igp_cost_{}".format(prefix))
+            sub_path.append(dst)
+            costs.append(cost)
+        concrete = [cost for cost in costs if isinstance(cost, int)]
+        variables = [cost.var for cost in costs if hasattr(cost, 'var')]
+        # Assert we read everything
+        assert len(variables) + len(concrete) == len(costs)
+        if concrete or variables:
+            all_costs = concrete + variables # + [self.ctx.z3_ctx]
+            summed = z3.Sum(*all_costs)
+            return summed, sub_path
+        else:
+            return sys.maxint, None
+
     def selector_func(self, best_propagated, best_ann_var,
-                      other_propagated, other_ann_var):
+                      other_propagated, other_ann_var, use_igp=False):
         """Synthesize Selection function for a given prefix"""
         self.log.debug(
             "prefix_select %s at %s, best=%s", best_propagated.ann_name, self.node, best_propagated)
@@ -373,10 +412,14 @@ class BGP(object):
                              self.ctx.z3_ctx)
 
         # IGP
-        select_igp = False # self.get_select_igp(best_propagated, other_propagated)
-        use_igp = False # z3.Const("use_igp_%s" % name, z3.BoolSort())
-        #self.constraints["%s_use_igp" % name] = \
-        #    use_igp == self.can_used_igp(best_propagated, other_propagated)
+        if use_igp:
+            best_igp_cost, best_sub_path = self.get_path_cost(best_propagated.path)
+            other_igp_cost, other_sub_path = self.get_path_cost(other_propagated.path)
+            self.generated_ospf_reqs.append((best_sub_path, other_sub_path))
+        else:
+            # Force the opposite selection
+            best_igp_cost = 15
+            other_igp_cost = 10
 
         # Selection based on router IDs
         best_router_id = self.network_graph.get_bgp_router_id(best_neighbor)
@@ -431,12 +474,12 @@ class BGP(object):
                     s_aslen == o_aslen,
                     select_origin == False,
                     select_ebgp == False,
-                    select_igp == True,
+                    use_igp == True,
+                    best_igp_cost < other_igp_cost,
                     use_igp == True,
                     self.ctx.z3_ctx
                 ),
                 # TODO (AH): More selection process
-
                 # 8) Determine if multiple paths
                 #    require installation in the
                 #    routing table for BGP Multipath.
@@ -448,9 +491,8 @@ class BGP(object):
                     s_aslen == o_aslen,
                     select_origin == False,
                     select_ebgp == False,
-                    z3.Or(use_igp == False,
-                          z3.And(use_igp == True, select_igp == False, self.ctx.z3_ctx),
-                          self.ctx.z3_ctx),
+                    use_igp == True,
+                    best_igp_cost == other_igp_cost,
                     select_router_id == True,
                     self.ctx.z3_ctx
                 ),
@@ -485,7 +527,7 @@ class BGP(object):
             else:
                 self.ctx.register_constraint(ann.permitted.var == True, name_prefix='Allow' + n)
 
-    def synthesize(self):
+    def synthesize(self, use_igp=False):
         print "Synthesizing", self.node
         self.mark_selected()
         self.compute_imported_routes()
@@ -506,7 +548,8 @@ class BGP(object):
                     for other_prop in other_prop_set:
                         best_ann = self.anns_map[best_prop]
                         other_ann = self.anns_map[other_prop]
-                        self.selector_func(best_prop, best_ann, other_prop, other_ann)
+                        self.selector_func(best_prop, best_ann, other_prop,
+                                           other_ann, use_igp=use_igp)
 
     def get_config(self):
         """Get concrete route configs"""
