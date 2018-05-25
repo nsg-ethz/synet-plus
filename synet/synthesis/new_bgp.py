@@ -330,7 +330,6 @@ class BGP(object):
             return
 
         as_len_enabled = True # self.get_as_len_enabled()
-        #name = "A"
         const_set = []
         const_selection = []
 
@@ -367,13 +366,6 @@ class BGP(object):
             z3.And(s_origin == ebgp_origin,
                    o_origin == incomplete_origin, self.ctx.z3_ctx),
             self.ctx.z3_ctx)
-
-        # Selection based on AS Path len
-        select_as_path_len = z3.And(
-            as_len_enabled == True,  # Can we use AS Path len
-            s_aslen < o_aslen,
-            self.ctx.z3_ctx
-        )
 
         # Prefer eBGP routes over iBGP
         select_ebgp = z3.And(node_as_num != best_as_num,
@@ -415,12 +407,12 @@ class BGP(object):
                 # 3) AS Path Length
                 z3.And(other_permitted,
                        s_localpref == o_localpref,
-                       select_as_path_len == True,
+                       s_aslen < o_aslen,
                        self.ctx.z3_ctx),
                 # 4) Origin Code IGP < EGP < Incomplete
                 z3.And(other_permitted,
                        s_localpref == o_localpref,
-                       select_as_path_len == False,
+                       s_aslen == o_aslen,
                        select_origin == True,
                        self.ctx.z3_ctx),
                 # 5) TODO: MED Selection
@@ -428,7 +420,7 @@ class BGP(object):
                 z3.And(
                     other_permitted,
                     s_localpref == o_localpref,
-                    select_as_path_len == False,
+                    s_aslen == o_aslen,
                     select_origin == False,
                     select_ebgp == True,
                     self.ctx.z3_ctx),
@@ -436,7 +428,7 @@ class BGP(object):
                 z3.And(
                     other_permitted,
                     s_localpref == o_localpref,
-                    select_as_path_len == False,
+                    s_aslen == o_aslen,
                     select_origin == False,
                     select_ebgp == False,
                     select_igp == True,
@@ -453,7 +445,7 @@ class BGP(object):
                 z3.And(
                     other_permitted,
                     s_localpref == o_localpref,
-                    select_as_path_len == False,
+                    s_aslen == o_aslen,
                     select_origin == False,
                     select_ebgp == False,
                     z3.Or(use_igp == False,
