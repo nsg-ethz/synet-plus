@@ -156,7 +156,7 @@ class BGP(object):
                 egress_peer = propagated.path[egress_index + 1]
                 egress_peer = egress_peer if egress_peer != self.node else propagated.egress
                 fixed['next_hop'] = self.next_hop_map[self.node][egress_peer]
-            elif len(propagated.as_path) == 1:
+            elif len(set(propagated.as_path)) == 1:
                 # If the route is announced by this router
                 # then pick one of the next hops
                 # TODO: Make this method more accurate

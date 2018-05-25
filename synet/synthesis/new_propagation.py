@@ -314,6 +314,11 @@ class EBGPPropagation(object):
                     if path in cache:
                         continue
                     egress, peer, as_path = get_as_path(path)
+                    # Append any extra AS Path info in the original announcement
+                    for ann in self.network_graph.get_bgp_advertise(path[0]):
+                        if ann.prefix == net:
+                            as_path += tuple(ann.as_path)
+                            break
                     as_path_len = len(as_path)
                     info = PropagatedInfo(egress=egress,
                                           ann_name=net,
