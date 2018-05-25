@@ -6,7 +6,6 @@ Synthesize configurations for (e/i)BGP protocol
 import copy
 import logging
 import networkx as nx
-import sys
 import z3
 
 from tekton.bgp import Announcement
@@ -352,7 +351,7 @@ class BGP(object):
             summed = z3.Sum(*all_costs)
             return summed, sub_path
         else:
-            return sys.maxint, None
+            return 0, None
 
     def selector_func(self, best_propagated, best_ann_var,
                       other_propagated, other_ann_var, use_igp=False):
@@ -415,7 +414,8 @@ class BGP(object):
         if use_igp:
             best_igp_cost, best_sub_path = self.get_path_cost(best_propagated.path)
             other_igp_cost, other_sub_path = self.get_path_cost(other_propagated.path)
-            self.generated_ospf_reqs.append((best_sub_path, other_sub_path))
+            if best_sub_path and other_sub_path:
+                self.generated_ospf_reqs.append((best_sub_path, other_sub_path))
         else:
             # Force the opposite selection
             best_igp_cost = 15
