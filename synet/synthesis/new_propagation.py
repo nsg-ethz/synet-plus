@@ -22,6 +22,7 @@ from synet.utils.common import Req
 from synet.utils.common import flatten
 from synet.utils.fnfree_smt_context import ASPATH_SORT
 from synet.utils.fnfree_smt_context import is_empty
+from synet.utils.fnfree_smt_context import is_symbolic
 from synet.utils.smt_context import get_as_path_key
 
 
@@ -59,9 +60,14 @@ class EBGPPropagation(object):
             if not router_id:
                 # Sketch doesn't allow setting router ID
                 continue
-            if is_empty(router_id):
+            elif is_empty(router_id):
                 # Sketch has the router ID to be symbolic
                 router_id = None
+            elif hasattr(router_id, 'is_concrete'):
+                if router_id.is_concrete:
+                    router_id = router_id.get_value()
+                else:
+                    router_id = None
             var = self.ctx.create_fresh_var(z3.IntSort(self.ctx.z3_ctx),
                                             value=router_id,
                                             name_prefix='{}_router_id'.format(router))
