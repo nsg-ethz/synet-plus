@@ -477,7 +477,6 @@ class BGP(object):
                     select_ebgp == False,
                     use_igp == True,
                     best_igp_cost < other_igp_cost,
-                    use_igp == True,
                     self.ctx.z3_ctx
                 ),
                 # TODO (AH): More selection process
