@@ -165,7 +165,8 @@ class BGP(object):
                         if r == self.node:
                             fixed['next_hop'] = nxt
                             break
-            assert 'next_hop' in fixed
+            err = "At router {}, couldn't compute next hop for {}".format(self.node, propagated)
+            assert 'next_hop' in fixed, err
             # Partial eval peer
             fixed['peer'] = self.node if len(propagated.path) == 1 else propagated.peer
             # TODO: support more origins
