@@ -230,7 +230,7 @@ class OSPFSyn(SynthesisComponent):
             if rand_path:
                 rand_path_name = get_path_name(rand_path)
                 rand_path_cost = self._get_path_cost(rand_path)
-                track_name = '%s_ISLESS_%s' % (path_name, rand_path_name)
+                track_name = '%s_ISLESS_%s' % (primary_name, rand_path_name)
                 if track_name in self._names_cache:
                     continue
                 else:
