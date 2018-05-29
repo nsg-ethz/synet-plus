@@ -524,7 +524,7 @@ class SolverContext(object):
         as_path_list = [get_as_path_key(p) for p in as_path_list]
         next_hope_list = next_hop_list if next_hop_list else []
         announcements = announcements if announcements else []
-
+        assert announcements, "No announcements defined to extract context from"
         ctx = SolverContext(z3.Context())
 
         # Prefixes
