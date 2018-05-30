@@ -1331,7 +1331,12 @@ class SMTActions(SMTAbstractAction):
                 prev_ann_ctx = smt_action.announcements
             if self._selector:
                 for index, ann in enumerate(self.smt_actions[-1].announcements):
-                    self._selector[ann] = self._selector[ann.prev_announcement]
+                    prev = ann.prev_announcement
+                    if prev in self._selector:
+                        self._selector[ann] = self._selector.get(prev)
+                    else:
+                        global SELECTOR
+                        self._selector[ann] = SELECTOR[prev]
         self._announcements = self.smt_actions[-1].announcements
         assert self._announcements != self.old_announcements
 
@@ -1375,7 +1380,8 @@ class SMTActions(SMTAbstractAction):
                 var = self.ctx.create_fresh_var(z3.BoolSort(ctx=self.ctx.z3_ctx), value=False)
                 a = SMTSetCommunity(self.match, comm, var, prev_anns, self.ctx)
                 prev_anns = a.announcements
-                tmp.append(a)
+                # Dont add these explicit resets
+                #tmp.append(a)
         for comm in action.communities:
             a = self._set_community(comm, prev_anns)
             prev_anns = a.announcements
@@ -1427,12 +1433,13 @@ class SMTActions(SMTAbstractAction):
             if isinstance(config, Community):
                 communities.append(config)
             else:
+                # Close other communities
                 if communities:
-                    config = _gather_communities(communities, index)
-                    configs.append(config)
+                    comms = _gather_communities(communities, index)
+                    configs.append(comms)
                     communities = []
-                else:
-                    configs.append(smt_box.get_config())
+                configs.append(config)
+        # Left over communities
         if communities:
             config = _gather_communities(communities, index)
             configs.append(config)
