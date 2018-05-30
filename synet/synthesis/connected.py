@@ -58,7 +58,7 @@ class DuplicateAddressError(Exception):
 class ConnectedSyn(object):
     def __init__(self, reqs, network_graph, full=False,
                  start_net=u'10.0.0.0', prefix_len=31,
-                 start_loopback=u'128.0.0.0', loopback_prefix_len=31):
+                 start_loopback=u'192.0.0.0', loopback_prefix_len=24):
         if not reqs:
             reqs = []
         assert isinstance(network_graph, NetworkGraph)
@@ -77,7 +77,7 @@ class ConnectedSyn(object):
         """Get the next subnet to be assigned to interfaces"""
         curr_ip = ip_address(next_net)
         net = ip_network(u"%s/%d" % (curr_ip, prefix_len))
-        next_net += ((32 - prefix_len) ** 2) + 1
+        next_net += 2 ** (32 - prefix_len)
         return net, next_net
 
     def reqs_connected_pairs(self):
