@@ -105,7 +105,7 @@ class EBGPPropagation(object):
             prev_size = (ibgp_graph.number_of_nodes(), ibgp_graph.number_of_edges())
             changed = True
             while changed:
-                for node in ibgp_graph.nodes():
+                for node in ibgp_nodes:
                     for neighbor in self.network_graph.neighbors(node):
                         if not self.network_graph.is_router(neighbor):
                             continue
@@ -118,6 +118,7 @@ class EBGPPropagation(object):
                 if new_size != prev_size:
                     changed = True
                     prev_size = new_size
+                    ibgp_nodes = list(ibgp_graph.nodes())
                 else:
                     changed = False
             zones[asnum] = ibgp_graph
