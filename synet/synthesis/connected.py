@@ -58,7 +58,7 @@ class DuplicateAddressError(Exception):
 class ConnectedSyn(object):
     def __init__(self, reqs, network_graph, full=False,
                  start_net=u'10.0.0.0', prefix_len=31,
-                 start_loopback=u'192.0.0.0', loopback_prefix_len=24):
+                 start_loopback=u'192.168.0.0', loopback_prefix_len=24):
         if not reqs:
             reqs = []
         assert isinstance(network_graph, NetworkGraph)
@@ -69,11 +69,12 @@ class ConnectedSyn(object):
         self.g = network_graph
         self.full = full
         self.prefix_len = prefix_len
-        self._next_net = int(ip_address(start_net))
-        self._next_loopback = int(ip_address(start_loopback))
+        self.next_net = int(ip_address(start_net))
+        self.next_loopback = int(ip_address(start_loopback))
         self.loopback_prefix_len = loopback_prefix_len
 
-    def get_next_net(self, next_net, prefix_len):
+    @staticmethod
+    def get_next_net(next_net, prefix_len):
         """Get the next subnet to be assigned to interfaces"""
         curr_ip = ip_address(next_net)
         net = ip_network(u"%s/%d" % (curr_ip, prefix_len))
@@ -175,7 +176,7 @@ class ConnectedSyn(object):
         if is_empty(addr1) and is_empty(addr2):
             # No initial config is given
             # Then synthesize completely new subnet
-            net1, self._next_net = self.get_next_net(self._next_net, self.prefix_len)
+            net1, self.next_net = ConnectedSyn.get_next_net(self.next_net, self.prefix_len)
             net2 = net1
         elif is_empty(addr1) or is_empty(addr2):
             # Only one side is concrete
@@ -218,8 +219,8 @@ class ConnectedSyn(object):
             for loopback in self.g.get_loopback_interfaces(node):
                 addr = self.g.get_loopback_addr(node, loopback)
                 if is_empty(addr):
-                    net, self._next_loopback = self.get_next_net(
-                        self._next_loopback, self.loopback_prefix_len)
+                    net, self.next_loopback = ConnectedSyn.get_next_net(
+                        self.next_loopback, self.loopback_prefix_len)
                     if any(True for _ in net.hosts()):
                         host = net.hosts().next()
                     else:
