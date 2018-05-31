@@ -421,9 +421,16 @@ class BGP(object):
                              node_as_num == other_as_num,
                              self.ctx.z3_ctx)
 
+        # MED
+        select_med = z3.And(best_as_num == other_as_num,
+                            best_ann_var.med.var < other_ann_var.med.var, self.ctx.z3_ctx)
+        not_select_med = z3.Or(best_as_num != other_as_num,
+                               z3.And(best_as_num == other_as_num,
+                                      best_ann_var.med.var == other_ann_var.med.var, self.ctx.z3_ctx),
+                               self.ctx.z3_ctx)
         # IGP
-        igp_path_equal = "igp_{}_is_equal_{}".format("_".join(best_propagated.path), "_".join(other_propagated.path))
-        self.ctx.create_fresh_var(z3.BoolSort(self.ctx.z3_ctx), name_prefix=igp_path_equal)
+        prefix = "igp_{}_is_equal_{}".format("_".join(best_propagated.path), "_".join(other_propagated.path))
+        igp_path_equal = self.ctx.create_fresh_var(z3.BoolSort(self.ctx.z3_ctx), name_prefix=prefix)
         if use_igp:
             best_igp_cost, best_sub_path = self.get_path_cost(best_propagated.path)
             other_igp_cost, other_sub_path = self.get_path_cost(other_propagated.path)
@@ -472,13 +479,22 @@ class BGP(object):
                        s_aslen == o_aslen,
                        select_origin == True,
                        self.ctx.z3_ctx),
-                # 5) TODO: MED Selection
+                # 5) MED Selection
+                z3.And(
+                    other_permitted,
+                    s_localpref == o_localpref,
+                    s_aslen == o_aslen,
+                    select_origin == False,
+                    select_med == True,
+                    self.ctx.z3_ctx),
                 # 6) Prefer eBGP over iBGP paths.
                 z3.And(
                     other_permitted,
                     s_localpref == o_localpref,
                     s_aslen == o_aslen,
                     select_origin == False,
+                    select_med == False,
+                    not_select_med == True,
                     select_ebgp == True,
                     self.ctx.z3_ctx),
                 # 7) Path with the lowest IGP metric to the BGP next hop.
@@ -487,6 +503,8 @@ class BGP(object):
                     s_localpref == o_localpref,
                     s_aslen == o_aslen,
                     select_origin == False,
+                    select_med == False,
+                    not_select_med == True,
                     select_ebgp == False,
                     use_igp == True,
                     igp_path_equal.var == False,
@@ -504,6 +522,8 @@ class BGP(object):
                     s_localpref == o_localpref,
                     s_aslen == o_aslen,
                     select_origin == False,
+                    select_med == False,
+                    not_select_med == True,
                     select_ebgp == False,
                     use_igp == True,
                     best_igp_cost == other_igp_cost,
