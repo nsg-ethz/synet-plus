@@ -291,27 +291,35 @@ class EBGPPropagation(object):
 
     def partial_eval_propagated_info(self):
         def get_as_path(path):
-            as_path = []
+            assert path
+            external_peer = None
             egress = None
             peer = None
-            egress_peer = path[0]
-            for index, node in enumerate(path):
-                if not self.network_graph.is_bgp_enabled(node):
-                    continue
-                if index > 0:
+            # Shortcut
+            is_bgp = self.network_graph.is_bgp_enabled
+            get_as = self.network_graph.get_bgp_asnum
+            if len(path) == 1:
+                # Self announcing node
+                external_peer = None
+                egress = None
+                peer = None
+                as_path = [get_as(path[0])]
+            else:
+                as_path = [get_as(path[0])]
+                for index, node in enumerate(path):
+                    if index == 0:
+                        continue
                     prev = path[index - 1]
-                    if self.network_graph.is_bgp_enabled(prev):
-                        if egress_peer and self.network_graph.get_bgp_asnum(node) == self.network_graph.get_bgp_asnum(egress_peer):
-                            peer = egress_peer
-                        else:
-                            peer = prev
-                    if self.network_graph.get_bgp_asnum(prev) != self.network_graph.get_bgp_asnum(node):
-                        egress = prev
-                        egress_peer = node
-                asnum = self.network_graph.get_bgp_asnum(node)
-                if not as_path or (as_path and as_path[-1] != asnum):
-                    as_path.append(asnum)
-            return egress, peer, tuple(reversed(as_path))
+                    if not is_bgp(node):
+                        continue
+                    if is_bgp(prev):
+                        peer = prev
+                        if get_as(node) != get_as(prev):
+                            external_peer = prev
+                            egress = node
+                    if not as_path or (as_path and as_path[-1] != get_as(node)):
+                        as_path.append(get_as(node))
+            return external_peer, egress, peer, tuple(reversed(as_path))
 
         cache = dict()
         for node in self.ibgp_propagation:
@@ -320,19 +328,21 @@ class EBGPPropagation(object):
                 for path in paths:
                     if path in cache:
                         continue
-                    egress, peer, as_path = get_as_path(path)
+                    external_peer, egress, peer, as_path = get_as_path(path)
                     # Append any extra AS Path info in the original announcement
                     for ann in self.network_graph.get_bgp_advertise(path[0]):
                         if ann.prefix == net:
                             as_path += tuple(ann.as_path)
                             break
                     as_path_len = len(as_path)
-                    info = PropagatedInfo(egress=egress,
-                                          ann_name=net,
-                                          peer=peer,
-                                          as_path=as_path,
-                                          as_path_len=as_path_len,
-                                          path=path)
+                    info = PropagatedInfo(
+                        external_peer=external_peer,
+                        egress=egress,
+                        ann_name=net,
+                        peer=peer,
+                        as_path=as_path,
+                        as_path_len=as_path_len,
+                        path=path)
                     cache[path] = info
                 order_info = []
                 block_info = set()
@@ -358,14 +368,13 @@ class EBGPPropagation(object):
                 return None
             neighbor = propagated.peer
             neighbor_as_num = self.network_graph.get_bgp_asnum(neighbor)
-            n_paths = self.ibgp_propagation.node[neighbor]['nets'][net]['paths_info']
+            neighbor_attrs = self.ibgp_propagation.node[neighbor]['nets'][net]
+            n_paths = neighbor_attrs['paths_info'].union(neighbor_attrs['block_info'])
             for neighbor_info in n_paths:
                 assert isinstance(neighbor_info, PropagatedInfo)
-                #if propagated.path[:-1] != neighbor_info.path:
-                #    continue
-                #elif as_num == neighbor_as_num and propagated.as_path != neighbor_info.as_path:
-                #    continue
-                if propagated.peer != neighbor_info.peer and as_num != neighbor_as_num and propagated.as_path[1:] != neighbor_info.as_path:
+                if propagated.peer != neighbor_info.peer \
+                        and as_num != neighbor_as_num \
+                        and propagated.as_path[1:] != neighbor_info.as_path:
                     continue
                 else:
                     return neighbor_info

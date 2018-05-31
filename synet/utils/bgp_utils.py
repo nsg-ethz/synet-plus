@@ -246,8 +246,9 @@ class ForwardingLoopError(NotValidBGPPropagation):
 class PropagatedInfo(object):
     """BGP Information carried in Propagation graph"""
 
-    def __init__(self, egress, ann_name, peer, as_path, as_path_len, path):
+    def __init__(self, external_peer, egress, ann_name, peer, as_path, as_path_len, path):
         """
+        :param external_peer: the router from different AS
         :param egress: The first local router learns the prefix
         :param ann_name: The name of announcement variable
         :param peer: the eBGP (or first iBGP) peer propagated the route
@@ -255,12 +256,18 @@ class PropagatedInfo(object):
         :param as_path_len: The length of AS Path
         :param path: The router path (used in IGP)
         """
+        self._external_peer = external_peer
         self._egress = egress
         self._ann_name = ann_name
         self._peer = peer
         self._as_path = as_path
         self._as_path_len = as_path_len
         self._path = path
+
+    @property
+    def external_peer(self):
+        """The first local router learns the prefix"""
+        return self._external_peer
 
     @property
     def egress(self):
@@ -293,9 +300,10 @@ class PropagatedInfo(object):
         return self._path
 
     def __str__(self):
-        return "Prop<Egress:%s, %s, Peer:%s, %s, %s, %s>" % (
-            self.egress,
+        return "Prop<Prefix: {}, External: {}, Egress: {}, Peer: {}, ASPath: {}, ASPathLen: {}, Path: {}>".format(
             self.ann_name,
+            self.external_peer,
+            self.egress,
             self.peer,
             self.as_path,
             self.as_path_len,

@@ -340,16 +340,16 @@ class PropagationTest2(unittest.TestCase):
         g = get_ibgp_linear_topo(N=N)
         net = "Prefix0"
         prefix_map = {net: ip_network(u'128.0.0.0/24')}
-        g.set_loopback_addr('R1', 'lo0',
-                            ip_interface("%s/%d" % (prefix_map[net].hosts().next(),
-                                                    prefix_map[net].prefixlen)))
+        ifaddr = ip_interface("%s/%d" % (prefix_map[net].hosts().next(), prefix_map[net].prefixlen))
+        g.set_loopback_addr('R1', 'lo0', ifaddr)
+
         g.add_bgp_announces('R1', 'lo0')
         for i, node in enumerate(sorted(g.routers_iter())):
             g.set_loopback_addr('R%d' % (i + 1), 'lo100', ip_interface(u'192.168.0.%d/32' % i))
-        for i in range(1, N):
-            r1 = 'R1'
-            r2 = "R%d" % (i + 1)
-            g.set_bgp_neighbor_iface(r1, r2, 'lo100')
+        #for i in range(1, N):
+        #    r1 = 'R1'
+        #    r2 = "R%d" % (i + 1)
+        #    g.set_bgp_neighbor_iface(r1, r2, 'lo100')
 
         for i in range(2, N + 1):
             r1 = 'R1'
@@ -363,11 +363,14 @@ class PropagationTest2(unittest.TestCase):
             g.add_bgp_import_route_map(node, r1, rmap.name)
 
         #nx.nx_pydot.write_dot(g, '/tmp/linear.dot')
-        req = PathReq(Protocols.BGP, dst_net='Prefix0',
-                      path=['R3', 'R2', 'R1'], strict=False)
-        ctx = self.create_context([req], g)
+        req1 = PathReq(Protocols.BGP, dst_net='Prefix0',
+                      path=['R3', 'R1'], strict=False)
+        req2 = PathReq(Protocols.BGP, dst_net='Prefix0',
+                       path=['R2', 'R1'], strict=False)
+        reqs = [req1, req2]
+        ctx = self.create_context(reqs, g)
         # Act
-        propagation = EBGPPropagation([req], g, ctx)
+        propagation = EBGPPropagation(reqs, g, ctx)
         propagation.compute_dags()
 
         # Assert

@@ -11,6 +11,9 @@ import z3
 from tekton.bgp import Announcement
 from tekton.graph import NetworkGraph
 from synet.utils.fnfree_policy import SMTRouteMap
+from synet.utils.fnfree_policy import SMTSetNextHop
+from synet.utils.fnfree_policy import SMTMatchNextHop
+from synet.utils.fnfree_policy import SMTMatchAll
 from synet.utils.fnfree_smt_context import ASPATH_SORT
 from synet.utils.fnfree_smt_context import AnnouncementsContext
 from synet.utils.fnfree_smt_context import BGP_ORIGIN_SORT
@@ -149,24 +152,10 @@ class BGP(object):
         for propagated in all_anns:
             fixed = {'prefix': propagated.ann_name}
             # Partial eval the next hop
-            if propagated.egress:
-                # If the route is externally learned,
-                # then it's the next hop of the egress
-                egress_index = propagated.path.index(propagated.egress)
-                egress_peer = propagated.path[egress_index + 1]
-                egress_peer = egress_peer if egress_peer != self.node else propagated.egress
-                fixed['next_hop'] = self.next_hop_map[self.node][egress_peer]
-            elif len(set(propagated.as_path)) == 1:
-                # If the route is announced by this router
-                # then pick one of the next hops
-                # TODO: Make this method more accurate
-                for _, vals in self.next_hop_map.iteritems():
-                    for r, nxt in vals.iteritems():
-                        if r == self.node:
-                            fixed['next_hop'] = nxt
-                            break
-            err = "At router {}, couldn't compute next hop for {}".format(self.node, propagated)
-            assert 'next_hop' in fixed, err
+            if len(propagated.path) == 1:
+                fixed['next_hop'] = self.ctx.origin_next_hop
+                print "X" * 20, 'fixed at {}: {}'.format(self.node, fixed['next_hop'])
+
             # Partial eval peer
             fixed['peer'] = self.node if len(propagated.path) == 1 else propagated.peer
             # TODO: support more origins
@@ -181,7 +170,8 @@ class BGP(object):
                 fixed['communities'] = {}
                 for community in self.ctx.communities:
                     fixed['communities'][community] = False
-            new_ann = create_sym_ann(self.ctx, fixed, name_prefix="Sham_%s_" % self.node)
+            name_prefix = "Sham_{}_{}_from_{}".format(self.node, propagated.ann_name, propagated.peer)
+            new_ann = create_sym_ann(self.ctx, fixed, name_prefix=name_prefix)
             anns_map[propagated] = new_ann
         return anns_map
 
@@ -221,17 +211,37 @@ class BGP(object):
                 del export_anns[neighbor]
         # Third, apply export route map (if any)
         for neighbor, vals in export_anns.iteritems():
-            rmap_name = self.network_graph.get_bgp_export_route_map(self.node, neighbor)
-            if not rmap_name:
-                continue
-            rmap = self.network_graph.get_route_maps(self.node)[rmap_name]
-            # Since the announcemets will change
+            # Since the announcements will change
             # We try to keep the ordering
             props = []
             anns = []
             for prop, ann in vals.iteritems():
                 props.append(prop)
                 anns.append(ann)
+
+            curr_as = self.network_graph.get_bgp_asnum(self.node)
+            neighbor_as = self.network_graph.get_bgp_asnum(neighbor)
+            if curr_as != neighbor_as:
+                match = SMTMatchAll(self.ctx)
+            else:
+                vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
+                value = self.ctx.create_fresh_var(vsort=vsort, value=self.ctx.origin_next_hop_var)
+                match = SMTMatchNextHop(value=value, announcements=anns, ctx=self.ctx)
+
+            tmp1 = self.anns_ctx.create_new(anns, 'SetNextHop_{}_to_{}'.format(self.node, neighbor))
+            next_hop = self.next_hop_map[neighbor][self.node]
+            vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
+            var = self.ctx.create_fresh_var(vsort=vsort, value=next_hop)
+            action = SMTSetNextHop(match, value=var, announcements=tmp1, ctx=self.ctx)
+            action.execute()
+            for index, prop in enumerate(props):
+                export_anns[neighbor][prop] = action.announcements[index]
+                anns[index] = action.announcements[index]
+
+            rmap_name = self.network_graph.get_bgp_export_route_map(self.node, neighbor)
+            if not rmap_name:
+                continue
+            rmap = self.network_graph.get_route_maps(self.node)[rmap_name]
             tmp = self.anns_ctx.create_new(anns, self.compute_exported_routes)
             smt_map = SMTRouteMap(rmap, tmp, self.ctx)
             self.rmaps[rmap_name] = smt_map
@@ -260,7 +270,7 @@ class BGP(object):
         #attrs = ['prefix', 'peer', 'origin', 'as_path', 'as_path_len',
         #         'next_hop', 'local_pref', 'med', 'permitted']
         # The attributes that are read from the neighbor
-        attrs = ['prefix', 'origin', 'local_pref', 'med', 'permitted']
+        attrs = ['prefix', 'next_hop', 'origin', 'local_pref', 'med', 'permitted']
         for neighbor in self.network_graph.get_bgp_neighbors(self.node):
             if not self.ibgp_propagation.has_node(neighbor):
                 continue
@@ -523,9 +533,9 @@ class BGP(object):
         for propagated, ann in self.anns_map.iteritems():
             n = '_%s_from_%s_' % (self.node, propagated.peer)
             if ann not in self.selected_sham:
-                self.ctx.register_constraint(ann.permitted.var == False, name_prefix='Block' + n)
+                self.ctx.register_constraint(ann.permitted.var == False, name_prefix='Req_Block' + n)
             else:
-                self.ctx.register_constraint(ann.permitted.var == True, name_prefix='Allow' + n)
+                self.ctx.register_constraint(ann.permitted.var == True, name_prefix='Req_Allow' + n)
 
     def synthesize(self, use_igp=False):
         print "Synthesizing", self.node
