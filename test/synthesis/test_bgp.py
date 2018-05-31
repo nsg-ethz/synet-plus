@@ -60,7 +60,7 @@ class BGPTest(unittest.TestCase):
             prefix=prefix, peer='R1', origin=BGP_ATTRS_ORIGIN.EBGP,
             as_path=[100], as_path_len=1,
             next_hop='Hop1', local_pref=100, med=10,
-            communities={c1: False, c2: False, c3: False}, permitted=True)
+            communities={c1: True, c2: False, c3: False}, permitted=True)
         return [ann1]
 
     def get_ebgp_topo(self):
@@ -178,11 +178,11 @@ class BGPTest(unittest.TestCase):
 
     def test_next_hop_ebgp(self):
         # Arrange
-        graph, ann = self.get_ebgp_topo()
+        graph, origin_ann = self.get_ebgp_topo()
         r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
-        prefix = ann.prefix
+        prefix = origin_ann.prefix
         req = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r3, r2, r1], strict=False)
-        netcomplete = NetComplete([req], graph, [ann])
+        netcomplete = NetComplete([req], graph, [origin_ann])
         next_hop_vals = {
             'R1': '0.0.0.0',
             'R2': 'R1-Fa0-0',
@@ -223,24 +223,24 @@ class BGPTest(unittest.TestCase):
                 self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
 
                 self.assertTrue(ann.med.is_concrete)
-                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
+                self.assertEquals(ann.med.get_value(), origin_ann.med)
 
                 self.assertTrue(ann.local_pref.is_concrete)
-                self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
+                self.assertEquals(ann.local_pref.get_value(), origin_ann.local_pref)
 
                 for comm, val in ann.communities.iteritems():
                     self.assertTrue(val.is_concrete)
-                    self.assertFalse(val.get_value())
+                    self.assertEquals(val.get_value(), origin_ann.communities[comm])
 
     def test_next_hop_ibgp(self):
         # Arrange
-        graph, ann = self.get_ibgp_topo()
+        graph, origin_ann = self.get_ibgp_topo()
         r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
-        prefix = ann.prefix
+        prefix = origin_ann.prefix
         req1 = PathReq(Protocols.BGP, dst_net=prefix, path=[r2, r1], strict=False)
         req2 = PathReq(Protocols.BGP, dst_net=prefix, path=[r3, r1], strict=False)
         req3 = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r1], strict=False)
-        netcomplete = NetComplete([req1, req2, req3], graph, [ann])
+        netcomplete = NetComplete([req1, req2, req3], graph, [origin_ann])
         next_hop_vals = {
             'R1': '0.0.0.0',
             'R2': 'R1-lo100',
@@ -282,14 +282,15 @@ class BGPTest(unittest.TestCase):
                 self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
 
                 self.assertTrue(ann.med.is_concrete)
-                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
+                self.assertEquals(ann.med.get_value(), origin_ann.med)
 
                 self.assertTrue(ann.local_pref.is_concrete)
-                self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
+                self.assertEquals(ann.local_pref.get_value(), origin_ann.local_pref)
 
                 for comm, val in ann.communities.iteritems():
                     self.assertTrue(val.is_concrete)
-                    self.assertFalse(val.get_value())
+                    self.assertEquals(val.get_value(), origin_ann.communities[comm])
+
 
     def test_next_hop_mixed(self):
         # Arrange
@@ -371,7 +372,3 @@ class BGPTest(unittest.TestCase):
                 for comm, val in ann.communities.iteritems():
                     self.assertTrue(val.is_concrete)
                     self.assertFalse(val.get_value())
-
-    def test_communities(self):
-        # TODO
-        pass

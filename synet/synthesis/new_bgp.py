@@ -151,11 +151,6 @@ class BGP(object):
         all_anns = get_propagated_info(self.ibgp_propagation, self.node, unselected=True)
         for propagated in all_anns:
             fixed = {'prefix': propagated.ann_name}
-            # Partial eval the next hop
-            if len(propagated.path) == 1:
-                fixed['next_hop'] = self.ctx.origin_next_hop
-                print "X" * 20, 'fixed at {}: {}'.format(self.node, fixed['next_hop'])
-
             # Partial eval peer
             fixed['peer'] = self.node if len(propagated.path) == 1 else propagated.peer
             # TODO: support more origins
@@ -165,11 +160,24 @@ class BGP(object):
             fixed['as_path'] = get_as_path_key(propagated.as_path)
             fixed['as_path_len'] = len(propagated.as_path) - 1
             if len(propagated.path) == 1:
-                fixed['local_pref'] = DEFAULT_LOCAL_PREF
-                fixed['med'] = DEFAULT_MED
-                fixed['communities'] = {}
-                for community in self.ctx.communities:
-                    fixed['communities'][community] = False
+                origin_anns = None
+                for tt in self.network_graph.get_bgp_advertise(propagated.path[0]):
+                    if propagated.ann_name == tt.prefix:
+                        origin_anns = tt
+                        break
+                fixed['next_hop'] = self.ctx.origin_next_hop
+                if origin_anns:
+                    fixed['local_pref'] = origin_anns.local_pref
+                    fixed['med'] = origin_anns.med
+                    fixed['communities'] = {}
+                    for community in self.ctx.communities:
+                        fixed['communities'][community] = origin_anns.communities[community]
+                else:
+                    fixed['local_pref'] = DEFAULT_LOCAL_PREF
+                    fixed['med'] = DEFAULT_MED
+                    fixed['communities'] = {}
+                    for community in self.ctx.communities:
+                        fixed['communities'][community] = False
             name_prefix = "Sham_{}_{}_from_{}".format(self.node, propagated.ann_name, propagated.peer)
             new_ann = create_sym_ann(self.ctx, fixed, name_prefix=name_prefix)
             anns_map[propagated] = new_ann
