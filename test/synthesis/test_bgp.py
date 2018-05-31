@@ -63,8 +63,7 @@ class BGPTest(unittest.TestCase):
             communities={c1: False, c2: False, c3: False}, permitted=True)
         return [ann1]
 
-    def test_next_hop_ebgp(self):
-        # Arrange
+    def get_ebgp_topo(self):
         graph = get_ebgp_linear_topo(4)
         r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
         net = ip_network(u'128.0.0.0/24')
@@ -74,59 +73,9 @@ class BGPTest(unittest.TestCase):
         graph.set_loopback_addr('R1', 'lo100', iface_addr)
         ann = self.get_anns(prefix)[0]
         graph.add_bgp_advertise(node=r1, announcement=ann, loopback='lo100')
-        req = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r3, r2, r1], strict=False)
-        netcomplete = NetComplete([req], graph, [ann])
-        next_hop_vals = {
-            'R1': '0.0.0.0',
-            'R2': 'R1-Fa0-0',
-            'R3': 'R2-Fa0-1',
-            'R4': 'R3-Fa0-1',
-        }
-        as_path_vals = {
-            'R1': 'as_path_100_100',
-            'R2': 'as_path_200_100_100',
-            'R3': 'as_path_300_200_100_100',
-            'R4': 'as_path_400_300_200_100_100',
-        }
-        as_path_len_vals = {
-            'R1': 1,
-            'R2': 2,
-            'R3': 3,
-            'R4': 4,
-        }
-        # Act
-        ret = netcomplete.synthesize()
-        # Assert
-        self.assertTrue(ret)
-        for node, attrs in netcomplete.bgp_synthesizer.ibgp_propagation.nodes(data=True):
-            for ann in attrs['box'].selected_sham:
-                self.assertTrue(ann.permitted.is_concrete)
-                self.assertTrue(ann.permitted.get_value())
+        return graph, ann
 
-                self.assertTrue(ann.prefix.is_concrete)
-                self.assertEquals(ann.prefix.get_value(), prefix)
-
-                self.assertTrue(ann.next_hop.is_concrete)
-                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
-
-                self.assertTrue(ann.as_path.is_concrete)
-                self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
-
-                self.assertTrue(ann.as_path_len.is_concrete)
-                self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
-
-                self.assertTrue(ann.med.is_concrete)
-                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
-
-                self.assertTrue(ann.local_pref.is_concrete)
-                self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
-
-                for comm, val in ann.communities.iteritems():
-                    self.assertTrue(val.is_concrete)
-                    self.assertFalse(val.get_value())
-
-    def test_next_hop_ibgp(self):
-        # Arrange
+    def get_ibgp_topo(self):
         graph = get_ibgp_linear_topo(4)
         r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
         graph.enable_ospf(r1)
@@ -143,64 +92,11 @@ class BGPTest(unittest.TestCase):
         graph.add_ospf_network(r4, 'lo100', area='0.0.0.0')
         ann = self.get_anns(prefix)[0]
         graph.add_bgp_advertise(node=r1, announcement=ann, loopback='lo10')
-        req1 = PathReq(Protocols.BGP, dst_net=prefix, path=[r2, r1], strict=False)
-        req2 = PathReq(Protocols.BGP, dst_net=prefix, path=[r3, r1], strict=False)
-        req3 = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r1], strict=False)
-        netcomplete = NetComplete([req1, req2, req3], graph, [ann])
-        next_hop_vals = {
-            'R1': '0.0.0.0',
-            'R2': 'R1-lo100',
-            'R3': 'R1-lo100',
-            'R4': 'R1-lo100',
-        }
-        as_path_vals = {
-            'R1': 'as_path_100_100',
-            'R2': 'as_path_100_100',
-            'R3': 'as_path_100_100',
-            'R4': 'as_path_100_100',
-        }
-        as_path_len_vals = {
-            'R1': 1,
-            'R2': 1,
-            'R3': 1,
-            'R4': 1,
-        }
-        # Act
-        ret = netcomplete.synthesize()
-        netcomplete.write_configs('out-configs/ibgp')
-        # Assert
-        self.assertTrue(ret)
-        for node, attrs in netcomplete.bgp_synthesizer.ibgp_propagation.nodes(data=True):
-            for ann in attrs['box'].selected_sham:
-                self.assertTrue(ann.permitted.is_concrete)
-                self.assertTrue(ann.permitted.get_value())
+        return graph, ann
 
-                self.assertTrue(ann.prefix.is_concrete)
-                self.assertEquals(ann.prefix.get_value(), prefix)
-
-                self.assertTrue(ann.next_hop.is_concrete)
-                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
-
-                self.assertTrue(ann.as_path.is_concrete)
-                self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
-
-                self.assertTrue(ann.as_path_len.is_concrete)
-                self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
-
-                self.assertTrue(ann.med.is_concrete)
-                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
-
-                self.assertTrue(ann.local_pref.is_concrete)
-                self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
-
-                for comm, val in ann.communities.iteritems():
-                    self.assertTrue(val.is_concrete)
-                    self.assertFalse(val.get_value())
-
-    def test_next_hop_mixed(self):
-        # Arrange
+    def get_cust_peer_linear_topo(self):
         graph = gen_mesh(2, 100)
-        r1, r2= 'R1', 'R2'
+        r1, r2 = 'R1', 'R2'
 
         graph.enable_ospf(r1)
         graph.enable_ospf(r2)
@@ -277,6 +173,130 @@ class BGPTest(unittest.TestCase):
                             med=100,
                             communities=dict([(c, False) for c in comms]),
                             permitted=True)
+
+        return graph, [ann1, ann2, ann3]
+
+    def test_next_hop_ebgp(self):
+        # Arrange
+        graph, ann = self.get_ebgp_topo()
+        r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
+        prefix = ann.prefix
+        req = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r3, r2, r1], strict=False)
+        netcomplete = NetComplete([req], graph, [ann])
+        next_hop_vals = {
+            'R1': '0.0.0.0',
+            'R2': 'R1-Fa0-0',
+            'R3': 'R2-Fa0-1',
+            'R4': 'R3-Fa0-1',
+        }
+        as_path_vals = {
+            'R1': 'as_path_100_100',
+            'R2': 'as_path_200_100_100',
+            'R3': 'as_path_300_200_100_100',
+            'R4': 'as_path_400_300_200_100_100',
+        }
+        as_path_len_vals = {
+            'R1': 1,
+            'R2': 2,
+            'R3': 3,
+            'R4': 4,
+        }
+        # Act
+        ret = netcomplete.synthesize()
+        # Assert
+        self.assertTrue(ret)
+        for node, attrs in netcomplete.bgp_synthesizer.ibgp_propagation.nodes(data=True):
+            for ann in attrs['box'].selected_sham:
+                self.assertTrue(ann.permitted.is_concrete)
+                self.assertTrue(ann.permitted.get_value())
+
+                self.assertTrue(ann.prefix.is_concrete)
+                self.assertEquals(ann.prefix.get_value(), prefix)
+
+                self.assertTrue(ann.next_hop.is_concrete)
+                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
+
+                self.assertTrue(ann.as_path.is_concrete)
+                self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
+
+                self.assertTrue(ann.as_path_len.is_concrete)
+                self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
+
+                self.assertTrue(ann.med.is_concrete)
+                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
+
+                self.assertTrue(ann.local_pref.is_concrete)
+                self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
+
+                for comm, val in ann.communities.iteritems():
+                    self.assertTrue(val.is_concrete)
+                    self.assertFalse(val.get_value())
+
+    def test_next_hop_ibgp(self):
+        # Arrange
+        graph, ann = self.get_ibgp_topo()
+        r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
+        prefix = ann.prefix
+        req1 = PathReq(Protocols.BGP, dst_net=prefix, path=[r2, r1], strict=False)
+        req2 = PathReq(Protocols.BGP, dst_net=prefix, path=[r3, r1], strict=False)
+        req3 = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r1], strict=False)
+        netcomplete = NetComplete([req1, req2, req3], graph, [ann])
+        next_hop_vals = {
+            'R1': '0.0.0.0',
+            'R2': 'R1-lo100',
+            'R3': 'R1-lo100',
+            'R4': 'R1-lo100',
+        }
+        as_path_vals = {
+            'R1': 'as_path_100_100',
+            'R2': 'as_path_100_100',
+            'R3': 'as_path_100_100',
+            'R4': 'as_path_100_100',
+        }
+        as_path_len_vals = {
+            'R1': 1,
+            'R2': 1,
+            'R3': 1,
+            'R4': 1,
+        }
+        # Act
+        ret = netcomplete.synthesize()
+        netcomplete.write_configs('out-configs/ibgp')
+        # Assert
+        self.assertTrue(ret)
+        for node, attrs in netcomplete.bgp_synthesizer.ibgp_propagation.nodes(data=True):
+            for ann in attrs['box'].selected_sham:
+                self.assertTrue(ann.permitted.is_concrete)
+                self.assertTrue(ann.permitted.get_value())
+
+                self.assertTrue(ann.prefix.is_concrete)
+                self.assertEquals(ann.prefix.get_value(), prefix)
+
+                self.assertTrue(ann.next_hop.is_concrete)
+                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
+
+                self.assertTrue(ann.as_path.is_concrete)
+                self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
+
+                self.assertTrue(ann.as_path_len.is_concrete)
+                self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
+
+                self.assertTrue(ann.med.is_concrete)
+                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
+
+                self.assertTrue(ann.local_pref.is_concrete)
+                self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
+
+                for comm, val in ann.communities.iteritems():
+                    self.assertTrue(val.is_concrete)
+                    self.assertFalse(val.get_value())
+
+    def test_next_hop_mixed(self):
+        # Arrange
+        graph, (ann1, ann2, ann3) = self.get_cust_peer_linear_topo()
+        r1, r2, provider1, provider2,  customer = 'R1', 'R2', 'Provider1', 'Provider2', 'Customer'
+        prefix1 = ann1.prefix
+        prefix2 = ann3.prefix
         graph.add_bgp_advertise(node=provider1, announcement=ann1, loopback='lo10')
         graph.add_bgp_advertise(node=provider2, announcement=ann2, loopback='lo10')
         #graph.add_bgp_advertise(node=customer, announcement=ann3, loopback='lo10')
