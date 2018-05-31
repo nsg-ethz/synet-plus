@@ -552,9 +552,13 @@ class SolverContext(object):
         # Next Hop
         read_list = [x.next_hop for x in announcements
                      if not is_empty(x.next_hop)]
+        origin_next_hop = '0.0.0.0'
+        read_list.append(origin_next_hop)
         next_hope_list = list(set(read_list + next_hope_list))
-        ctx.create_enum_type(NEXT_HOP_SORT, next_hope_list)
+        vsort = ctx.create_enum_type(NEXT_HOP_SORT, next_hope_list)
         ctx.communities = announcements[0].communities.keys()
+        ctx.origin_next_hop = origin_next_hop
+        ctx.origin_next_hop_var = vsort.get_symbolic_value(origin_next_hop)
         return ctx
 
 
