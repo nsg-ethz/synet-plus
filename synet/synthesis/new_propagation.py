@@ -408,8 +408,8 @@ class EBGPPropagation(object):
         for node in self.ibgp_propagation.nodes():
             box = self.ibgp_propagation.node[node]['box']
             tmp = box.generated_ospf_reqs
-            if tmp:
-                reqs.extend(tmp)
+            for isequal, p1, p2 in tmp:
+                reqs.append(isequal.get_value(), p1, p2)
         return reqs
 
     def update_network_graph(self):

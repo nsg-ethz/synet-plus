@@ -422,11 +422,14 @@ class BGP(object):
                              self.ctx.z3_ctx)
 
         # IGP
+        igp_path_equal = "igp_{}_is_equal_{}".format("_".join(best_propagated.path), "_".join(other_propagated.path))
+        self.ctx.create_fresh_var(z3.BoolSort(self.ctx.z3_ctx), name_prefix=igp_path_equal)
         if use_igp:
             best_igp_cost, best_sub_path = self.get_path_cost(best_propagated.path)
             other_igp_cost, other_sub_path = self.get_path_cost(other_propagated.path)
+
             if best_sub_path and other_sub_path:
-                self.generated_ospf_reqs.append((best_sub_path, other_sub_path))
+                self.generated_ospf_reqs.append((igp_path_equal, best_sub_path, other_sub_path))
         else:
             # Force the opposite selection
             best_igp_cost = 15
@@ -486,6 +489,7 @@ class BGP(object):
                     select_origin == False,
                     select_ebgp == False,
                     use_igp == True,
+                    igp_path_equal.var == False,
                     best_igp_cost < other_igp_cost,
                     self.ctx.z3_ctx
                 ),
@@ -504,6 +508,7 @@ class BGP(object):
                     use_igp == True,
                     best_igp_cost == other_igp_cost,
                     select_router_id == True,
+                    igp_path_equal.var == True,
                     self.ctx.z3_ctx
                 ),
                 self.ctx.z3_ctx,
