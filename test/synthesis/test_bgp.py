@@ -1,51 +1,25 @@
-
-import time
-import z3
 import unittest
 
-import networkx as nx
+from ipaddress import ip_interface
+from ipaddress import ip_network
 
+from synet.netcomplete import NetComplete
+from synet.synthesis.new_bgp import DEFAULT_LOCAL_PREF
+from synet.synthesis.new_bgp import DEFAULT_MED
 from synet.utils.common import KConnectedPathsReq
+from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
-from synet.utils.common import PathOrderReq
+from synet.utils.topo_gen import gen_mesh
 from synet.utils.topo_gen import get_ebgp_linear_topo
 from synet.utils.topo_gen import get_ibgp_linear_topo
-from synet.utils.topo_gen import gen_mesh
-from synet.utils.topo_gen import get_griffin_graph
-from synet.utils.topo_gen import get_griffin_ibgp_graph
 
-from tekton.graph import NetworkGraph
-from ipaddress import ip_network
-from ipaddress import ip_interface
 from tekton.bgp import Access
-from tekton.bgp import RouteMap
-from tekton.bgp import RouteMapLine
-from tekton.bgp import IpPrefixList
-from tekton.bgp import MatchIpPrefixListList
-from tekton.bgp import MatchAsPath
-from tekton.bgp import MatchAsPathLen
-from tekton.bgp import ActionSetLocalPref
 from tekton.bgp import Announcement
 from tekton.bgp import BGP_ATTRS_ORIGIN
 from tekton.bgp import Community
-
-from tekton.gns3 import GNS3Topo
-
-from synet.utils.bgp_utils import compute_next_hop_map
-from synet.utils.bgp_utils import extract_all_next_hops
-from synet.utils.smt_context import VALUENOTSET
-from synet.synthesis.new_propagation import EBGPPropagation
-from synet.synthesis.connected import ConnectedSyn
-
-
-from synet.utils.fnfree_smt_context import read_announcements
-from synet.utils.fnfree_smt_context import SolverContext
-
-from synet.synthesis.new_bgp import DEFAULT_LOCAL_PREF
-from synet.synthesis.new_bgp import DEFAULT_MED
-
-from synet.netcomplete import NetComplete
+from tekton.bgp import RouteMap
+from tekton.bgp import RouteMapLine
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
