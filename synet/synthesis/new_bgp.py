@@ -560,11 +560,13 @@ class BGP(object):
         #self.constraints["%s_set" % name] = z3.And(*const_set)
         #self.constraints[name] = z3.And(*const_selection)
         tmp = const_selection + [self.ctx.z3_ctx]
-        self.ctx.register_constraint(z3.And(*tmp) == True, name_prefix="SELECT_%s_" % self.node)
+        prefix = "SELECT_at_{}_prefix_{}_path_{}_".format(
+            self.node, best_propagated.ann_name, '_'.join(best_propagated.path))
+        self.ctx.register_constraint(z3.And(*tmp) == True, name_prefix=prefix)
 
     def mark_selected(self):
         for propagated, ann in self.anns_map.iteritems():
-            n = '_%s_from_%s_' % (self.node, propagated.peer)
+            n = '_{}_from_{}_path_{}_'.format(self.node, propagated.peer, '_'.join(propagated.path))
             if ann not in self.selected_sham:
                 self.ctx.register_constraint(ann.permitted.var == False, name_prefix='Req_Block' + n)
             else:
@@ -582,9 +584,11 @@ class BGP(object):
             anns_order[net] = info['order_info']
 
         for ann_name, values in anns_order.iteritems():
+            if self.node == 'Customer':
+                print ann_name, values
             if len(values) == 1:
                 # This router only learns one route
-                # No need to use the perference function
+                # No need to use the preference function
                 continue
             for best_prop_set, other_prop_set in zip(values[0::1], values[1::1]):
                 for best_prop in best_prop_set:
