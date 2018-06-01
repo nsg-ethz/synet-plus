@@ -291,7 +291,6 @@ class BGPTest(unittest.TestCase):
                     self.assertTrue(val.is_concrete)
                     self.assertEquals(val.get_value(), origin_ann.communities[comm])
 
-
     def test_next_hop_mixed(self):
         # Arrange
         graph, (ann1, ann2, ann3) = self.get_cust_peer_linear_topo()
