@@ -232,7 +232,7 @@ class PathOrderReq(Req):
         assert isinstance(strict, bool)
         assert isinstance(paths, Iterable)
         for path in paths:
-            assert isinstance(path, PathReq)
+            assert isinstance(path, (PathReq, KConnectedPathsReq))
             assert path.strict == False
             assert path.dst_net == dst_net
         self.protocol = protocol
