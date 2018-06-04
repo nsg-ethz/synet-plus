@@ -149,6 +149,9 @@ class EBGPPropagation(object):
         return tuple(reversed(bgp_path))
 
     def extract_reqs(self, reqs):
+        """
+        For each requirement return the AS paths and router paths
+        """
         as_paths = []
         router_paths = []
         for req in reqs:
@@ -259,19 +262,20 @@ class EBGPPropagation(object):
         self.ibgp_propagation = ibgp_propagation
 
     def compute_dags(self):
-        # Collect the paths from the requirements for each prefix
-        # Net-> List of Reqs
+        """Compute the propagation graph"""
+        # First, group requirements by traffic class: Net-> List of Reqs
         net_reqs = {}
         for req in self.reqs:
             if req.dst_net not in net_reqs:
                 net_reqs[req.dst_net] = []
             net_reqs[req.dst_net].append(req)
 
+        # For each traffic class compute the propagation graph
         for net, reqs in net_reqs.iteritems():
             ebgp_paths, ibgp_paths = self.extract_reqs(reqs)
-            # Compute eBGP propagation
+            # First compute the propagation among ASes (eBGP propagation)
             ebgp_propagation = compute_propagation(self.verify.peering_graph, ebgp_paths)
-            # Compute iBGP Propagation
+            # Second compute the propagation among routers and possibily iBGP Propagation
             ibgp_propagation = compute_propagation(self.network_graph, ibgp_paths)
             for node in ibgp_propagation.nodes():
                 clear = [x for x in ibgp_propagation.node[node]['order'] if x]
@@ -409,7 +413,7 @@ class EBGPPropagation(object):
             box = self.ibgp_propagation.node[node]['box']
             tmp = box.generated_ospf_reqs
             for isequal, p1, p2 in tmp:
-                reqs.append(isequal.get_value(), p1, p2)
+                reqs.append((isequal.get_value(), p1, p2))
         return reqs
 
     def update_network_graph(self):
