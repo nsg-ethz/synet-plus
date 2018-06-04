@@ -66,7 +66,9 @@ class NetCompleteConfigs(object):
     def __init__(self,
                  auto_enable_ospf_process=False,
                  default_ospf_process_id=100,
-                 auto_enable_ospf_link_costs=True):
+                 auto_enable_ospf_link_costs=True,
+                 bgp_smt='smt.smt2',
+                 ):
         """
 
         :param auto_enable_ospf_process: Run OSPF on all routers that are part
@@ -75,10 +77,12 @@ class NetCompleteConfigs(object):
         :param auto_enable_ospf_link_costs: Set symbolic link
                 costs on all links that are part of OSPF requirements, even if
                 not enabled by the sketch
+        :param bgp_smt: a filename to dump the SMT formula for BGP. To disable set to None
         """
         self.auto_enable_ospf_process = auto_enable_ospf_process
         self.default_ospf_process_id = default_ospf_process_id
         self.auto_enable_ospf_link_costs = auto_enable_ospf_link_costs
+        self.bgp_smt = bgp_smt
 
 
 class NetComplete(object):
@@ -171,7 +175,7 @@ class NetComplete(object):
         self.bgp_synthesizer.synthesize()
         #SMT Solving
         self._bgp_solver = z3.Solver(ctx=self._bgp_ctx.z3_ctx)
-        if self.bgp_ctx.check(self.bgp_solver) != z3.sat:
+        if self.bgp_ctx.check(self.bgp_solver, track=False, out_smt=self.configs.bgp_smt) != z3.sat:
             msg = "Unimplementable BGP requirements;" \
                   "Possibly change the requirements or loosen the sketch." \
                   "The following constraints couldn't be satisfied:" \
@@ -294,7 +298,9 @@ class NetComplete(object):
                 if next_hop == desanitize_smt_name(self.bgp_ctx.origin_next_hop):
                     continue
                 next_router, next_iface = next_hop.split("-")[0], '/'.join(next_hop.split("-")[1:])
-                print "XXXXX NEXT HOP at {} is {}:{}, ann: {}".format(node, next_router, next_iface, ann.next_hop)
+                path = [k.path for k, v in attrs['box'].anns_map.iteritems() if v == ann][0]
+                pretty = "{}:{}".format(next_router, next_iface)
+                print "XXXXX NEXT HOP at {} is {}, Path {}".format(node, pretty, path)
                 if node == next_router or next_iface in self.topo.get_ifaces(next_router):
                     # Next hop is is one the same router
                     # Or Next is directly connected
