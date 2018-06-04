@@ -63,10 +63,10 @@ class BGPTest(unittest.TestCase):
         prefix = sanitize_smt_name('P_{}'.format(str(net)))
         iface_addr = ip_interface("%s/%d" % (net.hosts().next(), net.prefixlen))
         graph.set_loopback_addr('R1', 'lo10', iface_addr)
-        graph.add_ospf_network(r1, 'lo100', area='Zero.Zero.Zero.Zero')
-        graph.add_ospf_network(r2, 'lo100', area='Zero.Zero.Zero.Zero')
-        graph.add_ospf_network(r3, 'lo100', area='Zero.Zero.Zero.Zero')
-        graph.add_ospf_network(r4, 'lo100', area='Zero.Zero.Zero.Zero')
+        graph.add_ospf_network(r1, 'lo100', area='0.0.0.0')
+        graph.add_ospf_network(r2, 'lo100', area='0.0.0.0')
+        graph.add_ospf_network(r3, 'lo100', area='0.0.0.0')
+        graph.add_ospf_network(r4, 'lo100', area='0.0.0.0')
         ann = self.get_anns(prefix)[0]
         graph.add_bgp_advertise(node=r1, announcement=ann, loopback='lo10')
         return graph, ann
@@ -77,6 +77,7 @@ class BGPTest(unittest.TestCase):
 
         graph.enable_ospf(r1)
         graph.enable_ospf(r2)
+        graph.add_ospf_network(r1, 'Fa0/0', '0.0.0.0')
 
         # Add two providers and one customer
         provider1 = 'Provider1'
@@ -110,8 +111,8 @@ class BGPTest(unittest.TestCase):
         iface_addr2 = ip_interface("%s/%d" % (net2.hosts().next(), net2.prefixlen))
         graph.set_loopback_addr(customer, 'lo10', iface_addr2)
         # Announce IGP internally
-        graph.add_ospf_network(r1, 'lo100', area='Zero.Zero.Zero.Zero')
-        graph.add_ospf_network(r2, 'lo100', area='Zero.Zero.Zero.Zero')
+        graph.add_ospf_network(r1, 'lo100', area='0.0.0.0')
+        graph.add_ospf_network(r2, 'lo100', area='0.0.0.0')
 
         # Known communities
         comms = [Community("100:{}".format(c)) for c in range(1, 4)]
@@ -161,7 +162,7 @@ class BGPTest(unittest.TestCase):
         req = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r3, r2, r1], strict=False)
         netcomplete = NetComplete([req], graph, [origin_ann])
         next_hop_vals = {
-            'R1': 'Zero.Zero.Zero.Zero',
+            'R1': '0.0.0.0',
             'R2': 'R1-Fa0-0',
             'R3': 'R2-Fa0-1',
             'R4': 'R3-Fa0-1',
@@ -219,7 +220,7 @@ class BGPTest(unittest.TestCase):
         req3 = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r1], strict=False)
         netcomplete = NetComplete([req1, req2, req3], graph, [origin_ann])
         next_hop_vals = {
-            'R1': 'Zero.Zero.Zero.Zero',
+            'R1': '0.0.0.0',
             'R2': 'R1-lo100',
             'R3': 'R1-lo100',
             'R4': 'R1-lo100',
@@ -296,8 +297,8 @@ class BGPTest(unittest.TestCase):
             'R1': 'Provider1-Fa0-0',
             'R2': 'Provider1-Fa0-0',
             'Customer': 'R2-Fa0-0',
-            'Provider1': 'Zero.Zero.Zero.Zero',
-            'Provider2': 'Zero.Zero.Zero.Zero',
+            'Provider1': '0.0.0.0',
+            'Provider2': '0.0.0.0',
         }
         provider1_as = [graph.get_bgp_asnum(provider1)] + ann1.as_path
         provider2_as = [graph.get_bgp_asnum(provider2)] + ann2.as_path
@@ -372,8 +373,8 @@ class BGPTest(unittest.TestCase):
             'R1': 'Provider1-Fa0-0',
             'R2': 'Provider1-Fa0-0',
             'Customer': 'R2-Fa0-0',
-            'Provider1': 'Zero.Zero.Zero.Zero',
-            'Provider2': 'Zero.Zero.Zero.Zero',
+            'Provider1': '0.0.0.0',
+            'Provider2': '0.0.0.0',
         }
         provider1_as = [graph.get_bgp_asnum(provider1)] + ann1.as_path
         provider2_as = [graph.get_bgp_asnum(provider2)] + ann2.as_path
