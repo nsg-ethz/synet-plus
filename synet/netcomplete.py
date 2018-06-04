@@ -271,14 +271,23 @@ class NetComplete(object):
         """Return True if the address is announced over OSPF"""
         addr = self.topo.get_interface_loop_addr(router, iface)
         assert not is_empty(addr)
-        if not self.topo.is_ospf_enabled(router):
-            return False
-        for network in self.topo.get_ospf_networks(router):
-            if not isinstance(network, (IPv4Network, IPv6Network)):
-                if iface == network:
+        routers = [(router, iface)]
+        # Maybe the neighbor is announcing it
+        for neighbor in self.topo.neighbors(router):
+            if not self.topo.is_router(neighbor):
+                continue
+            if iface != self.topo.get_edge_iface(router, neighbor):
+                continue
+            routers.append((neighbor, self.topo.get_edge_iface(neighbor, router)))
+        for router, iface in routers:
+            if not self.topo.is_ospf_enabled(router):
+                continue
+            for network in self.topo.get_ospf_networks(router):
+                if not isinstance(network, (IPv4Network, IPv6Network)):
+                    if iface == network:
+                        return True
+                elif addr in network:
                     return True
-            elif addr in network:
-                return True
         return False
 
     def _check_static_local(self, router, iface):
@@ -301,8 +310,10 @@ class NetComplete(object):
                 path = [k.path for k, v in attrs['box'].anns_map.iteritems() if v == ann][0]
                 pretty = "{}:{}".format(next_router, next_iface)
                 print "XXXXX NEXT HOP at {} is {}, Path {}".format(node, pretty, path)
-                if node == next_router or next_iface in self.topo.get_ifaces(next_router):
+                if node == next_router:
                     # Next hop is is one the same router
+                    continue
+                elif self.topo.has_edge(node, next_router) and next_iface == self.topo.get_edge_iface(next_router, node):
                     # Or Next is directly connected
                     continue
                 else:
@@ -354,20 +365,30 @@ class NetComplete(object):
         self.synthesize_connected()
         if self.bgp_reqs:
             ret1, not_ann1 = self._check_next_hops()
-            ret1, not_ann2 = self._check_bgp_peer_connected()
-            not_ann = set(not_ann1 + not_ann2)
-            print "NOT ANN", not_ann
-            if not_ann:
+            if not_ann1:
                 tmp = [
                     "{}->{}:{}-{}".format(s, x, y, self.topo.get_interface_loop_addr(x, y))
-                    for s, x, y in not_ann
+                    for s, x, y in not_ann1
                 ]
                 err = "The following next hop IP addresses" \
-                      " are not announced via IGP protocol," \
+                      " are not announced via IGP protocol, " \
                       "Hence the BGP requirements cannot be satisfied " \
                       "(consider announcing them in OSPF or static routes)" \
                       ": {}".format(tmp)
                 raise SketchError(err)
+            ret1, not_ann2 = self._check_bgp_peer_connected()
+            if not_ann1:
+                tmp = [
+                    "{}->{}:{}-{}".format(s, x, y, self.topo.get_interface_loop_addr(x, y))
+                    for s, x, y in not_ann1
+                ]
+                err = "The following peering IP addresses" \
+                      " are not announced via IGP protocol, " \
+                      "Hence the BGP requirements cannot be satisfied " \
+                      "(consider announcing them in OSPF or static routes)" \
+                      ": {}".format(tmp)
+                raise SketchError(err)
+
         return True
 
     def write_configs(self, output_dir, prefix_map=None, gns3_config=None):
