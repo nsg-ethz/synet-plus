@@ -1197,7 +1197,7 @@ class SMTMatchIpPrefixList(SMTAbstractMatch):
         return self.smt_match.is_match(announcement)
 
     def get_config(self):
-        networks = [n for n in self.smt_match.get_config() if n]
+        networks = [desanitize_smt_name(n) for n in self.smt_match.get_config() if n]
         ip_list = IpPrefixList(name=self.ip_list.name,
                                access=self.ip_list.access,
                                networks=networks)
@@ -1407,7 +1407,10 @@ class SMTActions(SMTAbstractAction):
         smt_actions = []
         for action in action.value:
             smt_action = self.action_dispatch[type(action)](action, anns)
-            smt_actions.append(smt_action)
+            if isinstance(smt_action, list):
+                smt_actions.extend(smt_action)
+            else:
+                smt_actions.append(smt_action)
         return SMTSetOne(self.smt_match, anns, self.ctx, smt_actions)
 
     def _set_prefix(self, action, anns):
@@ -1442,7 +1445,7 @@ class SMTActions(SMTAbstractAction):
                 configs.append(config)
         # Left over communities
         if communities:
-            config = _gather_communities(communities, index)
+            config = _gather_communities(communities, index - 1)
             configs.append(config)
         return configs
 
