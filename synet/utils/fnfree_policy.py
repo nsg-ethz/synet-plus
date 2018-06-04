@@ -573,7 +573,7 @@ class SMTSetAttribute(SMTAbstractAction):
                         new_var = self.value if is_match.get_value() else attr_var
                     else:
                         new_var = self.smt_ctx.create_fresh_var(
-                            attr_var.vsort, name_prefix='Action_set_%s_val_' % attr)
+                            attr_var.vsort, name_prefix='Action_set_%s_val_%s_' % (attr, self.value.name))
                         vv = self.value.var if self.value.is_concrete else self.value.get_var()
                         attv = attr_var.var if attr_var.is_concrete else attr_var.get_var()
                         if attr == 'permitted':
