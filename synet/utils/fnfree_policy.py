@@ -47,6 +47,7 @@ from synet.utils.fnfree_smt_context import SolverContext
 from synet.utils.fnfree_smt_context import is_symbolic
 from synet.utils.fnfree_smt_context import is_empty
 from synet.utils.fnfree_smt_context import decode_as_path
+from synet.utils.fnfree_smt_context import desanitize_smt_name
 
 
 __author__ = "Ahmed El-Hassany"
@@ -883,7 +884,7 @@ class SMTSetPrefix(SMTSetAttribute):
             match, 'prefix', value, announcements, ctx)
 
     def get_config(self):
-        return ActionSetPrefix(self.value.get_value())
+        return ActionSetPrefix(desanitize_smt_name(self.value.get_value()))
 
 
 class SMTSetPeer(SMTSetAttribute):
@@ -1051,7 +1052,7 @@ class SMTSetNextHop(SMTSetAttribute):
             match, 'next_hop', value, announcements, ctx)
 
     def get_config(self):
-        return ActionSetNextHop(self.value.get_value())
+        return ActionSetNextHop(desanitize_smt_name(self.value.get_value()))
 
 
 class SMTSetMED(SMTSetAttribute):
