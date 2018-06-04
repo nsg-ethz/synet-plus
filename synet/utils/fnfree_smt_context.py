@@ -36,10 +36,13 @@ SMT_NAME_MAP = {
 }
 
 
+ALPHA = 'APLPHA_'
+
+
 def sanitize_smt_name(name):
     """Replace special chars from a name to make more friendly to SMT solver"""
     if not name[0].isalpha():
-        tmp = "ALPHA_{}".format(name)
+        tmp = "{}{}".format(ALPHA, name)
     else:
         tmp = name
     for k, v in SMT_NAME_MAP.iteritems():
@@ -49,7 +52,10 @@ def sanitize_smt_name(name):
 
 def desanitize_smt_name(name):
     """Return the special chars to the SMT name"""
-    tmp = name.lstrip('ALPHA_')
+    if name.startswith(ALPHA):
+        tmp = name[len(ALPHA):]
+    else:
+        tmp = name
     for k, v in SMT_NAME_MAP.iteritems():
         tmp = tmp.replace(v, k)
     return tmp
