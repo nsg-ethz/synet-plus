@@ -21,6 +21,7 @@ from synet.utils.bgp_utils import extract_all_next_hops
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 from synet.utils.fnfree_smt_context import SolverContext
+from synet.utils.fnfree_smt_context import desanitize_smt_name
 
 from tekton.gns3 import GNS3Topo
 from tekton.graph import NetworkGraph
@@ -289,11 +290,11 @@ class NetComplete(object):
                 next_hop = ann.next_hop
                 if not next_hop.is_concrete:
                     continue
-                next_hop = next_hop.get_value()
-                if next_hop == self.bgp_ctx.origin_next_hop:
+                next_hop = desanitize_smt_name(next_hop.get_value())
+                if next_hop == desanitize_smt_name(self.bgp_ctx.origin_next_hop):
                     continue
                 next_router, next_iface = next_hop.split("-")[0], '/'.join(next_hop.split("-")[1:])
-                print "XXXXX NEXT HOP at {} is {}:{}".format(node, next_router, next_iface)
+                print "XXXXX NEXT HOP at {} is {}:{}, ann: {}".format(node, next_router, next_iface, ann.next_hop)
                 if node == next_router or next_iface in self.topo.get_ifaces(next_router):
                     # Next hop is is one the same router
                     # Or Next is directly connected

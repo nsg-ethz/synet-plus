@@ -6,6 +6,7 @@ Common utils for BGP synthesis
 import networkx as nx
 from synet.utils.fnfree_smt_context import VALUENOTSET
 from synet.utils.fnfree_smt_context import is_empty
+from synet.utils.fnfree_smt_context import sanitize_smt_name
 
 
 __author__ = "Ahmed El-Hassany"
@@ -62,7 +63,7 @@ def compute_next_hop_map(network_graph, ibgp_loopback=True):
             assert iface, "Synthesize connected first"
             iface = iface.replace("/", "-")
             nxt = "%s-%s" % (neighbor, iface)
-            next_hop_map[node][neighbor] = nxt
+            next_hop_map[node][neighbor] = sanitize_smt_name(nxt)
     return next_hop_map
 
 

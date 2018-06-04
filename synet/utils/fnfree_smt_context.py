@@ -26,6 +26,31 @@ ASPATH_SORT = 'ASPathSort'
 NEXT_HOP_SORT = 'NextHopSort'
 VALUENOTSET = 'EMPTY?Value'
 
+SMT_NAME_MAP = {
+    '.': '_DOT_',
+    '/': '_SLASH_',
+    '-': '_DASH_',
+    ':': '_SEMI_',
+    '(': '_OPENP_',
+    ')': '_CLOSEP_',
+}
+
+
+def sanitize_smt_name(name):
+    """Replace special chars from a name to make more friendly to SMT solver"""
+    tmp = name
+    for k, v in SMT_NAME_MAP.iteritems():
+        tmp = tmp.replace(k, v)
+    return tmp
+
+
+def desanitize_smt_name(name):
+    """Return the special chars to the SMT name"""
+    tmp = name
+    for k, v in SMT_NAME_MAP.iteritems():
+        tmp = tmp.replace(v, k)
+    return tmp
+
 
 def is_empty(var):
     """Return true if the variable is VALUENOTSET"""
@@ -107,6 +132,7 @@ class EnumType(object):
         """
         assert values, "Requires at least one value for '%s'" % name
         self._name = name
+        assert self._name[0].isalpha(), "Name is not valid {}".format(self.name)
         self._concrete_values = values
         self.z3_ctx = z3_ctx
         self._sort, self._symbolic_values = z3.EnumSort(name, values,
@@ -170,6 +196,7 @@ class SMTVar(object):
         """
         assert isinstance(name, basestring)
         self._name = name
+        assert self._name[0].isalpha(), "Name is not valid {}".format(self.name)
         self._is_enum = isinstance(vsort, EnumType)
         if value is None or is_empty(value):
             is_concrete = False
@@ -295,6 +322,9 @@ class SolverContext(object):
             raise ValueError("EnumSort %s is already defined" % name)
         assert values
         for value in values:
+            if value != sanitize_smt_name(value):
+                raise ValueError("Enum Value {} contains special chars".format(value))
+            assert value[0].isalpha(), "Name is not valid {}".format(value)
             for ename, etype in self._enum_types.iteritems():
                 if value in etype.concrete_values:
                     err = "Duplicate value '%s' already defined in %s" % (
@@ -314,7 +344,9 @@ class SolverContext(object):
         :return: basestring new variable name
         """
         if not prefix:
-            prefix = 'Var'
+            prefix = 'Var_'
+        else:
+            prefix = sanitize_smt_name(prefix)
         name = "%s%d" % (prefix, self._next_varnum.next())
         while name in self._vars:
             name = "%s%d" % (prefix, self._next_varnum.next())
@@ -345,6 +377,8 @@ class SolverContext(object):
         """
         if not name:
             name = self.fresh_var_name(name_prefix)
+        else:
+            name = sanitize_smt_name(name)
         if name in self._vars:
             err = "Variable name '%s' is already registered" % name
             raise ValueError(err)
@@ -358,7 +392,9 @@ class SolverContext(object):
        :return: basestring new variable name
        """
         if not prefix:
-            prefix = 'Const'
+            prefix = 'Constrain_'
+        else:
+            prefix = sanitize_smt_name(prefix)
         name = "%s%d" % (prefix, self._next_constnum.next())
         while name in self._vars:
             name = "%s%d" % (prefix, self._next_constnum.next())
@@ -374,6 +410,8 @@ class SolverContext(object):
         """
         if not name:
             name = self.fresh_constraint_name(prefix=name_prefix)
+        else:
+            name = sanitize_smt_name(name)
         if name in self._tracked:
             err = "Constraint %s is already registered with the " \
                   "constraints: %s while the new constraints are: %s" % (
@@ -530,6 +568,7 @@ class SolverContext(object):
         # Prefixes
         read_list = [x.prefix for x in announcements if not is_empty(x.prefix)]
         prefix_list = list(set(read_list + prefix_list))
+        prefix_list = [sanitize_smt_name(prefix) for prefix in prefix_list]
         ctx.create_enum_type(PREFIX_SORT, prefix_list)
 
         # Peers
@@ -552,13 +591,14 @@ class SolverContext(object):
         # Next Hop
         read_list = [x.next_hop for x in announcements
                      if not is_empty(x.next_hop)]
-        origin_next_hop = '0.0.0.0'
+        origin_next_hop = 'Zero.Zero.Zero.Zero'
         read_list.append(origin_next_hop)
         next_hope_list = list(set(read_list + next_hope_list))
+        next_hope_list = [sanitize_smt_name(next_hop) for next_hop in next_hope_list]
         vsort = ctx.create_enum_type(NEXT_HOP_SORT, next_hope_list)
         ctx.communities = announcements[0].communities.keys()
-        ctx.origin_next_hop = origin_next_hop
-        ctx.origin_next_hop_var = vsort.get_symbolic_value(origin_next_hop)
+        ctx.origin_next_hop = sanitize_smt_name(origin_next_hop)
+        ctx.origin_next_hop_var = vsort.get_symbolic_value(ctx.origin_next_hop)
         return ctx
 
 

@@ -22,6 +22,7 @@ from synet.utils.fnfree_smt_context import PEER_SORT
 from synet.utils.fnfree_smt_context import PREFIX_SORT
 from synet.utils.fnfree_smt_context import SolverContext
 from synet.utils.fnfree_smt_context import is_empty
+from synet.utils.fnfree_smt_context import sanitize_smt_name
 from synet.utils.smt_context import get_as_path_key
 
 
@@ -89,7 +90,7 @@ def create_sym_ann(ctx, fixed_values=None, name_prefix=None):
             vsort = ctx.get_enum_type(vsort)
         if attr in fixed_values:
             if is_enum:
-                value = vsort.get_symbolic_value(fixed_values[attr])
+                value = vsort.get_symbolic_value(sanitize_smt_name(fixed_values[attr]))
             else:
                 value = fixed_values[attr]
         nprefix = "%s_" % attr
@@ -242,7 +243,6 @@ class BGP(object):
             var = self.ctx.create_fresh_var(vsort=vsort, value=next_hop)
             self.log.debug("At node '%s' computed next hop '%s' to neighbor '%s'.", self.node, str(var), neighbor)
             action = SMTSetNextHop(match, value=var, announcements=tmp1, ctx=self.ctx)
-            action.execute()
             for index, prop in enumerate(props):
                 export_anns[neighbor][prop] = action.announcements[index]
                 anns[index] = action.announcements[index]
@@ -267,7 +267,7 @@ class BGP(object):
         First generate a context with all symbolic variables.
         Then it will be glued in the selection process to concrete values
         in the SMT Sovler
-        :return: dict (propagatedinfo->announcement)
+        :return: AnnouncementsContext
         """
         selected = get_propagated_info(self.ibgp_propagation, self.node, unselected=False)
         #print "SELECTED AT", self.node
@@ -544,24 +544,7 @@ class BGP(object):
                 ),
                 self.ctx.z3_ctx,
             ))
-        # Make sure all variables are bound to a value
-        # (not just the best route)
-        #if other_ann_name != best_ann_name:
-        #    for value_ctx in self.selected_ctx.ctx_names:
-        #        if value_ctx != 'communities_ctx':
-        #            ctx1 = getattr(s_ctx, value_ctx)
-        #            ctx2 = getattr(o_ctx, value_ctx)
-        #            const_set.append(ctx1.get_var(other_ann_var) ==
-        #                             ctx2.get_var(other_ann_var))
-        #        else:
-        #            ctx1 = getattr(self.selected_ctx, value_ctx)
-        #            ctx2 = getattr(o_ctx, value_ctx)
-        #            for comm in ctx1:
-        #                const_set.append(ctx1[comm].get_var(other_ann_var) ==
-        #                                 ctx2[comm].get_var(other_ann_var))
 
-        #self.constraints["%s_set" % name] = z3.And(*const_set)
-        #self.constraints[name] = z3.And(*const_selection)
         tmp = const_selection + [self.ctx.z3_ctx]
         prefix = "SELECT_at_{}_prefix_{}_path_{}_".format(
             self.node, best_propagated.ann_name, '_'.join(best_propagated.path))

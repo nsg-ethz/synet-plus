@@ -10,6 +10,8 @@ from synet.utils.common import KConnectedPathsReq
 from synet.utils.common import PathOrderReq
 from synet.utils.common import PathReq
 from synet.utils.common import Protocols
+from synet.utils.fnfree_smt_context import sanitize_smt_name
+from synet.utils.fnfree_smt_context import desanitize_smt_name
 from synet.utils.topo_gen import gen_mesh
 from synet.utils.topo_gen import get_ebgp_linear_topo
 from synet.utils.topo_gen import get_ibgp_linear_topo
@@ -42,7 +44,7 @@ class BGPTest(unittest.TestCase):
         graph = get_ebgp_linear_topo(4)
         r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
         net = ip_network(u'128.0.0.0/24')
-        prefix = str(net)
+        prefix = sanitize_smt_name('P_{}'.format(str(net)))
         prefix_map = {prefix: net}
         iface_addr = ip_interface("%s/%d" % (net.hosts().next(), net.prefixlen))
         graph.set_loopback_addr('R1', 'lo100', iface_addr)
@@ -58,13 +60,13 @@ class BGPTest(unittest.TestCase):
         graph.enable_ospf(r3)
         graph.enable_ospf(r4)
         net = ip_network(u'128.0.0.0/24')
-        prefix = str(net)
+        prefix = sanitize_smt_name('P_{}'.format(str(net)))
         iface_addr = ip_interface("%s/%d" % (net.hosts().next(), net.prefixlen))
         graph.set_loopback_addr('R1', 'lo10', iface_addr)
-        graph.add_ospf_network(r1, 'lo100', area='0.0.0.0')
-        graph.add_ospf_network(r2, 'lo100', area='0.0.0.0')
-        graph.add_ospf_network(r3, 'lo100', area='0.0.0.0')
-        graph.add_ospf_network(r4, 'lo100', area='0.0.0.0')
+        graph.add_ospf_network(r1, 'lo100', area='Zero.Zero.Zero.Zero')
+        graph.add_ospf_network(r2, 'lo100', area='Zero.Zero.Zero.Zero')
+        graph.add_ospf_network(r3, 'lo100', area='Zero.Zero.Zero.Zero')
+        graph.add_ospf_network(r4, 'lo100', area='Zero.Zero.Zero.Zero')
         ann = self.get_anns(prefix)[0]
         graph.add_bgp_advertise(node=r1, announcement=ann, loopback='lo10')
         return graph, ann
@@ -100,16 +102,16 @@ class BGPTest(unittest.TestCase):
 
         net1 = ip_network(u'128.0.0.0/24')
         net2 = ip_network(u'128.0.1.0/24')
-        prefix1 = str(net1)
-        prefix2 = str(net2)
+        prefix1 = 'P_{}'.format(str(net1))
+        prefix2 = 'P_{}'.format(str(net2))
         iface_addr1 = ip_interface("%s/%d" % (net1.hosts().next(), net1.prefixlen))
         graph.set_loopback_addr(provider1, 'lo10', iface_addr1)
         graph.set_loopback_addr(provider2, 'lo10', iface_addr1)
         iface_addr2 = ip_interface("%s/%d" % (net2.hosts().next(), net2.prefixlen))
         graph.set_loopback_addr(customer, 'lo10', iface_addr2)
         # Announce IGP internally
-        graph.add_ospf_network(r1, 'lo100', area='0.0.0.0')
-        graph.add_ospf_network(r2, 'lo100', area='0.0.0.0')
+        graph.add_ospf_network(r1, 'lo100', area='Zero.Zero.Zero.Zero')
+        graph.add_ospf_network(r2, 'lo100', area='Zero.Zero.Zero.Zero')
 
         # Known communities
         comms = [Community("100:{}".format(c)) for c in range(1, 4)]
@@ -159,7 +161,7 @@ class BGPTest(unittest.TestCase):
         req = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r3, r2, r1], strict=False)
         netcomplete = NetComplete([req], graph, [origin_ann])
         next_hop_vals = {
-            'R1': '0.0.0.0',
+            'R1': 'Zero.Zero.Zero.Zero',
             'R2': 'R1-Fa0-0',
             'R3': 'R2-Fa0-1',
             'R4': 'R3-Fa0-1',
@@ -189,7 +191,7 @@ class BGPTest(unittest.TestCase):
                 self.assertEquals(ann.prefix.get_value(), prefix)
 
                 self.assertTrue(ann.next_hop.is_concrete)
-                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
+                self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
 
                 self.assertTrue(ann.as_path.is_concrete)
                 self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
@@ -217,7 +219,7 @@ class BGPTest(unittest.TestCase):
         req3 = PathReq(Protocols.BGP, dst_net=prefix, path=[r4, r1], strict=False)
         netcomplete = NetComplete([req1, req2, req3], graph, [origin_ann])
         next_hop_vals = {
-            'R1': '0.0.0.0',
+            'R1': 'Zero.Zero.Zero.Zero',
             'R2': 'R1-lo100',
             'R3': 'R1-lo100',
             'R4': 'R1-lo100',
@@ -248,7 +250,7 @@ class BGPTest(unittest.TestCase):
                 self.assertEquals(ann.prefix.get_value(), prefix)
 
                 self.assertTrue(ann.next_hop.is_concrete)
-                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
+                self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
 
                 self.assertTrue(ann.as_path.is_concrete)
                 self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
@@ -294,8 +296,8 @@ class BGPTest(unittest.TestCase):
             'R1': 'Provider1-Fa0-0',
             'R2': 'Provider1-Fa0-0',
             'Customer': 'R2-Fa0-0',
-            'Provider1': '0.0.0.0',
-            'Provider2': '0.0.0.0',
+            'Provider1': 'Zero.Zero.Zero.Zero',
+            'Provider2': 'Zero.Zero.Zero.Zero',
         }
         provider1_as = [graph.get_bgp_asnum(provider1)] + ann1.as_path
         provider2_as = [graph.get_bgp_asnum(provider2)] + ann2.as_path
@@ -326,10 +328,10 @@ class BGPTest(unittest.TestCase):
                 self.assertTrue(ann.permitted.get_value())
 
                 self.assertTrue(ann.prefix.is_concrete)
-                self.assertEquals(ann.prefix.get_value(), prefix1)
+                self.assertEquals(desanitize_smt_name(ann.prefix.get_value()), prefix1)
 
                 self.assertTrue(ann.next_hop.is_concrete)
-                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
+                self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
 
                 self.assertTrue(ann.as_path.is_concrete)
                 self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
@@ -370,8 +372,8 @@ class BGPTest(unittest.TestCase):
             'R1': 'Provider1-Fa0-0',
             'R2': 'Provider1-Fa0-0',
             'Customer': 'R2-Fa0-0',
-            'Provider1': '0.0.0.0',
-            'Provider2': '0.0.0.0',
+            'Provider1': 'Zero.Zero.Zero.Zero',
+            'Provider2': 'Zero.Zero.Zero.Zero',
         }
         provider1_as = [graph.get_bgp_asnum(provider1)] + ann1.as_path
         provider2_as = [graph.get_bgp_asnum(provider2)] + ann2.as_path
@@ -402,10 +404,10 @@ class BGPTest(unittest.TestCase):
                 self.assertTrue(ann.permitted.get_value())
 
                 self.assertTrue(ann.prefix.is_concrete)
-                self.assertEquals(ann.prefix.get_value(), prefix1)
+                self.assertEquals(desanitize_smt_name(ann.prefix.get_value()), prefix1)
 
                 self.assertTrue(ann.next_hop.is_concrete)
-                self.assertEquals(ann.next_hop.get_value(), next_hop_vals[node])
+                self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
 
                 self.assertTrue(ann.as_path.is_concrete)
                 self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
