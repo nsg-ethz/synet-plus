@@ -202,7 +202,7 @@ class BGP(object):
                 exported_info[neighbor].add(prop)
 
         for peer, props in exported_info.iteritems():
-            print "Node %s Exported to %s: %s" % (self.node, peer, props)
+            self.log.debug("Node %s Exported to %s: %s", self.node, peer, props)
 
         # Second,  map the propagated to the local announcements
         export_anns = {}
@@ -227,6 +227,7 @@ class BGP(object):
                 props.append(prop)
                 anns.append(ann)
 
+            # Compute next hop
             curr_as = self.network_graph.get_bgp_asnum(self.node)
             neighbor_as = self.network_graph.get_bgp_asnum(neighbor)
             if curr_as != neighbor_as:
@@ -235,17 +236,18 @@ class BGP(object):
                 vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
                 value = self.ctx.create_fresh_var(vsort=vsort, value=self.ctx.origin_next_hop_var)
                 match = SMTMatchNextHop(value=value, announcements=anns, ctx=self.ctx)
-
             tmp1 = self.anns_ctx.create_new(anns, 'SetNextHop_{}_to_{}'.format(self.node, neighbor))
             next_hop = self.next_hop_map[neighbor][self.node]
             vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
             var = self.ctx.create_fresh_var(vsort=vsort, value=next_hop)
+            self.log.debug("At node '%s' computed next hop '%s' to neighbor '%s'.", self.node, str(var), neighbor)
             action = SMTSetNextHop(match, value=var, announcements=tmp1, ctx=self.ctx)
             action.execute()
             for index, prop in enumerate(props):
                 export_anns[neighbor][prop] = action.announcements[index]
                 anns[index] = action.announcements[index]
 
+            # Apply any export policies (if any)
             rmap_name = self.network_graph.get_bgp_export_route_map(self.node, neighbor)
             if not rmap_name:
                 continue
@@ -268,9 +270,9 @@ class BGP(object):
         :return: dict (propagatedinfo->announcement)
         """
         selected = get_propagated_info(self.ibgp_propagation, self.node, unselected=False)
-        print "SELECTED AT", self.node
+        #print "SELECTED AT", self.node
         for s in selected:
-            print "\t", s
+            self.log.debug("Create selected sham at router '%s': %s", self.node, str(s))
         anns = [self.anns_map[propagated] for propagated in selected]
         return self.anns_ctx.create_new(anns, mutator=self._get_selected_sham)
 
@@ -289,7 +291,8 @@ class BGP(object):
             neighbor_exported = n_attrs['box'].exported_routes
             if self.node not in neighbor_exported:
                 # The neighbor doesn't export anything to this router
-                print "NODE %s doesn't import anything from %s: %s" % (self.node, neighbor, neighbor_exported.keys())
+                self.log.debug("NODE %s doesn't import anything from %s: %s",
+                               self.node, neighbor, neighbor_exported.keys())
                 continue
             imported = {}
             for prop, ann in neighbor_exported[self.node].iteritems():
@@ -573,7 +576,7 @@ class BGP(object):
                 self.ctx.register_constraint(ann.permitted.var == True, name_prefix='Req_Allow' + n)
 
     def synthesize(self, use_igp=False):
-        print "Synthesizing", self.node
+        self.log.info("Synthesizing BGP for router '%s`", self.node)
         self.mark_selected()
         self.compute_imported_routes()
 
@@ -584,8 +587,6 @@ class BGP(object):
             anns_order[net] = info['order_info']
 
         for ann_name, values in anns_order.iteritems():
-            if self.node == 'Customer':
-                print ann_name, values
             if len(values) == 1:
                 # This router only learns one route
                 # No need to use the preference function
