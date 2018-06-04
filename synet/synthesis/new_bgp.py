@@ -9,6 +9,8 @@ import networkx as nx
 import z3
 
 from tekton.bgp import Announcement
+from tekton.bgp import MatchIpPrefixListList
+from tekton.bgp import MatchCommunitiesList
 from tekton.graph import NetworkGraph
 from synet.utils.fnfree_policy import SMTRouteMap
 from synet.utils.fnfree_policy import SMTSetNextHop
@@ -593,6 +595,14 @@ class BGP(object):
         for smt_rmap in self.rmaps.values():
             rmap = smt_rmap.get_config()
             self.network_graph.add_route_map(self.node, rmap)
+            for line in rmap.lines:
+                for match in line.matches:
+                    if isinstance(match, MatchIpPrefixListList):
+                        self.network_graph.del_ip_prefix_list(self.node, match.match)
+                        self.network_graph.add_ip_prefix_list(self.node, match.match)
+                    elif isinstance(match, MatchCommunitiesList):
+                        self.network_graph.del_community_list(self.node, match.match)
+                        self.network_graph.add_bgp_community_list(self.node, match.match)
         router_id = self.network_graph.get_bgp_router_id(self.node)
         if router_id and router_id.is_concrete:
             self.network_graph.set_bgp_router_id(self.node, router_id.get_value())
