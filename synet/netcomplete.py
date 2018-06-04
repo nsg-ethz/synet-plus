@@ -301,9 +301,7 @@ class NetComplete(object):
                 path = [k.path for k, v in attrs['box'].anns_map.iteritems() if v == ann][0]
                 pretty = "{}:{}".format(next_router, next_iface)
                 print "XXXXX NEXT HOP at {} is {}, Path {}".format(node, pretty, path)
-                if node == next_router or \
-                        (self.topo.has_edge(next_router, node) and
-                         next_iface == self.topo.get_edge_iface(next_router, node)):
+                if node == next_router or next_iface in self.topo.get_ifaces(next_router):
                     # Next hop is is one the same router
                     # Or Next is directly connected
                     continue
