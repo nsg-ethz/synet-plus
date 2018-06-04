@@ -231,16 +231,15 @@ class BGP(object):
             # Compute next hop
             curr_as = self.network_graph.get_bgp_asnum(self.node)
             neighbor_as = self.network_graph.get_bgp_asnum(neighbor)
+            next_hop_sort = self.ctx.get_enum_type(NEXT_HOP_SORT)
             if curr_as != neighbor_as:
                 match = SMTMatchAll(self.ctx)
             else:
-                vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
-                value = self.ctx.create_fresh_var(vsort=vsort, value=self.ctx.origin_next_hop_var)
+                value = self.ctx.create_fresh_var(vsort=next_hop_sort, value=self.ctx.origin_next_hop_var)
                 match = SMTMatchNextHop(value=value, announcements=anns, ctx=self.ctx)
             tmp1 = self.anns_ctx.create_new(anns, 'SetNextHop_{}_to_{}'.format(self.node, neighbor))
             next_hop = self.next_hop_map[neighbor][self.node]
-            vsort = self.ctx.get_enum_type(NEXT_HOP_SORT)
-            var = self.ctx.create_fresh_var(vsort=vsort, value=next_hop)
+            var = self.ctx.create_fresh_var(vsort=next_hop_sort, value=next_hop, name_prefix='Set_next_hop_from_{}_to_{}_'.format(self.node, neighbor))
             self.log.debug("At node '%s' computed next hop '%s' to neighbor '%s'.", self.node, str(var), neighbor)
             action = SMTSetNextHop(match, value=var, announcements=tmp1, ctx=self.ctx)
             for index, prop in enumerate(props):
@@ -324,6 +323,7 @@ class BGP(object):
                     imported[prop] = smt_map.announcements[index]
             # Assign the values
             for prop, ann in imported.iteritems():
+                self.anns_map[prop].prev_announcement = ann
                 for attr in attrs:
                     curr = getattr(self.anns_map[prop], attr)
                     imp = getattr(ann, attr)
@@ -331,7 +331,6 @@ class BGP(object):
                     self.ctx.register_constraint(z3.And(curr.var == imp.var, self.ctx.z3_ctx),
                                                  name_prefix=prefix)
                 for community in self.ctx.communities:
-
                     curr = self.anns_map[prop].communities[community]
                     imp = ann.communities[community]
                     prefix = 'Imp_%s_from_%s_Comm_%s_' % (self.node, neighbor, community.name)

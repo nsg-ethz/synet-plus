@@ -471,7 +471,7 @@ class SolverContext(object):
         t2 = timer()
         print "Reading model time: %f" % (t2 - t1)
 
-    def check(self, solver, track=True, set_model=True):
+    def check(self, solver, track=True, set_model=True, out_smt=None):
         err1 = "Z3 Solver is not attached to the same Z3 context"
         assert solver.ctx == self.z3_ctx, err1
 
@@ -552,6 +552,9 @@ class SolverContext(object):
 
         print "Constraints adding time: %f" % (t2 - t1)
         print "Start Z3 check", t2
+        if out_smt:
+            with open(out_smt, 'w') as outf:
+                outf.write(solver.to_smt2())
         ret = solver.check()
         t3 = timer()
         print "Z3 check time: %f" % (t3 - t2)
@@ -602,7 +605,7 @@ class SolverContext(object):
         # Next Hop
         read_list = [x.next_hop for x in announcements
                      if not is_empty(x.next_hop)]
-        origin_next_hop = 'Zero.Zero.Zero.Zero'
+        origin_next_hop = '0.0.0.0'
         read_list.append(origin_next_hop)
         next_hope_list = list(set(read_list + next_hope_list))
         next_hope_list = [sanitize_smt_name(next_hop) for next_hop in next_hope_list]
