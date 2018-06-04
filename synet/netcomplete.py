@@ -175,7 +175,7 @@ class NetComplete(object):
         self.bgp_synthesizer.synthesize()
         #SMT Solving
         self._bgp_solver = z3.Solver(ctx=self._bgp_ctx.z3_ctx)
-        if self.bgp_ctx.check(self.bgp_solver, track=False, out_smt=self.configs.bgp_smt) != z3.sat:
+        if self.bgp_ctx.check(self.bgp_solver, track=True, out_smt=self.configs.bgp_smt) != z3.sat:
             msg = "Unimplementable BGP requirements;" \
                   "Possibly change the requirements or loosen the sketch." \
                   "The following constraints couldn't be satisfied:" \
@@ -377,7 +377,7 @@ class NetComplete(object):
                       ": {}".format(tmp)
                 raise SketchError(err)
             ret1, not_ann2 = self._check_bgp_peer_connected()
-            if not_ann1:
+            if not_ann2:
                 tmp = [
                     "{}->{}:{}-{}".format(s, x, y, self.topo.get_interface_loop_addr(x, y))
                     for s, x, y in not_ann1
@@ -388,7 +388,6 @@ class NetComplete(object):
                       "(consider announcing them in OSPF or static routes)" \
                       ": {}".format(tmp)
                 raise SketchError(err)
-
         return True
 
     def write_configs(self, output_dir, prefix_map=None, gns3_config=None):
