@@ -312,7 +312,7 @@ class PropagatedInfo(object):
 
     def __hash__(self):
         string = ""
-        attrs = ['egress', 'ann_name', 'peer', 'as_path', 'as_path_len', 'path']
+        attrs = ['external_peer', 'egress', 'ann_name', 'peer', 'as_path', 'as_path_len', 'path']
         for attr in attrs:
             string += str(getattr(self, attr))
         return hash(string)
@@ -321,7 +321,7 @@ class PropagatedInfo(object):
         return self.__str__()
 
     def __eq__(self, other):
-        attrs = ['egress', 'ann_name', 'peer', 'as_path', 'as_path_len', 'path']
+        attrs = ['external_peer', 'egress', 'ann_name', 'peer', 'as_path', 'as_path_len', 'path']
         for attr in attrs:
             if getattr(self, attr) != getattr(other, attr, None):
                 return False
