@@ -38,7 +38,10 @@ SMT_NAME_MAP = {
 
 def sanitize_smt_name(name):
     """Replace special chars from a name to make more friendly to SMT solver"""
-    tmp = name
+    if not name[0].isalpha():
+        tmp = "ALPHA_{}".format(name)
+    else:
+        tmp = name
     for k, v in SMT_NAME_MAP.iteritems():
         tmp = tmp.replace(k, v)
     return tmp
@@ -46,7 +49,7 @@ def sanitize_smt_name(name):
 
 def desanitize_smt_name(name):
     """Return the special chars to the SMT name"""
-    tmp = name
+    tmp = name.lstrip('ALPHA_')
     for k, v in SMT_NAME_MAP.iteritems():
         tmp = tmp.replace(v, k)
     return tmp
@@ -161,6 +164,7 @@ class EnumType(object):
 
     def get_symbolic_value(self, value):
         """Given a string value return the Z3 value"""
+        value = sanitize_smt_name(value)
         if value not in self._concrete_values:
             err = "Value '%s' is not defined in %s" % (
                 value, self.concrete_values)
