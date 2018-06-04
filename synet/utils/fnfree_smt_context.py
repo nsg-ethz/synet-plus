@@ -182,8 +182,9 @@ class EnumType(object):
         """Given a z3 variable, return the actual string value"""
         assert is_symbolic(var)
         if var not in self._symbolic_values:
-            err = "Value %s is not defined in %s" % (var,
-                                                     self.symbolic_values)
+            err = "Symbolic value '{}' of type '{}' is not defined. " \
+                  "Current defined values are: {}".format(
+                var, self.name, self.symbolic_values)
             raise ValueError(err)
         indexof = self.symbolic_values.index(var)
         return self.concrete_values[indexof]
