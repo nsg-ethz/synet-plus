@@ -12,16 +12,24 @@ from synet.utils.common import PathReq
 from synet.utils.common import Protocols
 from synet.utils.fnfree_smt_context import sanitize_smt_name
 from synet.utils.fnfree_smt_context import desanitize_smt_name
+from synet.utils.fnfree_smt_context import VALUENOTSET
 from synet.utils.topo_gen import gen_mesh
 from synet.utils.topo_gen import get_ebgp_linear_topo
 from synet.utils.topo_gen import get_ibgp_linear_topo
 
 from tekton.bgp import Access
+from tekton.bgp import ActionSetLocalPref
+from tekton.bgp import ActionSetCommunity
 from tekton.bgp import Announcement
 from tekton.bgp import BGP_ATTRS_ORIGIN
 from tekton.bgp import Community
+from tekton.bgp import CommunityList
 from tekton.bgp import RouteMap
 from tekton.bgp import RouteMapLine
+from tekton.bgp import IpPrefixList
+from tekton.bgp import MatchIpPrefixListList
+from tekton.bgp import MatchCommunitiesList
+
 
 __author__ = "Ahmed El-Hassany"
 __email__ = "a.hassany@gmail.com"
@@ -44,7 +52,7 @@ class BGPTest(unittest.TestCase):
         graph = get_ebgp_linear_topo(4)
         r1, r2, r3, r4 = 'R1', 'R2', 'R3', 'R4'
         net = ip_network(u'128.0.0.0/24')
-        prefix = sanitize_smt_name('P_{}'.format(str(net)))
+        prefix = str(net)
         prefix_map = {prefix: net}
         iface_addr = ip_interface("%s/%d" % (net.hosts().next(), net.prefixlen))
         graph.set_loopback_addr('R1', 'lo100', iface_addr)
@@ -60,7 +68,7 @@ class BGPTest(unittest.TestCase):
         graph.enable_ospf(r3)
         graph.enable_ospf(r4)
         net = ip_network(u'128.0.0.0/24')
-        prefix = sanitize_smt_name('P_{}'.format(str(net)))
+        prefix = str(net)
         iface_addr = ip_interface("%s/%d" % (net.hosts().next(), net.prefixlen))
         graph.set_loopback_addr('R1', 'lo10', iface_addr)
         graph.add_ospf_network(r1, 'lo100', area='0.0.0.0')
@@ -103,8 +111,8 @@ class BGPTest(unittest.TestCase):
 
         net1 = ip_network(u'128.0.0.0/24')
         net2 = ip_network(u'128.0.1.0/24')
-        prefix1 = 'P_{}'.format(str(net1))
-        prefix2 = 'P_{}'.format(str(net2))
+        prefix1 = str(net1)
+        prefix2 = str(net2)
         iface_addr1 = ip_interface("%s/%d" % (net1.hosts().next(), net1.prefixlen))
         graph.set_loopback_addr(provider1, 'lo10', iface_addr1)
         graph.set_loopback_addr(provider2, 'lo10', iface_addr1)
@@ -189,7 +197,7 @@ class BGPTest(unittest.TestCase):
                 self.assertTrue(ann.permitted.get_value())
 
                 self.assertTrue(ann.prefix.is_concrete)
-                self.assertEquals(ann.prefix.get_value(), prefix)
+                self.assertEquals(desanitize_smt_name(ann.prefix.get_value()), prefix)
 
                 self.assertTrue(ann.next_hop.is_concrete)
                 self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
@@ -248,7 +256,7 @@ class BGPTest(unittest.TestCase):
                 self.assertTrue(ann.permitted.get_value())
 
                 self.assertTrue(ann.prefix.is_concrete)
-                self.assertEquals(ann.prefix.get_value(), prefix)
+                self.assertEquals(desanitize_smt_name(ann.prefix.get_value()), prefix)
 
                 self.assertTrue(ann.next_hop.is_concrete)
                 self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
@@ -288,10 +296,6 @@ class BGPTest(unittest.TestCase):
         p1 = PathReq(Protocols.BGP, dst_net=prefix1, path=[customer, r2, r1, provider1], strict=False)
         p2 = PathReq(Protocols.BGP, dst_net=prefix1, path=[customer, r2, r1, provider1], strict=False)
         req1 = PathOrderReq(Protocols.BGP, prefix1, [p1, p2], strict=False)
-        req2 = PathReq(Protocols.BGP, dst_net=prefix2, path=[provider1, r2, r1, customer], strict=False)
-        req3 = PathReq(Protocols.BGP, dst_net=prefix2, path=[provider2, r2, r1, customer], strict=False)
-        req0 = PathReq(Protocols.BGP, dst_net=prefix1, path=[provider1, r1, provider2], strict=False)
-        req00 = PathReq(Protocols.BGP, dst_net=prefix1, path=[provider2, r1, provider1], strict=False)
         netcomplete = NetComplete([req1], graph, [ann1, ann2])
         next_hop_vals = {
             'R1': 'Provider1-Fa0-0',
@@ -349,6 +353,99 @@ class BGPTest(unittest.TestCase):
                 for comm, val in ann.communities.iteritems():
                     self.assertTrue(val.is_concrete)
                     self.assertFalse(val.get_value())
+
+    def test_next_hop_mixed_route_map(self):
+        # Arrange
+        graph, (ann1, ann2, ann3) = self.get_cust_peer_linear_topo()
+        r1, r2, provider1, provider2,  customer = 'R1', 'R2', 'Provider1', 'Provider2', 'Customer'
+        prefix1 = ann1.prefix
+        prefix2 = ann3.prefix
+        graph.add_bgp_advertise(node=provider1, announcement=ann1, loopback='lo10')
+        graph.add_bgp_advertise(node=provider2, announcement=ann2, loopback='lo10')
+        #graph.add_bgp_advertise(node=customer, announcement=ann3, loopback='lo10')
+
+        clist = CommunityList(list_id=1, access=Access.permit, communities=[VALUENOTSET])
+        match = MatchCommunitiesList(clist)
+        graph.add_bgp_community_list(r1, clist)
+        rline1 = RouteMapLine(matches=[match], actions=[], access=VALUENOTSET, lineno=10)
+        rline2 = RouteMapLine(matches=[], actions=[], access=Access.permit, lineno=100)
+        rmap_export = RouteMap(name='DenyExport', lines=[rline1, rline2])
+        graph.add_route_map(r1, rmap_export)
+        graph.add_bgp_export_route_map(r1, provider1, rmap_export.name)
+        graph.add_bgp_export_route_map(r1, provider2, rmap_export.name)
+
+        # Custom match
+        iplist = IpPrefixList(name='L1', access=Access.permit, networks=[VALUENOTSET])
+        graph.add_ip_prefix_list(r1, iplist)
+        match = MatchIpPrefixListList(iplist)
+        actions = [ActionSetLocalPref(VALUENOTSET), ActionSetCommunity(communities=[VALUENOTSET])]
+        rline1 = RouteMapLine(matches=[match], actions=actions, access=VALUENOTSET, lineno=10)
+        rline2 = RouteMapLine(matches=[], actions=[], access=Access.deny, lineno=100)
+        rmap_import = RouteMap(name='Import', lines=[rline1, rline2])
+        graph.add_route_map(r1, rmap_import)
+        graph.add_bgp_import_route_map(r1, provider1, rmap_import.name)
+        graph.add_bgp_import_route_map(r1, provider2, rmap_import.name)
+
+        p1 = PathReq(Protocols.BGP, dst_net=prefix1, path=[customer, r2, r1, provider1], strict=False)
+        p2 = PathReq(Protocols.BGP, dst_net=prefix1, path=[customer, r2, r1, provider1], strict=False)
+        req1 = PathOrderReq(Protocols.BGP, prefix1, [p2, p1], strict=False)
+        netcomplete = NetComplete([req1], graph, [ann1, ann2])
+        next_hop_vals = {
+            'R1': 'Provider1-Fa0-0',
+            'R2': 'Provider1-Fa0-0',
+            'Customer': 'R2-Fa0-0',
+            'Provider1': '0.0.0.0',
+            'Provider2': '0.0.0.0',
+        }
+        provider1_as = [graph.get_bgp_asnum(provider1)] + ann1.as_path
+        provider2_as = [graph.get_bgp_asnum(provider2)] + ann2.as_path
+        r1_as = [graph.get_bgp_asnum(r1)] + provider1_as
+        customer_as = [graph.get_bgp_asnum(customer)] + r1_as
+        as_path_vals = {
+            'R1': 'as_path_{}'.format('_'.join([str(x) for x in r1_as])),
+            'R2': 'as_path_{}'.format('_'.join([str(x) for x in r1_as])),
+            'Customer': 'as_path_{}'.format('_'.join([str(x) for x in customer_as])),
+            'Provider1': 'as_path_{}'.format('_'.join([str(x) for x in provider1_as])),
+            'Provider2': 'as_path_{}'.format('_'.join([str(x) for x in provider2_as])),
+        }
+        as_path_len_vals = {
+            'R1': len(r1_as) - 1,
+            'R2': len(r1_as) - 1,
+            'Customer': len(customer_as) - 1,
+            'Provider1': len(provider1_as) - 1,
+            'Provider2': len(provider2_as) - 1,
+        }
+        # Act
+        ret = netcomplete.synthesize()
+        netcomplete.write_configs('out-configs/ibgp')
+        # Assert
+        self.assertTrue(ret)
+        for node, attrs in netcomplete.bgp_synthesizer.ibgp_propagation.nodes(data=True):
+            for ann in attrs['box'].selected_sham:
+                self.assertTrue(ann.permitted.is_concrete)
+                self.assertTrue(ann.permitted.get_value())
+
+                self.assertTrue(ann.prefix.is_concrete)
+                self.assertEquals(desanitize_smt_name(ann.prefix.get_value()), prefix1)
+
+                self.assertTrue(ann.next_hop.is_concrete)
+                self.assertEquals(desanitize_smt_name(ann.next_hop.get_value()), next_hop_vals[node])
+
+                self.assertTrue(ann.as_path.is_concrete)
+                self.assertEquals(ann.as_path.get_value(), as_path_vals[node])
+
+                self.assertTrue(ann.as_path_len.is_concrete)
+                self.assertEquals(ann.as_path_len.get_value(), as_path_len_vals[node])
+
+                self.assertTrue(ann.med.is_concrete)
+                self.assertEquals(ann.med.get_value(), DEFAULT_MED)
+
+                self.assertTrue(ann.local_pref.is_concrete)
+                #self.assertEquals(ann.local_pref.get_value(), DEFAULT_LOCAL_PREF)
+
+                for comm, val in ann.communities.iteritems():
+                    self.assertTrue(val.is_concrete)
+                    #self.assertFalse(val.get_value())
 
     def test_kconnected_ebgp(self):
         # Arrange
