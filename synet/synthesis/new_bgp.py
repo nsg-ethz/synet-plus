@@ -460,7 +460,7 @@ class BGP(object):
             self.log.warn("Router ID is not set for {} {}".format(best_neighbor, best_router_id))
         other_router_id = self.network_graph.get_bgp_router_id(other_neighbor)
         if not other_router_id:
-            self.log.warn("Router ID is not set for {} {}".format(other_router_id, other_router_id))
+            self.log.warn("Router ID is not set for {} {}".format(other_neighbor, other_router_id))
         if best_router_id and other_router_id:
             # Router ID are known, we can make assumptions about them
             select_router_id = best_router_id.var < other_router_id.var
@@ -560,7 +560,7 @@ class BGP(object):
                 self.ctx.register_constraint(ann.permitted.var == True, name_prefix='Req_Allow' + n)
 
     def synthesize(self, use_igp=False):
-        self.log.info("Synthesizing BGP for router '%s`", self.node)
+        self.log.info("Synthesizing BGP for router '%s'", self.node)
         self.mark_selected()
         self.compute_imported_routes()
 
