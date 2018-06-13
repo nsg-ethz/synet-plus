@@ -138,7 +138,10 @@ class PropagationTest2(unittest.TestCase):
         next_hops_map = compute_next_hop_map(g)
         next_hops = extract_all_next_hops(next_hops_map)
         peers = [node for node in g.routers_iter() if g.is_bgp_enabled(node)]
-        ctx = SolverContext.create_context(self.get_anns(),
+        anns = self.get_anns()
+        for ann in anns:
+            g.add_bgp_advertise(node=ann.peer, announcement=ann, loopback='lo0')
+        ctx = SolverContext.create_context(anns,
                                            next_hop_list=next_hops,
                                            peer_list=peers,
                                            create_as_paths=False)
@@ -149,9 +152,8 @@ class PropagationTest2(unittest.TestCase):
         g = get_griffin_graph()
         net = "Prefix0"
         prefix_map = {net: ip_network(u'128.0.0.0/24')}
-        g.set_loopback_addr('R1', 'lo0',
-                            ip_interface("%s/%d" % (prefix_map[net].hosts().next(), prefix_map[net].prefixlen)))
-        g.add_bgp_announces('R1', 'lo0')
+        addr = (prefix_map[net].hosts().next(), prefix_map[net].prefixlen)
+        g.set_loopback_addr('R1', 'lo0', ip_interface("%s/%d" % addr))
 
         for src in g.routers_iter():
             for dst in g.get_bgp_neighbors(src):
@@ -343,7 +345,6 @@ class PropagationTest2(unittest.TestCase):
         ifaddr = ip_interface("%s/%d" % (prefix_map[net].hosts().next(), prefix_map[net].prefixlen))
         g.set_loopback_addr('R1', 'lo0', ifaddr)
 
-        g.add_bgp_announces('R1', 'lo0')
         for i, node in enumerate(sorted(g.routers_iter())):
             g.set_loopback_addr('R%d' % (i + 1), 'lo100', ip_interface(u'192.168.0.%d/32' % i))
         #for i in range(1, N):
@@ -403,8 +404,8 @@ class PropagationTest2(unittest.TestCase):
         g = get_ebgp_linear_topo(N)
         net = "Prefix0"
         prefix_map = {net: ip_network(u'128.0.0.0/24')}
-        g.set_loopback_addr('R1', 'lo0', ip_interface("%s/%d" % (prefix_map[net].hosts().next(), prefix_map[net].prefixlen)))
-        g.add_bgp_announces('R1', 'lo0')
+        addr = (prefix_map[net].hosts().next(), prefix_map[net].prefixlen)
+        g.set_loopback_addr('R1', 'lo0', ip_interface("%s/%d" % addr))
 
         for i in range(1, N + 1):
             first = 'R%d' % (i - 1) if i > 1 else None

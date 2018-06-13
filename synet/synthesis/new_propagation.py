@@ -334,10 +334,18 @@ class EBGPPropagation(object):
                         continue
                     external_peer, egress, peer, as_path = get_as_path(path)
                     # Append any extra AS Path info in the original announcement
-                    for ann in self.network_graph.get_bgp_advertise(path[0]):
+                    check = False
+                    ann_source = path[0]
+                    for ann in self.network_graph.get_bgp_advertise(ann_source):
                         if ann.prefix == net:
                             as_path += tuple(ann.as_path)
+                            check = True
                             break
+                    err = "Couldn't find announcement {} at node {}," \
+                          "current announcements are: {}".format(
+                        net, ann_source,
+                        self.network_graph.get_bgp_advertise(ann_source))
+                    assert check, err
                     as_path_len = len(as_path)
                     info = PropagatedInfo(
                         external_peer=external_peer,
@@ -367,6 +375,7 @@ class EBGPPropagation(object):
 
         def find_prev_prop(node, net, propagated):
             assert isinstance(propagated, PropagatedInfo)
+
             as_num = self.network_graph.get_bgp_asnum(node)
             if len(propagated.path) < 2:
                 return None
@@ -376,11 +385,14 @@ class EBGPPropagation(object):
             n_paths = neighbor_attrs['paths_info'].union(neighbor_attrs['block_info'])
             for neighbor_info in n_paths:
                 assert isinstance(neighbor_info, PropagatedInfo)
-                if propagated.peer != neighbor_info.peer \
-                        and as_num != neighbor_as_num \
-                        and propagated.as_path[1:] != neighbor_info.as_path:
-                    continue
-                else:
+                #if propagated.peer != neighbor_info.peer \
+                #        and as_num != neighbor_as_num \
+                #        and propagated.as_path[1:] != neighbor_info.as_path \
+                #        and propagated.path[:-1] != neighbor_info.path:
+                #    continue
+                #else:
+                #    return neighbor_info
+                if propagated.path[:-1] == neighbor_info.path:
                     return neighbor_info
             return None
 
@@ -391,6 +403,7 @@ class EBGPPropagation(object):
                     if len(propagated.path) < 2:
                         continue
                     origin = find_prev_prop(node, net, propagated)
+                    propagated.prev = origin
                     if 'origins' not in attrs:
                         attrs['origins'] = {}
                     attrs['origins'][propagated] = origin
