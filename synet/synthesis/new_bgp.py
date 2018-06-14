@@ -115,6 +115,16 @@ def create_sym_ann(ctx, fixed_values=None, name_prefix=None):
     return new_ann
 
 
+def assert_order(old, new):
+    if old == new:
+        return True
+    elif new is None:
+        return False
+    else:
+        return assert_order(old, new.prev_announcement)
+
+
+
 class BGP(object):
     def __init__(self, node, propagation):
         log_name = '%s.%s' % (self.__module__, self.__class__.__name__)
@@ -144,6 +154,8 @@ class BGP(object):
         self.exported_routes = self.compute_exported_routes()
         self.export_ctx = {}
         self.generated_ospf_reqs = []
+        self._cache = {}
+        self.selection_constraints = {}  # Cache constraints used for the BGP selection
 
     def create_symbolic_announcements(self):
         """
@@ -201,8 +213,8 @@ class BGP(object):
                                            igp_pass=False)
             for prop in all_anns:
                 if neighbor not in exported_info:
-                    exported_info[neighbor] = set()
-                exported_info[neighbor].add(prop)
+                    exported_info[neighbor] = []
+                exported_info[neighbor].append(prop)
 
         for peer, props in exported_info.iteritems():
             self.log.debug("Node %s Exported to %s: %s", self.node, peer, props)
@@ -230,24 +242,6 @@ class BGP(object):
                 props.append(prop)
                 anns.append(ann)
 
-            # Compute next hop
-            curr_as = self.network_graph.get_bgp_asnum(self.node)
-            neighbor_as = self.network_graph.get_bgp_asnum(neighbor)
-            next_hop_sort = self.ctx.get_enum_type(NEXT_HOP_SORT)
-            if curr_as != neighbor_as:
-                match = SMTMatchAll(self.ctx)
-            else:
-                value = self.ctx.create_fresh_var(vsort=next_hop_sort, value=self.ctx.origin_next_hop_var)
-                match = SMTMatchNextHop(value=value, announcements=anns, ctx=self.ctx)
-            tmp1 = self.anns_ctx.create_new(anns, 'SetNextHop_{}_to_{}'.format(self.node, neighbor))
-            next_hop = self.next_hop_map[neighbor][self.node]
-            var = self.ctx.create_fresh_var(vsort=next_hop_sort, value=next_hop, name_prefix='Set_next_hop_from_{}_to_{}_'.format(self.node, neighbor))
-            self.log.debug("At node '%s' computed next hop '%s' to neighbor '%s'.", self.node, str(var), neighbor)
-            action = SMTSetNextHop(match, value=var, announcements=tmp1, ctx=self.ctx)
-            for index, prop in enumerate(props):
-                export_anns[neighbor][prop] = action.announcements[index]
-                anns[index] = action.announcements[index]
-
             # Apply any export policies (if any)
             rmap_name = self.network_graph.get_bgp_export_route_map(self.node, neighbor)
             if not rmap_name:
@@ -259,6 +253,7 @@ class BGP(object):
             smt_map.execute()
             for index, prop in enumerate(props):
                 export_anns[neighbor][prop] = smt_map.announcements[index]
+                assert assert_order(tmp[index], export_anns[neighbor][prop])
         return export_anns
 
     def _get_selected_sham(self):
@@ -299,10 +294,24 @@ class BGP(object):
             for prop, ann in neighbor_exported[self.node].iteritems():
                 assert prop in self.anns_map
                 ann = copy.copy(ann)  # Shallow copy
+                next_hop_sort = self.ctx.get_enum_type(NEXT_HOP_SORT)
+                next_hop = self.next_hop_map[self.node][neighbor]
                 if is_ebgp_neighbor:
                     ann.local_pref = self.ctx.create_fresh_var(
                         z3.IntSort(self.ctx.z3_ctx),
                         value=DEFAULT_LOCAL_PREF)
+                    next_hop_var = self.ctx.create_fresh_var(next_hop_sort, value=next_hop)
+                    ann.next_hop = next_hop_var
+                    self._cache[(self.node, neighbor)] = (True, ann.next_hop, next_hop_var)
+                else:
+                    next_hop_var = self.ctx.create_fresh_var(next_hop_sort, value=None)
+                    prev_next_hop = ann.next_hop
+                    ann.next_hop = next_hop_var
+                    self.ctx.register_constraint(
+                        z3.If(prev_next_hop.var == self.ctx.origin_next_hop_var,
+                              next_hop_var.var == next_hop_sort.get_symbolic_value(next_hop),
+                              next_hop_var.var == prev_next_hop.var,
+                              self.ctx.z3_ctx) == True)
                 imported[prop] = ann
 
             # Apply import route maps if any
@@ -323,6 +332,7 @@ class BGP(object):
                 cc = self.ctx._tracked.keys()[:]
                 for index, prop in enumerate(props):
                     imported[prop] = smt_map.announcements[index]
+                    assert assert_order(tmp[index], imported[prop])
             # Assign the values
             for prop, ann in imported.iteritems():
                 self.anns_map[prop].prev_announcement = ann
@@ -549,7 +559,8 @@ class BGP(object):
         tmp = const_selection + [self.ctx.z3_ctx]
         prefix = "SELECT_at_{}_prefix_{}_path_{}_".format(
             self.node, best_propagated.ann_name, '_'.join(best_propagated.path))
-        self.ctx.register_constraint(z3.And(*tmp) == True, name_prefix=prefix)
+        const_name = self.ctx.register_constraint(z3.And(*tmp) == True, name_prefix=prefix)
+        self.selection_constraints[const_name] = (best_ann_var, other_ann_var, best_propagated, other_propagated, const_selection)
 
     def mark_selected(self):
         for propagated, ann in self.anns_map.iteritems():
