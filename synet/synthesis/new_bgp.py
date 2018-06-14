@@ -609,10 +609,16 @@ class BGP(object):
             for line in rmap.lines:
                 for match in line.matches:
                     if isinstance(match, MatchIpPrefixListList):
-                        self.network_graph.del_ip_prefix_list(self.node, match.match)
+                        try:
+                            self.network_graph.del_ip_prefix_list(self.node, match.match)
+                        except Exception as exp:
+                            pass
                         self.network_graph.add_ip_prefix_list(self.node, match.match)
                     elif isinstance(match, MatchCommunitiesList):
-                        self.network_graph.del_community_list(self.node, match.match)
+                        try:
+                            self.network_graph.del_community_list(self.node, match.match)
+                        except Exception as exp:
+                            pass
                         self.network_graph.add_bgp_community_list(self.node, match.match)
         router_id = self.network_graph.get_bgp_router_id(self.node)
         if router_id and router_id.is_concrete:
