@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Generate evaluation values for all given reqs
-NUM_PROCESSES=20
-NUM_REPEATS=5
+NUM_PROCESSES=1
+NUM_REPEATS=1
 
 
 PATH_TO_TOPOS="topos/*/"

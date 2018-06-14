@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Generate evaluation values for all given reqs
-NUM_PROCESSES=20
+NUM_PROCESSES=1
 NUM_REPEATS=1
 
 
@@ -19,15 +19,15 @@ values="${file}_ospf_reqs.py "
     do
         for req_type in "order" "simple";
         do
-            for fixed in "0";
+            for fixed in "0" "0.5";
             do
-                for sketch in "abs";
+                for sketch in "abs" "attrs";
                 do
                     for RUN_ID in $(seq 1 $NUM_REPEATS);
                     do
-                        echo $topo $values $req_type $reqs $fixed $RUN_ID
+                        echo $topo $values $req_type $reqs $fixed $sketch $RUN_ID
                     done
-               done
+		done
             done
         done
     done
