@@ -16,9 +16,9 @@ BASE=$(basename $TOPO | sed 's/.graphml//')
 LOG_FILE="$PATH_TO_LOGS/$BASE-$SKETCH-$REQ_TYPE-$REQS-$FIXED-$RUN_ID.txt"
 
 echo "Running topology=$BASE reqs_type=$REQ_TYPE num_reqs=$REQS fixed=$FIXED sketch=$SKETCH run-id=$RUN_ID"
+echo "Command $SYNET_SCRIPT $TOPO --values=$VALUES --type=$REQ_TYPE --reqsize=$REQS --fixed=$FIXED --sketch=$SKETCH"
 
 START=$(date +%s)
-echo "Command $SYNET_SCRIPT $TOPO --values=$VALUES --type=$REQ_TYPE --reqsize=$REQS --fixed=$FIXED --sketch=$SKETCH"
 stdbuf -oL $SYNET_SCRIPT $TOPO --values=$VALUES --type=$REQ_TYPE --reqsize=$REQS --fixed=$FIXED --sketch=$SKETCH > $LOG_FILE 2>&1
 END=$(date +%s)
 
