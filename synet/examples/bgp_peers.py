@@ -154,8 +154,10 @@ def bgp_example(output_dir):
 
     for local, peer in [(r2, r3), (r3, r2)]:
         # In Cisco the last line is a drop by default
-        rline4 = RouteMapLine(matches=[], actions=[], access=VALUENOTSET, lineno=100)
-        rmap_export = RouteMap(name='{}_export_{}'.format(local, peer), lines=[rline4])
+        rline1 = RouteMapLine(matches=[], actions=[], access=VALUENOTSET, lineno=10)
+        from tekton.bgp import Access
+        rline2 = RouteMapLine(matches=[], actions=[], access=Access.deny, lineno=100)
+        rmap_export = RouteMap(name='{}_export_{}'.format(local, peer), lines=[rline1, rline2])
         graph.add_route_map(local, rmap_export)
         graph.add_bgp_export_route_map(local, peer, rmap_export.name)
 
