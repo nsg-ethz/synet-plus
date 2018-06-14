@@ -20,6 +20,11 @@ pip install -r requirements.txt
 
 The example at `synet/examples/bgp_peers.py` shows how to use NetComplete to synthesize Provider/Customer peering policies.
 
+Running
+```
+python synet/examples/bgp_peers.py outdir
+```
+
 ### Running NSDI Experiements
 
 Running BGP experiements
