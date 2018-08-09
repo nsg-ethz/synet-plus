@@ -143,5 +143,15 @@ def main():
         t2 = timer()
         print "Update Network graph TIME:", t2 - t1
 
+
+    from tekton.gns3 import GNS3Topo
+    gns3 = GNS3Topo(topo)
+    basename = os.path.basename(topo_file).strip('.graphml')
+    out_name = "%s_%s_%s_%s" % (basename, fixed, req_type, reqsize)
+    out_dir = 'out-configs/%s_%d' % (out_name, ospfRand.randint(0, 1000))
+    print "Writing configs to:", out_dir
+    gns3.write_configs(out_dir)
+
+
 if __name__ == '__main__':
     main()
