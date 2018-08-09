@@ -145,6 +145,7 @@ def main():
 
 
     from tekton.gns3 import GNS3Topo
+    ospf.update_network_graph()
     gns3 = GNS3Topo(topo)
     basename = os.path.basename(topo_file).strip('.graphml')
     out_name = "%s_%s_%s_%s" % (basename, fixed, req_type, reqsize)
