@@ -728,7 +728,7 @@ def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_pre
             next_hop='%sHop' % peer, local_pref=100, med=10,
             communities=cs, permitted=True)
         topo.add_bgp_advertise(peer, ann)
-        bgp_req = PathReq(Protocols.BGP, prefix, req.paths[0].path + [peer], False)
+        bgp_req = PathOrderReq(Protocols.BGP, prefix, [PathReq(Protocols.BGP, prefix, tmp.path + [peer], False) for tmp in req.paths], False)
         all_reqs.append(bgp_req)
 
         for subreq in req.paths:
