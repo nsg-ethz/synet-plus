@@ -11,7 +11,7 @@ from networkx.drawing.nx_agraph import write_dot
 import xmltodict
 import z3
 import os
-from ipaddress import ip_network
+from ipaddress import ip_address, ip_network
 
 from synet.synthesis.connected import ConnectedSyn
 from synet.synthesis.new_propagation import EBGPPropagation
@@ -159,7 +159,7 @@ def gen_simple(topo, ospf_reqs, all_communities):
     for router in topo.routers_iter():
         comm_lists[router] = itertools.count(1)
 
-    for index, req in enumerate(ospf_reqs):
+    for index, req in enumerate(sorted(ospf_reqs, key=lambda x: x.dst_net)):
         print 'X' * 50
         print "REQ PATH", req
         print 'X' * 50
@@ -220,7 +220,7 @@ def gen_order(topo, ospf_reqs, all_communities):
     route_map_lines = {}
     export_route_maps = {}
     comm_subg = {}
-    for index, req in enumerate(ospf_reqs):
+    for index, req in enumerate(sorted(ospf_reqs, key=lambda x: x.dst_net)):
         subg = nx.DiGraph()
         egress = req.paths[0].path[-1]
         peer = "Peer%s_%d" % (egress, index)
@@ -627,7 +627,7 @@ def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_pr
     for router in topo.routers_iter():
         comm_lists[router] = itertools.count(1)
 
-    for index, req in enumerate(ospf_reqs):
+    for index, req in enumerate(sorted(ospf_reqs, key=lambda x: x.dst_net)):
 
         egress = req.path[-1]
         peer = "Peer%s_%d" % (egress, index)
@@ -698,7 +698,7 @@ def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_pre
         comm_lists[router] = itertools.count(1)
 
 
-    for index, req in enumerate(ospf_reqs):
+    for index, req in enumerate(sorted(ospf_reqs, key=lambda x: x.dst_net)):
 
         egress = req.paths[0].path[-1]
         peer = "Peer%s_%d" % (egress, index)
@@ -1054,7 +1054,7 @@ def main():
     announcements = []
     for peer in topo.peers_iter():
         announcements.extend(topo.get_bgp_advertise(peer))
-
+    prefixes = sorted([ann.prefix for ann in announcements])
     ctx = create_context(all_reqs, topo, announcements)
 
     begin = timer()
@@ -1084,8 +1084,15 @@ def main():
 
 
     from tekton.gns3 import GNS3Topo
-    gns3 = GNS3Topo(topo)
-
+    prefix_map = {}
+    next_announced_prefix = int(ip_address(u'128.0.0.0'))
+    for prefix in prefixes:
+        ip = ip_address(next_announced_prefix)
+        net = ip_network(u"%s/24" % ip)
+        next_announced_prefix += 256
+        prefix_map[prefix] = net
+        print("Prefix {}: {}".format(prefix, net))
+    gns3 = GNS3Topo(topo, prefix_map=prefix_map)
     out_dir = 'out-configs/%s_%d' % (out_name, rand.randint(0, 1000))
     print "Writing configs to:", out_dir
     gns3.write_configs(out_dir)
