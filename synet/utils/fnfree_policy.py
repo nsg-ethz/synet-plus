@@ -1444,9 +1444,9 @@ class SMTActions(SMTAbstractAction):
                     communities = []
                 configs.append(config)
         # Left over communities
-        #if communities:
-        #    config = _gather_communities(communities, index - 1)
-        #    configs.append(config)
+        if communities:
+            config = _gather_communities(communities, index)
+            configs.append(config)
         return configs
 
 

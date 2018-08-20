@@ -2955,6 +2955,34 @@ class TestSMTActions(unittest.TestCase):
         self.assertEquals(new_anns[0].med.get_value(), 10)
         self.assertEquals(new_anns[1].med.get_value(), 10)
 
+    def test_mixed_actions(self):
+        # Arrange
+        concrete_anns = self.get_anns()
+        ctx = self.get_ctx(concrete_anns)
+        sym_anns = self.get_sym(concrete_anns, ctx)
+        match = None
+        # Act
+        c = Community("100:16")
+        raction1 = ActionSetNextHop(VALUENOTSET)
+        raction2 = ActionSetCommunity([VALUENOTSET], additive=True)
+        action = SMTActions(match, [raction1, raction2], sym_anns, ctx)
+        new_anns = action.announcements
+        solver = z3.Solver(ctx=ctx.z3_ctx)
+        solver.add(new_anns[0].communities[c].var == True)
+        solver.add(new_anns[1].communities[c].var == True)
+        solver.add(new_anns[0].next_hop.var == sym_anns[0].next_hop.var)
+        solver.add(new_anns[1].next_hop.var == sym_anns[0].next_hop.var)
+        is_sat = ctx.check(solver)
+        # Assert
+        self.assertEquals(is_sat, z3.sat)
+        ctx.set_model(solver.model())
+        print(solver.model())
+        self.assertEquals(action.smt_actions[0].value.get_value(), 'Hop1')
+        self.assertEquals(action.smt_actions[1].get_used_action().value.get_value(), True)
+        self.assertEquals(new_anns[0].communities[c].get_value(), True)
+        self.assertEquals(new_anns[1].communities[c].get_value(), True)
+        self.assertEquals(action.get_config(), [ActionSetNextHop('Hop1'), ActionSetCommunity([c], additive=True)])
+
 
 @attr(speed='fast')
 class TestSMTRouteMapLine(unittest.TestCase):
