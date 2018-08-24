@@ -1582,7 +1582,7 @@ class SMTRouteMapLine(SMTAbstractAction):
 
     def __str__(self):
         return "SMTRouteMapLine(matches=%s, actions=%s, access=%s, lineno=%s)" % (
-            self.smt_match, self.line.actions, self.line.actions, self.line
+            self.smt_match, self.line.actions, self.line.access, self.line.lineno
         )
 
 
