@@ -3,6 +3,8 @@ import random
 import sys
 import json
 import itertools
+
+from collections import defaultdict
 from functools import partial
 from timeit import default_timer as timer
 
@@ -125,29 +127,114 @@ def setup_logging():
 
 
 def assign_ebgp(topo):
+    """
+    Assigns BGP AS numbers for nodes in the topology and establishes
+    BGP sessions between every router and it's neighbors
+    :param topo: NetworkGraph
+    :return: None
+    """
+    assert isinstance(topo, NetworkGraph)
     # Assigning eBGP
-    asnum = 10
+    asnum_gen = itertools.count(10, step=10)
     for node in sorted(topo.local_routers_iter()):
-        topo.set_bgp_asnum(node, asnum)
-        asnum += 10
+        topo.set_bgp_asnum(node, asnum_gen.next())
     for src, dst in topo.edges():
+        if not topo.is_router(src) or not topo.is_router(dst):
+            continue
         if dst not in topo.get_bgp_neighbors(src):
             topo.add_bgp_neighbor(src, dst, VALUENOTSET, VALUENOTSET)
 
 
 def set_access(line, access):
+    """
+    Auxiliary to set permit attribute in a RouteMapLine
+
+    :param line: RoutMapLine
+    :param access: Access.permit, Access.deny or VALUENOTSET
+    :return: RouteMapLine
+    """
     line.access = access
     return line
 
 
 def set_comms(match, comms):
+    """
+    Auxiliary to set communities in Match
+    :param match: Match
+    :param comms: list of communities or VALUENOTSET
+    :return: match
+    """
     match.match.communities = comms
     return match
 
 
-def syn_pref(setpref, pref):
-    setpref.value = pref
-    return setpref
+def syn_pref(set_pref_action, pref):
+    """
+    Auxiliary to set local pref value on SetLocalPrefAction
+    :param set_pref_action: SetLocalPrefAction
+    :param pref: int or VALUENOTSET
+    :return: SetLocalPrefAction
+    """
+    set_pref_action.value = pref
+    return set_pref_action
+
+
+def setup_bgp(topo, ospf_reqs, all_communities):
+    """
+    Setup BGP experiment
+    :param topo: NetworkGraph
+    :param ospf_reqs: list of OSPF requirements to be converted to BGP
+    :param all_communities: list of all known communities
+    :return:
+        all_reqs: same ospf_reqs but transformed for BGP reqs
+        syn_vals: partially evaluated symbolic values to be saved
+    """
+    assert isinstance(topo, NetworkGraph)
+    assign_ebgp(topo)
+    all_reqs = []
+    syn_vals = []
+    # Generate AS Numbers for external peers
+    peers_gen = itertools.count(10000, 10)
+    peer_asnum = peers_gen.next()
+    for index, req in enumerate(sorted(ospf_reqs, key=lambda x: x.dst_net)):
+        # Add node to the graph
+        egress = req.paths[0].path[-1]
+        peer = "Peer%s_%d" % (egress, index)
+        topo.add_peer(peer)
+        # Set BGP properties for the new node
+        peer_asnum += 10
+        topo.set_bgp_asnum(peer, peer_asnum)
+        topo.add_peer_edge(peer, egress)
+        topo.add_peer_edge(egress, peer)
+        topo.add_bgp_neighbor(peer, egress, VALUENOTSET, VALUENOTSET)
+        # Tag by default announcements from the external peer
+        peer_comm = all_communities[index]
+        set_comm = ActionSetCommunity([peer_comm])
+        set_pref = ActionSetLocalPref(VALUENOTSET)
+        line = RouteMapLine(matches=[], actions=[set_comm, set_pref], access=VALUENOTSET, lineno=10)
+        syn_vals.append(partial(set_access, line=line, access=Access.permit))
+        rname = "RMap_External_%s_from_%s" % (egress, peer)
+        rmap = RouteMap(rname, lines=[line])
+        topo.add_route_map(egress, rmap)
+        topo.add_bgp_import_route_map(egress, peer, rname)
+        # Inject the initial announcement for that traffic class
+        cs = dict([(c, False) for c in all_communities])
+        prefix = 'P_%s' % (peer,)
+        ann = Announcement(
+            prefix=prefix,
+            peer=peer,
+            origin=BGP_ATTRS_ORIGIN.EBGP,
+            as_path=[1, 2], as_path_len=2,
+            next_hop='%sHop' % peer, local_pref=100, med=10,
+            communities=cs, permitted=True)
+        topo.add_bgp_advertise(peer, ann)
+        # The virtual peer inject the announcement to the network
+        topo.add_bgp_advertise(peer, ann)
+        # Extend the path requirements to include the virtual peer
+        bgp_req = PathOrderReq(Protocols.BGP, prefix,
+                               [PathReq(Protocols.BGP, prefix, tmp.path + [peer], False) for tmp in req.paths], False)
+        all_reqs.append(bgp_req)
+    return all_reqs, syn_vals
 
 
 def gen_simple(topo, ospf_reqs, all_communities):
@@ -689,74 +776,74 @@ def gen_simple_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_pr
 
 def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_prefix_map):
     assert isinstance(topo, NetworkGraph)
-    assign_ebgp(topo)
-    peer_asnum = 10000
-    all_reqs = []
+    all_reqs, syn_vals = setup_bgp(topo, ospf_reqs, all_communities)
     syn_vals = []
-    comm_lists = {}
+
+    # A generator for unique community list id per router
+    comm_list_id_gen = {}
     for router in topo.routers_iter():
-        comm_lists[router] = itertools.count(1)
+        comm_list_id_gen[router] = itertools.count(1)
+    all_peers = []
+    # Compute number of imports from a neighbor
+    import_degree = defaultdict(lambda: defaultdict(lambda: 0))
+    for index, req in enumerate(sorted(all_reqs, key=lambda x: x.dst_net)):
+        peer = req.paths[0].path[-1]
+        all_peers.append(peer)
+        for rank, path in enumerate(req.paths):
+            for src, dst in zip(path.path[0::1], path.path[1::1]):
+                import_degree[src][dst] += 1
 
+    for node in sorted(topo.nodes()):
+        if topo.is_peer(node):
+            continue
+        for neighbor in sorted(topo.neighbors(node)):
 
-    for index, req in enumerate(sorted(ospf_reqs, key=lambda x: x.dst_net)):
+            export_rmap_name = "RMap_%s_to_%s" % (node, neighbor)
+            if export_rmap_name in partially_evaluated:
+                rmap_des = deserialize_route_map(topo, neighbor, export_rmap_name,
+                                                 partially_evaluated[export_rmap_name], inv_prefix_map)
+                topo.add_route_map(node, rmap_des)
+                topo.add_bgp_export_route_map(node, neighbor, rmap_des.name)
+            else:
+                line = RouteMapLine(matches=None, actions=None, access=VALUENOTSET, lineno=100)
+                export_rmap = RouteMap(export_rmap_name, lines=[line])
+                topo.add_route_map(node, export_rmap)
+                topo.add_bgp_export_route_map(node, neighbor, export_rmap_name)
 
-        egress = req.paths[0].path[-1]
-        peer = "Peer%s_%d" % (egress, index)
-        topo.add_peer(peer)
-        peer_asnum += 10
-        topo.set_bgp_asnum(peer, peer_asnum)
-        topo.add_peer_edge(peer, egress)
-        topo.add_peer_edge(egress, peer)
-        topo.add_bgp_neighbor(peer, egress, VALUENOTSET, VALUENOTSET)
+            if topo.is_peer(neighbor):
+                continue
 
-        peer_comm = all_communities[index]
-        set_comm = ActionSetCommunity([peer_comm])
-        line = RouteMapLine(matches=None, actions=[set_comm], access=VALUENOTSET, lineno=10)
-        syn_vals.append(partial(set_access, line=line, access=Access.permit))
-        rname = "RMap_%s_from_%s" % (egress, peer)
-        rmap = RouteMap(rname, lines=[line])
-        topo.add_route_map(egress, rmap)
-        topo.add_bgp_import_route_map(egress, peer, rname)
-
-        cs = dict([(c, False) for c in all_communities])
-        prefix = 'P_%s' % (peer,)
-        ann = Announcement(
-            prefix=prefix,
-            peer=peer,
-            origin=BGP_ATTRS_ORIGIN.EBGP,
-            as_path=[1, 2], as_path_len=2,
-            next_hop='%sHop' % peer, local_pref=100, med=10,
-            communities=cs, permitted=True)
-        topo.add_bgp_advertise(peer, ann)
-        bgp_req = PathOrderReq(Protocols.BGP, prefix, [PathReq(Protocols.BGP, prefix, tmp.path + [peer], False) for tmp in req.paths], False)
-        all_reqs.append(bgp_req)
-
-        for subreq in req.paths:
-            for node in subreq.path:
-                for _, neighbor in topo.out_edges(node):
-                    if neighbor in subreq.path:
-                        continue
-                    rname = "RMap_%s_from_%s" % (neighbor, node)
-                    if rname in partially_evaluated:
-                        rmap_des = deserialize_route_map(topo, neighbor, rname, partially_evaluated[rname], inv_prefix_map)
-                        topo.add_route_map(neighbor, rmap_des)
-                        topo.add_bgp_import_route_map(neighbor, node, rname)
-                        comm_lists[node].next()
-                        continue
-                    clist = CommunityList(comm_lists[node].next(), Access.permit, [VALUENOTSET, VALUENOTSET, VALUENOTSET])
+            import_rmap_name = "RMap_%s_from_%s" % (node, neighbor)
+            if import_rmap_name in partially_evaluated:
+                rmap_des = deserialize_route_map(topo, neighbor, import_rmap_name,
+                                                 partially_evaluated[import_rmap_name], inv_prefix_map)
+                topo.add_route_map(node, rmap_des)
+                topo.add_bgp_import_route_map(node, neighbor, import_rmap_name)
+            else:
+                lines = []
+                lineno_gen = itertools.count(10, step=10)
+                for _ in range(import_degree[node][neighbor]):
+                    clist = CommunityList(comm_list_id_gen[node].next(), Access.permit,
+                                          [VALUENOTSET, VALUENOTSET, VALUENOTSET])
                     topo.add_bgp_community_list(node, clist)
                     match_comms = MatchCommunitiesList(clist)
-                    ip_list = IpPrefixList(name='IpL_%s_%s' % (neighbor, node), access=Access.permit, networks=[VALUENOTSET])
+                    ip_list = IpPrefixList(name='IpL_%s_%s' % (neighbor, node), access=Access.permit,
+                                           networks=[VALUENOTSET])
                     topo.add_ip_prefix_list(neighbor, ip_list)
                     match_ip = MatchIpPrefixListList(ip_list)
                     match_next_hop = MatchNextHop(VALUENOTSET)
                     match = MatchSelectOne([match_comms, match_ip, match_next_hop])
-                    line1 = RouteMapLine(matches=[match], actions=[ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET])], access=VALUENOTSET, lineno=10)
-                    line_deny = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=100)
-                    rmap = RouteMap(rname, lines=[line1, line_deny])
-                    topo.add_route_map(neighbor, rmap)
-                    topo.add_bgp_import_route_map(neighbor, node, rname)
-    return all_reqs
+                    line = RouteMapLine(matches=[match],
+                                        actions=[ActionSetLocalPref(VALUENOTSET), ActionSetCommunity([VALUENOTSET])],
+                                        access=VALUENOTSET, lineno=lineno_gen.next())
+                    lines.append(line)
+                line_deny = RouteMapLine(matches=None, actions=None, access=Access.deny, lineno=lineno_gen.next())
+                lines.append(line_deny)
+                import_rmap_name = "RMap_%s_from_%s" % (node, neighbor)
+                rmap = RouteMap(import_rmap_name, lines=lines)
+                topo.add_route_map(node, rmap)
+                topo.add_bgp_import_route_map(node, neighbor, import_rmap_name)
+    return all_reqs, syn_vals
 
 
 
@@ -1044,7 +1131,7 @@ def main():
     elif req_type == 'order':
         ospf_reqs = eval('reqs_order_%d_%d' % (reqsize, k))
         all_communities = [Community("100:%d" % i) for i in range(len(ospf_reqs))]
-        all_reqs = gen_order_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps, inv_prefix_map)
+        all_reqs, syn_vals = gen_order_abs(topo, ospf_reqs, all_communities, partially_eval_rmaps, inv_prefix_map)
     else:
         raise ValueError("Unknow req type %s", req_type)
 
