@@ -822,12 +822,12 @@ def gen_order_abs(topo, ospf_reqs, all_communities, partially_evaluated, inv_pre
             else:
                 lines = []
                 lineno_gen = itertools.count(10, step=10)
-                for _ in range(import_degree[node][neighbor]):
+                for i in range(import_degree[node][neighbor]):
                     clist = CommunityList(comm_list_id_gen[node].next(), Access.permit,
                                           [VALUENOTSET, VALUENOTSET, VALUENOTSET])
                     topo.add_bgp_community_list(node, clist)
                     match_comms = MatchCommunitiesList(clist)
-                    ip_list = IpPrefixList(name='IpL_%s_%s' % (neighbor, node), access=Access.permit,
+                    ip_list = IpPrefixList(name='IpL_%s_%s_%d' % (neighbor, node, i), access=Access.permit,
                                            networks=[VALUENOTSET])
                     topo.add_ip_prefix_list(neighbor, ip_list)
                     match_ip = MatchIpPrefixListList(ip_list)
